@@ -42,7 +42,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex min-h-screen w-full">
-      <Sidebar collapsible="icon" variant="sidebar" side="left" defaultOpen={true}>
+      <Sidebar collapsible="icon" variant="sidebar" side="left">
         <SidebarHeader className="p-4 border-b border-sidebar-border">
           <Link href="/" className="flex items-center gap-2 group">
             <GraduationCap className="h-8 w-8 text-sidebar-primary transition-transform group-hover:scale-110" />
