@@ -6,21 +6,22 @@ export type Student = {
   lastNamePaternal: string;
   lastNameMaternal: string;
   email: string;
-  career: string; // Stores the name of the career
-  commune?: string; // Stores the name of the commune, optional
-  tutor?: string; // Stores the name of the tutor, optional
-  practicumLevel: string; // Nivel de Práctica, stores the name
+  career: string; 
+  commune?: string; 
+  tutor?: string; 
+  practicumLevel: string; 
   specialConditions?: string;
+  location?: string; // Used for matching students to institutions, can be same as commune or more general
 };
 
 export type Institution = {
   id: string;
   name: string;
-  location: string; // This might be more general, while commune is specific for student
+  location: string; 
   contactName: string;
   contactEmail: string;
   contactPhone?: string;
-  logo?: string; // Optional: URL to a logo image
+  logo?: string; 
 };
 
 export type AcademicLevel = {
@@ -42,4 +43,3 @@ export type Tutor = {
   id: string;
   name: string;
 };
-

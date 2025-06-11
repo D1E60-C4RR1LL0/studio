@@ -13,11 +13,13 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { CalendarIcon, SendHorizonal } from "lucide-react";
 import { format } from "date-fns";
-import { es } from "date-fns/locale"; // Import Spanish locale for date-fns
+import { es } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { getStudents, getAcademicLevels } from "@/lib/data";
 import type { Student, AcademicLevel } from "@/lib/definitions";
 import { useToast } from "@/hooks/use-toast";
+import { useRouter } from 'next/navigation';
+import { usePracticumProgress, STAGES, STAGE_PATHS } from '@/hooks/usePracticumProgress';
 
 export default function StudentNotificationsPage() {
   const [students, setStudents] = React.useState<Student[]>([]);
@@ -31,6 +33,16 @@ export default function StudentNotificationsPage() {
   const [scheduledTime, setScheduledTime] = React.useState<string>("09:00");
 
   const { toast } = useToast();
+  const router = useRouter(); // Not strictly needed for redirection TO this page if hook handles it
+  const { maxAccessLevel, isLoadingProgress } = usePracticumProgress();
+
+
+  React.useEffect(() => {
+    if (!isLoadingProgress && maxAccessLevel < STAGES.STUDENT_NOTIFICATION) {
+      // This will be handled by the hook's global redirect.
+      // router.replace(STAGE_PATHS[STAGES.INSTITUTION_NOTIFICATION]); 
+    }
+  }, [maxAccessLevel, isLoadingProgress, router]);
 
   React.useEffect(() => {
     async function loadData() {
@@ -46,8 +58,10 @@ export default function StudentNotificationsPage() {
         });
       }
     }
-    loadData();
-  }, [toast]);
+    if (!isLoadingProgress && maxAccessLevel >= STAGES.STUDENT_NOTIFICATION) {
+      loadData();
+    }
+  }, [toast, isLoadingProgress, maxAccessLevel]);
 
   const selectedStudent = students.find(s => s.id === selectedStudentId);
 
@@ -66,7 +80,6 @@ export default function StudentNotificationsPage() {
     const [hours, minutes] = scheduledTime.split(':').map(Number);
     scheduledDateTime.setHours(hours, minutes);
     
-    // Replace placeholder in message
     const finalMessage = emailMessage.replace(/\[Nombre del Estudiante\]/g, selectedStudent.name);
 
     console.log("Enviando correo a:", selectedStudent.email);
@@ -76,17 +89,22 @@ export default function StudentNotificationsPage() {
 
     toast({
       title: "Notificación Programada (Simulado)",
-      description: `Correo para ${selectedStudent.name} programado para ${scheduledDateTime.toLocaleString('es-CL')}.`,
+      description: `Correo para ${selectedStudent.name} programado para ${scheduledDateTime.toLocaleString('es-CL')}. Este es el último paso.`,
     });
 
-    // Reset form
     setSelectedStudentId("");
     setSelectedLevelId("");
     setEmailSubject("");
     setEmailMessage("");
     setScheduledDate(undefined);
     setScheduledTime("09:00");
+    // No advanceStage or router.push needed here as it's the last step in this flow.
   };
+
+  if (isLoadingProgress) {
+    return <div className="flex justify-center items-center h-64"><p>Cargando notificaciones a estudiantes...</p></div>;
+  }
+  // The hook handles redirection if access is not granted.
 
   return (
     <>
@@ -110,7 +128,7 @@ export default function StudentNotificationsPage() {
                   </SelectTrigger>
                   <SelectContent>
                     {students.map(student => (
-                      <SelectItem key={student.id} value={student.id}>{student.name} ({student.email})</SelectItem>
+                      <SelectItem key={student.id} value={student.id}>{student.firstName} {student.lastNamePaternal} ({student.email})</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -151,7 +169,7 @@ export default function StudentNotificationsPage() {
                 onChange={(e) => setEmailMessage(e.target.value)}
                 required
               />
-              {selectedStudent && <p className="text-xs text-muted-foreground mt-1">Marcador disponible: [Nombre del Estudiante] será reemplazado por "{selectedStudent.name}".</p>}
+              {selectedStudent && <p className="text-xs text-muted-foreground mt-1">Marcador disponible: [Nombre del Estudiante] será reemplazado por "{selectedStudent.firstName} {selectedStudent.lastNamePaternal}".</p>}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -178,6 +196,7 @@ export default function StudentNotificationsPage() {
                       onSelect={setScheduledDate}
                       initialFocus
                       locale={es}
+                      fromDate={new Date()} // Prevent selecting past dates
                     />
                   </PopoverContent>
                 </Popover>
@@ -194,7 +213,11 @@ export default function StudentNotificationsPage() {
               </div>
             </div>
             
-            <Button type="submit" className="w-full md:w-auto">
+            <Button 
+                type="submit" 
+                className="w-full md:w-auto"
+                disabled={!selectedStudent || !selectedLevelId || !emailSubject.trim() || !emailMessage.trim() || !scheduledDate || isLoadingProgress}
+            >
               <SendHorizonal className="mr-2 h-4 w-4" /> Programar Notificación
             </Button>
           </CardContent>

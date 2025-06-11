@@ -12,6 +12,8 @@ import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/page-header";
 import { Search, Edit3, Check, UserPlus, List } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useRouter } from 'next/navigation';
+import { usePracticumProgress, STAGES, STAGE_PATHS } from '@/hooks/usePracticumProgress';
 
 type ViewMode = "table" | "addForm" | "editForm";
 
@@ -25,13 +27,14 @@ export default function StudentManagementPage() {
   const [viewMode, setViewMode] = React.useState<ViewMode>("table");
 
   const { toast } = useToast();
+  const router = useRouter();
+  const { advanceStage, isLoadingProgress: isLoadingPracticumProgress } = usePracticumProgress();
 
   const fetchData = React.useCallback(async () => {
     try {
       setIsLoading(true);
       const data = await getStudents();
       setStudents(data);
-      // setFilteredStudents(data); // Filtered students will be updated by useEffect
     } catch (error) {
       toast({
         title: "Error al obtener estudiantes",
@@ -63,17 +66,14 @@ export default function StudentManagementPage() {
   
   const handleSaveStudent = async (studentToSave: Student | Omit<Student, 'id'>) => {
     try {
-      // For adding a new student, `studentToSave` will be Omit<Student, 'id'>
-      // For editing, it will be Student (with an id)
       const studentWithPossibleId = studentToSave as Partial<Student> & Omit<Student, 'id'>;
-
       const studentPayload: Student = studentWithPossibleId.id 
-        ? studentWithPossibleId as Student // If id exists, it's an existing student
-        : { ...studentWithPossibleId, id: `new-${Date.now()}` } as Student; // If no id, create a temp one for saving
+        ? studentWithPossibleId as Student
+        : { ...studentWithPossibleId, id: `new-${Date.now()}-${Math.random().toString(36).substring(7)}` } as Student;
 
       const savedStudent = await saveStudent(studentPayload);
       
-      await fetchData(); // Refetch all students to update the list
+      await fetchData(); 
       
       toast({
         title: "Estudiante Guardado",
@@ -89,7 +89,6 @@ export default function StudentManagementPage() {
       });
     }
   };
-
 
   const handleTableSelectionChange = (studentId: string, isSelected: boolean) => {
     setSelectedStudentsForConfirmation(prevSelected => {
@@ -119,11 +118,11 @@ export default function StudentManagementPage() {
 
     toast({
       title: "Selección Confirmada",
-      description: `Estudiantes seleccionados: ${selectedNames}. (Simulado)`,
+      description: `Estudiantes seleccionados: ${selectedNames}. Avanzando al siguiente paso.`,
     });
-    // Here you would typically proceed to the next step, e.g., institution notifications
-    // For now, just clear selection
-    setSelectedStudentsForConfirmation(new Set());
+    
+    advanceStage(STAGES.INSTITUTION_NOTIFICATION);
+    router.push(STAGE_PATHS[STAGES.INSTITUTION_NOTIFICATION]);
   }
   
   const pageTitles = {
@@ -135,6 +134,14 @@ export default function StudentManagementPage() {
     table: "Selecciona los alumnos que podrían realizar su práctica en esta institución.",
     addForm: "Complete el formulario para agregar un nuevo estudiante a la base de datos.",
     editForm: "Busque por RUT y modifique los datos del estudiante."
+  }
+
+  if (isLoadingPracticumProgress || isLoading) {
+    return (
+        <div className="flex justify-center items-center h-64">
+            <p>Cargando gestión de estudiantes...</p> {/* Or use a spinner component */}
+        </div>
+    );
   }
 
   return (
@@ -194,7 +201,12 @@ export default function StudentManagementPage() {
           />
 
           <div className="mt-6 flex justify-start">
-            <Button onClick={handleConfirmSelection} size="lg" className="bg-green-600 hover:bg-green-700 text-white" disabled={selectedStudentsForConfirmation.size === 0}>
+            <Button 
+                onClick={handleConfirmSelection} 
+                size="lg" 
+                className="bg-green-600 hover:bg-green-700 text-white" 
+                disabled={selectedStudentsForConfirmation.size === 0 || isLoadingPracticumProgress}
+            >
               <Check className="mr-2 h-5 w-5" /> Confirmar selección
             </Button>
           </div>
@@ -217,4 +229,3 @@ export default function StudentManagementPage() {
     </>
   );
 }
-

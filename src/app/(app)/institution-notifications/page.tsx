@@ -15,6 +15,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { Send } from "lucide-react";
+import { useRouter } from 'next/navigation';
+import { usePracticumProgress, STAGES, STAGE_PATHS } from '@/hooks/usePracticumProgress';
 
 export default function InstitutionNotificationsPage() {
   const [institutions, setInstitutions] = React.useState<Institution[]>([]);
@@ -23,7 +25,17 @@ export default function InstitutionNotificationsPage() {
   const [selectedStudents, setSelectedStudents] = React.useState<Record<string, boolean>>({});
   const [emailSubject, setEmailSubject] = React.useState("");
   const [emailBody, setEmailBody] = React.useState("");
+  
   const { toast } = useToast();
+  const router = useRouter();
+  const { advanceStage, maxAccessLevel, isLoadingProgress } = usePracticumProgress();
+
+  React.useEffect(() => {
+    if (!isLoadingProgress && maxAccessLevel < STAGES.INSTITUTION_NOTIFICATION) {
+      // This will be handled by the hook's global redirect, but good for immediate feedback if needed
+      // router.replace(STAGE_PATHS[STAGES.STUDENT_SELECTION]); 
+    }
+  }, [maxAccessLevel, isLoadingProgress, router]);
 
   React.useEffect(() => {
     async function loadData() {
@@ -32,7 +44,8 @@ export default function InstitutionNotificationsPage() {
         setInstitutions(instData);
         setStudents(studentData);
         if (instData.length > 0) {
-          setSelectedInstitution(instData[0]); 
+          // Optionally pre-select first institution if desired, or leave it to user
+          // setSelectedInstitution(instData[0]); 
         }
       } catch (error) {
         toast({
@@ -42,13 +55,15 @@ export default function InstitutionNotificationsPage() {
         });
       }
     }
-    loadData();
-  }, [toast]);
+    if (!isLoadingProgress && maxAccessLevel >= STAGES.INSTITUTION_NOTIFICATION) {
+        loadData();
+    }
+  }, [toast, isLoadingProgress, maxAccessLevel]);
 
   const handleInstitutionChange = (institutionId: string) => {
     const inst = institutions.find(i => i.id === institutionId);
     setSelectedInstitution(inst || null);
-    setSelectedStudents({}); // Reset student selection when institution changes
+    setSelectedStudents({}); 
   };
 
   const handleStudentSelect = (studentId: string, checked: boolean) => {
@@ -65,10 +80,18 @@ export default function InstitutionNotificationsPage() {
       });
       return;
     }
+    if (!emailSubject.trim() || !emailBody.trim()) {
+      toast({
+        title: "Correo incompleto",
+        description: "Por favor, complete el asunto y el cuerpo del mensaje.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     const studentsForEmail = students
       .filter(s => selectedStudents[s.id])
-      .map(s => `- ${s.name} (${s.career}, ${s.practicumLevel})`)
+      .map(s => `- ${s.firstName} ${s.lastNamePaternal} (${s.career}, ${s.practicumLevel})`)
       .join("\n");
 
     const finalEmailBody = `Estimado/a ${selectedInstitution.contactName},\n\n${emailBody}\n\nA continuación, la lista de estudiantes para la práctica:\n${studentsForEmail}\n\nAtentamente,\nEquipo de Gestión de Prácticas`;
@@ -79,14 +102,18 @@ export default function InstitutionNotificationsPage() {
 
     toast({
       title: "Notificación Enviada (Simulado)",
-      description: `Correo preparado para ${selectedInstitution.name}.`,
+      description: `Correo preparado para ${selectedInstitution.name}. Avanzando al siguiente paso.`,
     });
-    // Reset form or parts of it
-    setSelectedStudents({});
-    setEmailSubject("");
-    setEmailBody("");
+    
+    advanceStage(STAGES.STUDENT_NOTIFICATION);
+    router.push(STAGE_PATHS[STAGES.STUDENT_NOTIFICATION]);
   };
 
+  if (isLoadingProgress) {
+    return <div className="flex justify-center items-center h-64"><p>Cargando notificaciones a instituciones...</p></div>;
+  }
+  // The hook handles redirection if access is not granted.
+  // No need for an explicit check here to render null or redirect, as the hook does it globally.
 
   return (
     <>
@@ -171,21 +198,24 @@ export default function InstitutionNotificationsPage() {
                           id={`student-${student.id}`}
                           checked={selectedStudents[student.id] || false}
                           onCheckedChange={(checked) => handleStudentSelect(student.id, Boolean(checked))}
+                          disabled={!selectedInstitution}
                         />
                         <label
                           htmlFor={`student-${student.id}`}
                           className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                         >
-                          {student.name} ({student.career})
+                          {student.firstName} {student.lastNamePaternal} ({student.career})
                         </label>
                       </div>
                     ))
                   ) : (
-                    <p className="text-sm text-muted-foreground p-2">No hay estudiantes asignados actualmente a {selectedInstitution?.name || 'la institución seleccionada'}.</p>
+                    <p className="text-sm text-muted-foreground p-2">
+                      {selectedInstitution ? `No hay estudiantes asignados actualmente a ${selectedInstitution.name}.` : 'Seleccione una institución para ver estudiantes.'}
+                    </p>
                   )}
                 </ScrollArea>
               </div>
-              <Button type="submit" className="w-full md:w-auto" disabled={!selectedInstitution}>
+              <Button type="submit" className="w-full md:w-auto" disabled={!selectedInstitution || Object.values(selectedStudents).filter(Boolean).length === 0 || !emailSubject.trim() || !emailBody.trim() || isLoadingProgress}>
                 <Send className="mr-2 h-4 w-4" /> Enviar Notificación
               </Button>
             </CardContent>

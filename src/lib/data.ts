@@ -1,15 +1,39 @@
 
 import type { Student, Institution, AcademicLevel, Career, Commune, Tutor } from './definitions';
 
+// Initial mock data (immutable)
 export const mockStudentsData: Student[] = [
-  { id: '1', firstName: 'Ana Sofía', lastNamePaternal: 'Pérez', lastNameMaternal: 'García', rut: '11.111.111-1', career: 'Ingeniería de Software', email: 'ana.perez@example.com', practicumLevel: 'Práctica I', tutor: 'Dr. Carlos Soto', commune: 'Santiago', specialConditions: 'Requiere configuración para trabajo remoto' },
-  { id: '2', firstName: 'Juan José', lastNamePaternal: 'Rodríguez', lastNameMaternal: 'Vera', rut: '22.222.222-2', career: 'Diseño Gráfico', email: 'juan.rodriguez@example.com', practicumLevel: 'Práctica Profesional', tutor: 'Prof. Laura Vera', commune: 'Valparaíso' },
-  { id: '3', firstName: 'María Fernanda', lastNamePaternal: 'González', lastNameMaternal: 'Díaz', rut: '33.333.333-3', career: 'Administración de Empresas', email: 'maria.gonzalez@example.com', practicumLevel: 'Práctica II', tutor: 'Dr. Roberto Diaz', commune: 'Providencia', specialConditions: 'Necesita lugar de trabajo accesible' },
-  { id: '4', firstName: 'Luis Alberto', lastNamePaternal: 'Martínez', lastNameMaternal: 'Soto', rut: '44.444.444-4', career: 'Ingeniería de Software', email: 'luis.martinez@example.com', practicumLevel: 'Práctica I', tutor: 'Dr. Carlos Soto', commune: 'Concepción' },
-  { id: '5', firstName: 'Camila Andrea', lastNamePaternal: 'Silva', lastNameMaternal: 'Reyes', rut: '55.555.555-5', career: 'Ingeniería Civil', email: 'camila.silva@example.com', practicumLevel: 'Práctica Profesional', tutor: 'Prof. Elena Reyes', commune: 'Antofagasta' },
+  { id: '1', firstName: 'Ana Sofía', lastNamePaternal: 'Pérez', lastNameMaternal: 'García', rut: '11.111.111-1', career: 'Ingeniería de Software', email: 'ana.perez@example.com', practicumLevel: 'Práctica I', tutor: 'Dr. Carlos Soto', commune: 'Santiago', location: 'Santiago', specialConditions: 'Requiere configuración para trabajo remoto' },
+  { id: '2', firstName: 'Juan José', lastNamePaternal: 'Rodríguez', lastNameMaternal: 'Vera', rut: '22.222.222-2', career: 'Diseño Gráfico', email: 'juan.rodriguez@example.com', practicumLevel: 'Práctica Profesional', tutor: 'Prof. Laura Vera', commune: 'Valparaíso', location: 'Valparaíso' },
+  { id: '3', firstName: 'María Fernanda', lastNamePaternal: 'González', lastNameMaternal: 'Díaz', rut: '33.333.333-3', career: 'Administración de Empresas', email: 'maria.gonzalez@example.com', practicumLevel: 'Práctica II', tutor: 'Dr. Roberto Diaz', commune: 'Providencia', location: 'Santiago', specialConditions: 'Necesita lugar de trabajo accesible' },
+  { id: '4', firstName: 'Luis Alberto', lastNamePaternal: 'Martínez', lastNameMaternal: 'Soto', rut: '44.444.444-4', career: 'Ingeniería de Software', email: 'luis.martinez@example.com', practicumLevel: 'Práctica I', tutor: 'Dr. Carlos Soto', commune: 'Concepción', location: 'Concepción' },
+  { id: '5', firstName: 'Camila Andrea', lastNamePaternal: 'Silva', lastNameMaternal: 'Reyes', rut: '55.555.555-5', career: 'Ingeniería Civil', email: 'camila.silva@example.com', practicumLevel: 'Práctica Profesional', tutor: 'Prof. Elena Reyes', commune: 'Antofagasta', location: 'Antofagasta' },
 ];
+
 // Use a mutable copy for operations like add/update
-let mockStudents: Student[] = [...mockStudentsData];
+// Initialize from localStorage if available, otherwise use mock data
+function initializeStudents(): Student[] {
+  if (typeof window !== 'undefined') {
+    const storedStudents = localStorage.getItem('practicumStudents');
+    if (storedStudents) {
+      try {
+        return JSON.parse(storedStudents);
+      } catch (e) {
+        console.error("Error parsing students from localStorage", e);
+        // Fallback to mock data if parsing fails
+      }
+    }
+  }
+  return [...mockStudentsData]; // Make a mutable copy
+}
+
+let mockStudents: Student[] = initializeStudents();
+
+function persistStudents() {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('practicumStudents', JSON.stringify(mockStudents));
+  }
+}
 
 
 export const mockInstitutions: Institution[] = [
@@ -59,6 +83,14 @@ export const mockTutors: Tutor[] = [
 
 export async function getStudents(): Promise<Student[]> {
   await new Promise(resolve => setTimeout(resolve, 500));
+  // Ensure mockStudents is initialized if it's empty (e.g. localStorage was cleared)
+  if (mockStudents.length === 0 && typeof window !== 'undefined' && !localStorage.getItem('practicumStudents')) {
+    mockStudents = [...mockStudentsData];
+    persistStudents(); // Persist the default if nothing was there
+  } else if (mockStudents.length === 0 && (typeof window === 'undefined' || !localStorage.getItem('practicumStudents'))) {
+    // For server-side or first load if localStorage is empty
+    mockStudents = [...mockStudentsData];
+  }
   return [...mockStudents]; // Return a copy
 }
 
@@ -70,18 +102,23 @@ export async function getStudentById(id: string): Promise<Student | undefined> {
 export async function saveStudent(studentToSave: Student): Promise<Student> {
   await new Promise(resolve => setTimeout(resolve, 500));
   const index = mockStudents.findIndex(s => s.id === studentToSave.id);
+  
+  // Ensure location is set, default to commune if not explicitly provided
+  const studentWithLocation = {
+    ...studentToSave,
+    location: studentToSave.location || studentToSave.commune || 'Desconocida' 
+  };
+
   if (index !== -1) {
-    mockStudents[index] = studentToSave;
+    mockStudents[index] = studentWithLocation;
   } else {
-    // This case for adding new student
-    // If ID is temporary like `new-${Date.now()}` or we need to generate a new one.
-    // For simplicity, if it's a new student, assign a new ID if not present or is temporary.
-    if (!studentToSave.id || studentToSave.id.startsWith('new-')) {
-      studentToSave.id = (mockStudents.length + 1).toString(); 
+    if (!studentWithLocation.id || studentWithLocation.id.startsWith('new-')) {
+      studentWithLocation.id = `student-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
     }
-    mockStudents.push(studentToSave);
+    mockStudents.push(studentWithLocation);
   }
-  return studentToSave;
+  persistStudents();
+  return studentWithLocation;
 }
 
 
@@ -124,4 +161,3 @@ export async function getTutors(): Promise<Tutor[]> {
     await new Promise(resolve => setTimeout(resolve, 200));
     return mockTutors;
 }
-
