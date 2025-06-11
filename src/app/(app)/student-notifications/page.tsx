@@ -518,9 +518,10 @@ export default function StudentNotificationsPage() {
                 </div>
                 <div>
                     <Label>Vista Previa del Mensaje (para {selectedStudentDetailsForPreview ? `${selectedStudentDetailsForPreview.firstName} ${selectedStudentDetailsForPreview.lastNamePaternal}`: "alumno seleccionado"})</Label>
-                    <div className="mt-1 p-3 border rounded-md bg-muted min-h-[200px] text-sm whitespace-pre-wrap overflow-auto">
-                        {emailPreview}
-                    </div>
+                    <div
+                      className="mt-1 p-3 border rounded-md bg-muted min-h-[200px] text-sm overflow-auto"
+                      dangerouslySetInnerHTML={{ __html: emailPreview }}
+                    />
                 </div>
               </>
             )}
