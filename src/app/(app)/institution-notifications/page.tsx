@@ -5,7 +5,8 @@ import * as React from "react";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea"; // Re-enabled
+// Textarea ya no se usa para el cuerpo del correo, pero podría ser necesario para otros campos si se reintroduce.
+// import { Textarea } from "@/components/ui/textarea"; 
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getInstitutions, getStudents, getCommunes } from "@/lib/data";
@@ -22,7 +23,6 @@ import { Calendar } from "@/components/ui/calendar";
 import { format, parse } from "date-fns";
 import { es } from "date-fns/locale";
 import { cn } from "@/lib/utils";
-// import RichTextEditor from "@/components/rich-text-editor"; // Disabled
 
 const CONFIRMED_STUDENT_IDS_KEY = 'confirmedPracticumStudentIds';
 
@@ -119,14 +119,16 @@ const generateEmailBodyTemplate = (
   }
 
   return `
-    <p style="font-family: Arial, sans-serif; font-size: 10pt; margin-bottom: 10px;">Estimado/a ${contactName || '[Nombre Contacto]'}${contactRole ? `, ${roleSalutation}${institutionName || '[Nombre Institución]'}` : (institutionName ? ` de ${institutionName || '[Nombre Institución]'}`: '')}.</p>
-    <p style="font-family: Arial, sans-serif; font-size: 10pt; margin-bottom: 15px;">Le saludo de manera cordial en nombre de la Unidad de Práctica Pedagógica (UPP) de la Facultad de Educación de la Universidad Católica de la Santísima Concepción, y presento a usted el inicio de las pasantías de estudiantes de Pedagogía de nuestra Facultad, de acuerdo con el siguiente calendario de prácticas UCSC primer semestre 2025:</p>
-    ${practiceCalendarHTML}
-    <p style="font-family: Arial, sans-serif; font-size: 10pt; margin-top: 15px; margin-bottom: 5px;">Adjuntamos la lista de estudiantes propuestos para realizar su práctica en su establecimiento:</p>
-    ${studentListHTML}
-    ${documentationListHTML}
-    <p style="font-family: Arial, sans-serif; font-size: 10pt; margin-top: 20px;">Finalmente, como UPP agradecemos el espacio formativo otorgado por su comunidad educativa.</p>
-    <p style="font-family: Arial, sans-serif; font-size: 10pt; margin-top: 15px;">Se despide atentamente,<br />Equipo Unidad de Prácticas Pedagógicas UCSC</p>
+    <div style="font-family: Arial, sans-serif; font-size: 10pt;">
+      <p style="margin-bottom: 10px;">Estimado/a ${contactName || '[Nombre Contacto]'}${contactRole ? `, ${roleSalutation}${institutionName || '[Nombre Institución]'}` : (institutionName ? ` de ${institutionName || '[Nombre Institución]'}`: '')}.</p>
+      <p style="margin-bottom: 15px;">Le saludo de manera cordial en nombre de la Unidad de Práctica Pedagógica (UPP) de la Facultad de Educación de la Universidad Católica de la Santísima Concepción, y presento a usted el inicio de las pasantías de estudiantes de Pedagogía de nuestra Facultad, de acuerdo con el siguiente calendario de prácticas UCSC primer semestre 2025:</p>
+      ${practiceCalendarHTML}
+      <p style="margin-top: 15px; margin-bottom: 5px;">Adjuntamos la lista de estudiantes propuestos para realizar su práctica en su establecimiento:</p>
+      ${studentListHTML}
+      ${documentationListHTML}
+      <p style="margin-top: 20px;">Finalmente, como UPP agradecemos el espacio formativo otorgado por su comunidad educativa.</p>
+      <p style="margin-top: 15px;">Se despide atentamente,<br />Equipo Unidad de Prácticas Pedagógicas UCSC</p>
+    </div>
   `;
 };
 
@@ -149,14 +151,12 @@ export default function InstitutionNotificationsPage() {
   const [editableContactRole, setEditableContactRole] = React.useState("");
   const [editableContactEmail, setEditableContactEmail] = React.useState("");
 
-  // State for practice calendar details
   const [practiceStartDateProf, setPracticeStartDateProf] = React.useState<Date | undefined>();
   const [practiceEndDateProf, setPracticeEndDateProf] = React.useState<Date | undefined>();
   const [practiceWeeksProf, setPracticeWeeksProf] = React.useState<string>("15");
   const [practiceStartDateOther, setPracticeStartDateOther] = React.useState<Date | undefined>();
   const [practiceEndDateOther, setPracticeEndDateOther] = React.useState<Date | undefined>();
   const [practiceWeeksOther, setPracticeWeeksOther] = React.useState<string>("14");
-
 
   const [selectedStudentsMap, setSelectedStudentsMap] = React.useState<Record<string, boolean>>({});
   const [emailSubject, setEmailSubject] = React.useState("Información Estudiantes de Práctica");
@@ -169,7 +169,6 @@ export default function InstitutionNotificationsPage() {
   React.useEffect(() => {
     const currentYear = new Date().getFullYear();
     try {
-        // For placeholders in DatePickers initially
       const initialProfStart = parse(`10-03-${currentYear}`, 'dd-MM-yyyy', new Date());
       const initialProfEnd = parse(`16-06-${currentYear}`, 'dd-MM-yyyy', new Date());
       const initialOtherStart = parse(`17-03-${currentYear}`, 'dd-MM-yyyy', new Date());
@@ -219,7 +218,6 @@ export default function InstitutionNotificationsPage() {
         const confirmedSet = new Set(confirmedStage1StudentIds);
         setStudentsAvailableFromStage1(allStudents.filter(s => confirmedSet.has(s.id)));
     } else if (allStudents.length > 0 && confirmedStage1StudentIds.length === 0) {
-        // If there are students but none were confirmed from stage 1, available students should be empty.
         setStudentsAvailableFromStage1([]);
     }
   }, [allStudents, confirmedStage1StudentIds]);
@@ -271,7 +269,7 @@ export default function InstitutionNotificationsPage() {
       practiceEndDateOther,
       practiceWeeksOther
     );
-    setEmailBody(body);
+    setEmailBody(body); // This updates the state that will be used by dangerouslySetInnerHTML
   }, [
       selectedInstitution, 
       editableContactName, 
@@ -329,10 +327,8 @@ export default function InstitutionNotificationsPage() {
       return;
     }
 
-
     const studentsActuallySelected = studentsForInstitutionCheckboxes.filter(s => selectedStudentsMap[s.id]);
 
-    // For simulation, we'll log the HTML content. In a real app, you'd use a mailer service.
     console.log("Enviando correo a:", editableContactEmail);
     console.log("Nombre Contacto:", editableContactName);
     console.log("Cargo Contacto:", editableContactRole);
@@ -552,14 +548,11 @@ export default function InstitutionNotificationsPage() {
                         />
                     </div>
                     <div>
-                        <Label htmlFor="email-body">Cuerpo del correo</Label>
-                        <Textarea
-                          id="email-body"
-                          value={emailBody}
-                          onChange={(e) => setEmailBody(e.target.value)}
-                          className="min-h-[400px]"
-                          placeholder="Escriba aquí el cuerpo del correo. Puede usar el formato HTML básico si lo prefiere, o pegar contenido de la plantilla generada."
-                          required
+                        <Label htmlFor="email-body-preview">Cuerpo del correo (Vista Previa)</Label>
+                        <div
+                          id="email-body-preview"
+                          className="min-h-[400px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm overflow-auto"
+                          dangerouslySetInnerHTML={{ __html: emailBody }}
                         />
                     </div>
                 </CardContent>
