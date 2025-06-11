@@ -20,6 +20,12 @@ interface EditStudentFormProps {
   onCancel: () => void;
 }
 
+// Helper function to normalize RUTs by removing dots, hyphens, and converting to uppercase.
+const normalizeRut = (rut: string | undefined): string => {
+  if (!rut) return "";
+  return rut.replace(/\./g, "").replace(/-/g, "").toUpperCase();
+};
+
 export function EditStudentForm({ onSave, onCancel }: EditStudentFormProps) {
   const [rutSearch, setRutSearch] = React.useState("");
   const [currentStudent, setCurrentStudent] = React.useState<Student | null>(null);
@@ -41,13 +47,17 @@ export function EditStudentForm({ onSave, onCancel }: EditStudentFormProps) {
     setCurrentStudent(null); 
     form.reset(); 
 
+    const normalizedSearchRut = normalizeRut(rutSearch.trim());
+
     try {
       const allStudents = await getStudents();
-      const foundStudent = allStudents.find(s => s.rut === rutSearch.trim());
+      // Normalize student.rut from data before comparing
+      const foundStudent = allStudents.find(s => normalizeRut(s.rut) === normalizedSearchRut);
+      
       if (foundStudent) {
         setCurrentStudent(foundStudent);
         form.reset({
-          rut: foundStudent.rut,
+          rut: foundStudent.rut, // Keep original format for display and editing
           firstName: foundStudent.firstName,
           lastNamePaternal: foundStudent.lastNamePaternal,
           lastNameMaternal: foundStudent.lastNameMaternal,
@@ -74,7 +84,7 @@ export function EditStudentForm({ onSave, onCancel }: EditStudentFormProps) {
 
     const studentToSave: Student = {
       id: currentStudent.id, 
-      rut: data.rut, 
+      rut: data.rut, // Assumes data.rut is already in the correct format due to form validation
       firstName: data.firstName,
       lastNamePaternal: data.lastNamePaternal,
       lastNameMaternal: data.lastNameMaternal,
@@ -100,7 +110,7 @@ export function EditStudentForm({ onSave, onCancel }: EditStudentFormProps) {
           <div className="flex gap-2">
             <Input
               id="rut-search"
-              placeholder="12.345.678-9"
+              placeholder="12.345.678-9 o 123456789"
               value={rutSearch}
               onChange={(e) => setRutSearch(e.target.value)}
               disabled={isLoadingStudent}
@@ -135,3 +145,4 @@ export function EditStudentForm({ onSave, onCancel }: EditStudentFormProps) {
     </Card>
   );
 }
+
