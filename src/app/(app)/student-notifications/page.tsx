@@ -41,27 +41,28 @@ interface LevelProgramming {
 
 const DEFAULT_EMAIL_SUBJECT = "Confirmación de Práctica Pedagógica";
 
-const DEFAULT_EMAIL_MESSAGE_TEMPLATE = `
-<p>Estimado/a estudiante [Nombre del Estudiante]</p>
-<p>Junto con saludar, se informa que, desde la coordinación de gestión de centros de Práctica de la UPP, ha sido adscrito/a a [Nombre Institucion], para desarrollar su [Nivel de Practica], que inicia la [Fecha Inicio Practica] hasta la [Fecha Termino Practica].</p>
-<p>Los datos de contacto del establecimiento son:</p>
-<ul>
-    <li>Nombre directivo: [Nombre Directivo]</li>
-    <li>Cargo: [Cargo Directivo]</li>
-    <li>Correo electrónico: [Correo Electronico Directivo]</li>
-</ul>
-<p>Posterior a este correo, deberá coordinar el inicio de su pasantía de acuerdo calendario de prácticas UCSC y hacer entrega de su carpeta de práctica y documentación personal, que incluye:</p>
-<ul>
-    <li>Certificado de Antecedentes <a href="https://www.chileatiende.gob.cl/fichas/3442-certificado-de-antecedentes" target="_blank" rel="noopener noreferrer">Link de descarga</a></li>
-    <li>Certificado de Inhabilidades para trabajar con menores de edad <a href="https://inhabilidades.srcei.cl/ConsInhab/consultaInhabilidad.do" target="_blank" rel="noopener noreferrer">Link de descarga</a></li>
-    <li>Certificado de Inhabilidades por maltrato relevante <a href="https://inhabilidades.srcei.cl/InhabilidadesRelevante/#/inicio" target="_blank" rel="noopener noreferrer">Link de descarga</a></li>
-    <li>Horario universitario</li>
-    <li>Otra documentación</li>
-</ul>
-<p>Se informa, además, que el equipo directivo del establecimiento está en conocimiento de su adscripción y por tanto es importante que asista presencialmente al centro educativo.</p>
-<p>Favor no responder a este correo. Para dudas y/o consulta favor escribir a sus respectivas coordinadoras de prácticas.</p>
-<p>Saludos cordiales,</p>
-<p>Unidad de Prácticas Pedagógicas UCSC</p>
+const DEFAULT_EMAIL_MESSAGE_TEMPLATE = `Estimado/a estudiante [Nombre del Estudiante]
+
+Junto con saludar, se informa que, desde la coordinación de gestión de centros de Práctica de la UPP, ha sido adscrito/a a [Nombre Institucion], para desarrollar su [Nivel de Practica], que inicia la [Fecha Inicio Practica] hasta la [Fecha Termino Practica].
+
+Los datos de contacto del establecimiento son:
+- Nombre directivo: [Nombre Directivo]
+- Cargo: [Cargo Directivo]
+- Correo electrónico: [Correo Electronico Directivo]
+
+Posterior a este correo, deberá coordinar el inicio de su pasantía de acuerdo calendario de prácticas UCSC y hacer entrega de su carpeta de práctica y documentación personal, que incluye:
+- Certificado de Antecedentes (Descargar de: https://www.chileatiende.gob.cl/fichas/3442-certificado-de-antecedentes)
+- Certificado de Inhabilidades para trabajar con menores de edad (Descargar de: https://inhabilidades.srcei.cl/ConsInhab/consultaInhabilidad.do)
+- Certificado de Inhabilidades por maltrato relevante (Descargar de: https://inhabilidades.srcei.cl/InhabilidadesRelevante/#/inicio)
+- Horario universitario
+- Otra documentación
+
+Se informa, además, que el equipo directivo del establecimiento está en conocimiento de su adscripción y por tanto es importante que asista presencialmente al centro educativo.
+
+Favor no responder a este correo. Para dudas y/o consulta favor escribir a sus respectivas coordinadoras de prácticas.
+
+Saludos cordiales,
+Unidad de Prácticas Pedagógicas UCSC
 `.trim();
 
 
@@ -144,9 +145,9 @@ export default function StudentNotificationsPage() {
           const storedProgramming = localStorage.getItem(STUDENT_NOTIFICATION_LEVEL_PROGRAMMING_KEY);
           if (storedProgramming) {
             const parsedProgramming = JSON.parse(storedProgramming) as Record<string, LevelProgramming>;
-            Object.keys(parsedProgramming).forEach(levelId => {
-              if (parsedProgramming[levelId].scheduledDate && typeof parsedProgramming[levelId].scheduledDate === 'string') {
-                parsedProgramming[levelId].scheduledDate = parseISO(parsedProgramming[levelId].scheduledDate as string);
+            Object.keys(parsedProgramming).forEach(levelIdKey => {
+              if (parsedProgramming[levelIdKey].scheduledDate && typeof parsedProgramming[levelIdKey].scheduledDate === 'string') {
+                parsedProgramming[levelIdKey].scheduledDate = parseISO(parsedProgramming[levelIdKey].scheduledDate as string);
               }
             });
             setProgrammingByLevel(parsedProgramming);
@@ -235,8 +236,11 @@ export default function StudentNotificationsPage() {
         }),
         ...newProgramming 
       };
-      // Ensure date is stored as ISO string if it's a Date object
-      if (updatedLevelProg.scheduledDate instanceof Date) {
+      
+      if (updatedLevelProg.scheduledDate && !(updatedLevelProg.scheduledDate instanceof Date) && typeof updatedLevelProg.scheduledDate === 'string') {
+         // It's already an ISO string from localStorage or a new assignment, keep as is or parse if needs validation
+      } else if (updatedLevelProg.scheduledDate instanceof Date) {
+        // If it's a Date object (e.g., from Calendar picker), convert to ISO string for storage
         updatedLevelProg.scheduledDate = updatedLevelProg.scheduledDate.toISOString();
       }
       
@@ -249,70 +253,104 @@ export default function StudentNotificationsPage() {
     });
   };
 
-  const handleSendNotification = (e: React.FormEvent) => {
+  const handleSendAllNotifications = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedLevelId || studentsInSelectedLevelForPreview.length === 0) {
-       toast({
-        title: "Información Faltante",
-        description: "Seleccione un nivel de práctica con estudiantes asignados.",
+
+    const configuredLevelsAndStudents: Array<{
+      level: AcademicLevel;
+      programming: LevelProgramming;
+      students: Student[];
+      scheduledDateTime: Date;
+    }> = [];
+
+    for (const levelIdKey in programmingByLevel) {
+      const programming = programmingByLevel[levelIdKey];
+      if (
+        programming.scheduledDate &&
+        programming.scheduledTime?.trim() &&
+        programming.emailSubject?.trim() &&
+        programming.emailMessageTemplate?.trim()
+      ) {
+        const level = displayableAcademicLevels.find(l => l.id === levelIdKey);
+        if (level) {
+          const studentsForThisLevel = studentsReadyForNotification.filter(
+            s => s.practicumLevel === level.name
+          );
+
+          if (studentsForThisLevel.length > 0) {
+            // Ensure scheduledDate is a Date object before operations
+            const dateToParse = programming.scheduledDate instanceof Date 
+                               ? programming.scheduledDate 
+                               : parseISO(programming.scheduledDate as string);
+            
+            const scheduledDateTime = new Date(dateToParse);
+            const [hours, minutes] = programming.scheduledTime.split(':').map(Number);
+            scheduledDateTime.setHours(hours, minutes, 0, 0); // Also reset seconds/milliseconds
+
+            configuredLevelsAndStudents.push({
+              level,
+              programming,
+              students: studentsForThisLevel,
+              scheduledDateTime,
+            });
+          }
+        }
+      }
+    }
+
+    if (configuredLevelsAndStudents.length === 0) {
+      toast({
+        title: "No hay niveles completamente configurados",
+        description: "Por favor, configure la fecha, hora, asunto y mensaje para al menos un nivel de práctica con estudiantes asignados antes de programar.",
         variant: "destructive",
       });
       return;
     }
-    if (!currentScheduledDate || !currentScheduledTime.trim() || !currentEmailSubject.trim() || !currentEmailMessageTemplate.trim()) {
-        toast({
-         title: "Configuración Incompleta",
-         description: "Complete todos los campos de programación (fecha, hora, asunto y mensaje) para el nivel seleccionado.",
-         variant: "destructive",
-       });
-       return;
-     }
 
-    const scheduledDateTime = new Date(currentScheduledDate);
-    const [hours, minutes] = currentScheduledTime.split(':').map(Number);
-    scheduledDateTime.setHours(hours, minutes);
+    let totalStudentsNotifiedCount = 0;
+    configuredLevelsAndStudents.forEach(({ level, programming, students, scheduledDateTime }) => {
+      console.log(`--- Programando notificaciones para nivel: ${level.name} ---`);
+      console.log(`Fecha y hora programada: ${scheduledDateTime.toLocaleString('es-CL', { dateStyle: 'short', timeStyle: 'short' })}`);
+      console.log(`Asunto: ${programming.emailSubject}`);
 
-    const levelName = displayableAcademicLevels.find(l=>l.id === selectedLevelId)?.name;
-    console.log(`Programando notificaciones para nivel: ${levelName}`);
-    console.log(`Fecha y hora programada: ${scheduledDateTime.toLocaleString('es-CL')}`);
-    console.log(`Asunto: ${currentEmailSubject}`);
-
-    const actualStudentsToSend = studentsReadyForNotification.filter(s => s.practicumLevel === levelName);
-
-    actualStudentsToSend.forEach(student => {
-      const studentFullName = `${student.firstName} ${student.lastNamePaternal} ${student.lastNameMaternal}`;
-
-      let startDate, endDate;
-      if (student.practicumLevel.toLowerCase().includes('profesional')) {
+      students.forEach(student => {
+        const studentFullName = `${student.firstName} ${student.lastNamePaternal} ${student.lastNameMaternal}`;
+        let startDate, endDate;
+        if (student.practicumLevel.toLowerCase().includes('profesional')) {
           startDate = practicumProfStartDate;
           endDate = practicumProfEndDate;
-      } else {
+        } else {
           startDate = practicumOtherStartDate;
           endDate = practicumOtherEndDate;
-      }
+        }
 
-      const finalMessage = currentEmailMessageTemplate
-        .replace(/\[Nombre del Estudiante\]/g, studentFullName)
-        .replace(/\[Nombre Institucion\]/g, notifiedInstitutionName)
-        .replace(/\[Nivel de Practica\]/g, student.practicumLevel)
-        .replace(/\[Fecha Inicio Practica\]/g, formatDateForStudentEmail(startDate, 'start'))
-        .replace(/\[Fecha Termino Practica\]/g, formatDateForStudentEmail(endDate, 'end'))
-        .replace(/\[Nombre Directivo\]/g, institutionContactName)
-        .replace(/\[Cargo Directivo\]/g, institutionContactRole)
-        .replace(/\[Correo Electronico Directivo\]/g, institutionContactEmail);
+        const finalMessage = programming.emailMessageTemplate
+          .replace(/\[Nombre del Estudiante\]/g, studentFullName)
+          .replace(/\[Nombre Institucion\]/g, notifiedInstitutionName)
+          .replace(/\[Nivel de Practica\]/g, student.practicumLevel)
+          .replace(/\[Fecha Inicio Practica\]/g, formatDateForStudentEmail(startDate, 'start'))
+          .replace(/\[Fecha Termino Practica\]/g, formatDateForStudentEmail(endDate, 'end'))
+          .replace(/\[Nombre Directivo\]/g, institutionContactName)
+          .replace(/\[Cargo Directivo\]/g, institutionContactRole)
+          .replace(/\[Correo Electronico Directivo\]/g, institutionContactEmail);
 
-      console.log(`--- Para ${student.email} (Estudiante: ${studentFullName}) ---`);
-      // console.log(finalMessage); 
+        console.log(`   Para ${student.email} (Estudiante: ${studentFullName}) - Correo simulado`);
+        // console.log(finalMessage); 
+        totalStudentsNotifiedCount++;
+      });
     });
 
     toast({
       title: "Notificaciones Programadas (Simulado)",
-      description: `Correos para ${actualStudentsToSend.length} estudiante(s) de ${levelName || 'N/A'} programados para ${scheduledDateTime.toLocaleString('es-CL')}. Este es el último paso del flujo principal.`,
+      description: `Correos para ${totalStudentsNotifiedCount} estudiante(s) en ${configuredLevelsAndStudents.length} nivel(es) han sido programados. Este es el último paso del flujo principal.`,
     });
   };
 
+
   const selectedStudentDetailsForPreview = allStudentsData.find(s => s.id === selectedStudentForPreviewId);
   let emailPreview = currentEmailMessageTemplate; 
+  const currentSelectedLevelName = displayableAcademicLevels.find(l => l.id === selectedLevelId)?.name || "(Nivel no seleccionado)";
+
 
   if (selectedStudentDetailsForPreview) {
       let startDate, endDate;
@@ -333,11 +371,10 @@ export default function StudentNotificationsPage() {
         .replace(/\[Cargo Directivo\]/g, institutionContactRole || "(Cargo de directivo no disponible)")   
         .replace(/\[Correo Electronico Directivo\]/g, institutionContactEmail || "(Email de directivo no disponible)"); 
   } else {
-     const currentLevelName = displayableAcademicLevels.find(l => l.id === selectedLevelId)?.name || "(Nivel no seleccionado)";
-     const genericStudentName = studentsInSelectedLevelForPreview.length > 0 ? "(Seleccione un alumno para vista previa)" : "(No hay alumnos en este nivel para previsualizar)";
+     const genericStudentName = studentsInSelectedLevelForPreview.length > 0 ? "(Seleccione un alumno para vista previa detallada)" : "(No hay alumnos en este nivel para previsualizar)";
      
      let genericStartDate, genericEndDate;
-     if (currentLevelName.toLowerCase().includes('profesional')) {
+     if (currentSelectedLevelName.toLowerCase().includes('profesional')) {
          genericStartDate = practicumProfStartDate;
          genericEndDate = practicumProfEndDate;
      } else {
@@ -348,13 +385,17 @@ export default function StudentNotificationsPage() {
      emailPreview = currentEmailMessageTemplate
         .replace(/\[Nombre del Estudiante\]/g, genericStudentName)
         .replace(/\[Nombre Institucion\]/g, notifiedInstitutionName || "(Institución no especificada)")
-        .replace(/\[Nivel de Practica\]/g, currentLevelName)
+        .replace(/\[Nivel de Practica\]/g, currentSelectedLevelName)
         .replace(/\[Fecha Inicio Practica\]/g, formatDateForStudentEmail(genericStartDate, 'start'))
         .replace(/\[Fecha Termino Practica\]/g, formatDateForStudentEmail(genericEndDate, 'end'))
         .replace(/\[Nombre Directivo\]/g, institutionContactName || "(Nombre de directivo no disponible)")
         .replace(/\[Cargo Directivo\]/g, institutionContactRole || "(Cargo de directivo no disponible)")
         .replace(/\[Correo Electronico Directivo\]/g, institutionContactEmail || "(Email de directivo no disponible)");
   }
+
+  const fullyConfiguredLevelsCount = Object.values(programmingByLevel).filter(
+    p => p.scheduledDate && p.scheduledTime?.trim() && p.emailSubject?.trim() && p.emailMessageTemplate?.trim()
+  ).length;
 
 
   if (isLoadingProgress) {
@@ -367,13 +408,13 @@ export default function StudentNotificationsPage() {
         title="Notificación a estudiantes seleccionados"
         description="Configure y programe el envío de correos de confirmación a los alumnos asignados a la institución, agrupados por su nivel de práctica."
       />
-      <form onSubmit={handleSendNotification}>
+      <form onSubmit={handleSendAllNotifications}>
         <Card>
           <CardHeader>
             <CardTitle>Redactar y Programar Notificación por Nivel de Práctica</CardTitle>
             <CardDescription>
               Los estudiantes listados son aquellos confirmados en etapas anteriores.
-              Seleccione un nivel de práctica para definir la fecha, hora y mensaje de la notificación.
+              Seleccione un nivel de práctica para definir la fecha, hora y mensaje de la notificación. Los cambios se guardan automáticamente.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -384,17 +425,17 @@ export default function StudentNotificationsPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <Label htmlFor="level-select">Nivel de Práctica a Notificar</Label>
+                <Label htmlFor="level-select">Nivel de Práctica (para editar configuración)</Label>
                 <Select
                     onValueChange={(value) => {
                         setSelectedLevelId(value);
-                        setSelectedStudentForPreviewId(""); 
+                        // setSelectedStudentForPreviewId(""); // No resetear alumno si el nivel cambia pero el alumno sigue en la lista del nuevo nivel
                     }}
                     value={selectedLevelId}
                     disabled={displayableAcademicLevels.length === 0}
                 >
                   <SelectTrigger id="level-select">
-                    <SelectValue placeholder={displayableAcademicLevels.length === 0 ? "No hay niveles con alumnos confirmados" : "Elija un nivel de práctica"} />
+                    <SelectValue placeholder={displayableAcademicLevels.length === 0 ? "No hay niveles con alumnos confirmados" : "Elija un nivel para configurar"} />
                   </SelectTrigger>
                   <SelectContent>
                     {displayableAcademicLevels.map(level => (
@@ -431,9 +472,9 @@ export default function StudentNotificationsPage() {
             {!selectedLevelId && displayableAcademicLevels.length > 0 && (
                  <Alert variant="default" className="bg-accent/10 border-accent/30"> 
                     <Info className="h-4 w-4 text-accent" />
-                    <AlertTitle className="text-accent">Seleccione un Nivel de Práctica</AlertTitle>
+                    <AlertTitle className="text-accent">Seleccione un Nivel de Práctica para Configurar</AlertTitle>
                     <AlertDescription>
-                        Por favor, elija un nivel de práctica de la lista para configurar su notificación.
+                        Por favor, elija un nivel de práctica de la lista de arriba para editar su fecha de envío, hora y mensaje.
                     </AlertDescription>
                 </Alert>
             )}
@@ -442,7 +483,7 @@ export default function StudentNotificationsPage() {
               <>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <Label htmlFor="schedule-date">Fecha de envío del correo</Label>
+                    <Label htmlFor="schedule-date">Fecha de envío del correo para {currentSelectedLevelName}</Label>
                     <Popover>
                       <PopoverTrigger asChild>
                         <Button
@@ -454,15 +495,15 @@ export default function StudentNotificationsPage() {
                           )}
                         >
                           <CalendarIcon className="mr-2 h-4 w-4" />
-                          {currentScheduledDate ? format(currentScheduledDate, "PPP", { locale: es }) : <span>Elija una fecha</span>}
+                          {currentScheduledDate ? format(currentScheduledDate instanceof Date ? currentScheduledDate : parseISO(currentScheduledDate as string), "PPP", { locale: es }) : <span>Elija una fecha</span>}
                         </Button>
                       </PopoverTrigger>
                       <PopoverContent className="w-auto p-0">
                         <Calendar
                           mode="single"
-                          selected={currentScheduledDate}
+                          selected={currentScheduledDate instanceof Date ? currentScheduledDate : (currentScheduledDate ? parseISO(currentScheduledDate as string) : undefined)}
                           onSelect={(date) => {
-                            setCurrentScheduledDate(date);
+                            setCurrentScheduledDate(date); // Update local state for immediate UI feedback
                             updateProgrammingForLevel(selectedLevelId, { scheduledDate: date });
                           }}
                           initialFocus
@@ -473,14 +514,14 @@ export default function StudentNotificationsPage() {
                     </Popover>
                   </div>
                   <div>
-                    <Label htmlFor="schedule-time">Horario de envío del correo</Label>
+                    <Label htmlFor="schedule-time">Horario de envío para {currentSelectedLevelName}</Label>
                     <Input
                       id="schedule-time"
                       type="time"
                       value={currentScheduledTime}
                       onChange={(e) => {
                         const newTime = e.target.value;
-                        setCurrentScheduledTime(newTime);
+                        setCurrentScheduledTime(newTime); // Update local state for immediate UI feedback
                         updateProgrammingForLevel(selectedLevelId, { scheduledTime: newTime });
                       }}
                       className="mt-1"
@@ -489,14 +530,14 @@ export default function StudentNotificationsPage() {
                   </div>
                 </div>
                 <div>
-                  <Label htmlFor="email-subject-student">Asunto del Correo</Label>
+                  <Label htmlFor="email-subject-student">Asunto del Correo para {currentSelectedLevelName}</Label>
                   <Input
                     id="email-subject-student"
                     placeholder={DEFAULT_EMAIL_SUBJECT}
                     value={currentEmailSubject}
                     onChange={(e) => {
                         const newSubject = e.target.value;
-                        setCurrentEmailSubject(newSubject);
+                        setCurrentEmailSubject(newSubject); // Update local state for immediate UI feedback
                         updateProgrammingForLevel(selectedLevelId, { emailSubject: newSubject });
                     }}
                     className="mt-1"
@@ -505,13 +546,13 @@ export default function StudentNotificationsPage() {
                 </div>
 
                 <div>
-                  <Label htmlFor="email-message-student">Plantilla de correo editable</Label>
+                  <Label htmlFor="email-message-student">Plantilla de correo para {currentSelectedLevelName}</Label>
                    <Textarea
                     id="email-message-student"
                     value={currentEmailMessageTemplate}
                     onChange={(e) => {
                         const newTemplate = e.target.value;
-                        setCurrentEmailMessageTemplate(newTemplate);
+                        setCurrentEmailMessageTemplate(newTemplate); // Update local state for immediate UI feedback
                         updateProgrammingForLevel(selectedLevelId, { emailMessageTemplate: newTemplate });
                     }}
                     className="mt-1 min-h-[250px]"
@@ -523,29 +564,33 @@ export default function StudentNotificationsPage() {
                 </div>
                 <div>
                     <Label>
-                      Vista Previa del Mensaje (cómo lo verá {selectedStudentDetailsForPreview ? `${selectedStudentDetailsForPreview.firstName} ${selectedStudentDetailsForPreview.lastNamePaternal}` : (studentsInSelectedLevelForPreview.length > 0 ? "el alumno seleccionado" : "un alumno de este nivel")})
+                      Vista Previa del Mensaje (cómo lo verá {selectedStudentDetailsForPreview ? `${selectedStudentDetailsForPreview.firstName} ${selectedStudentDetailsForPreview.lastNamePaternal}` : (studentsInSelectedLevelForPreview.length > 0 && selectedLevelId ? "el alumno seleccionado arriba" : (selectedLevelId ? "un alumno de este nivel" : "nadie, seleccione nivel y alumno"))})
                     </Label>
                     <div
                       className="mt-1 p-3 border rounded-md bg-muted min-h-[200px] text-sm overflow-auto"
-                      dangerouslySetInnerHTML={{ __html: emailPreview }}
+                      dangerouslySetInnerHTML={{ __html: emailPreview.replace(/\n/g, '<br />') }}
                     />
                 </div>
               </>
             )}
-
-            <Button
-                type="submit"
-                className="w-full md:w-auto"
-                disabled={!selectedLevelId || studentsInSelectedLevelForPreview.length === 0 || !currentScheduledDate || isLoadingProgress}
-            >
-              <SendHorizonal className="mr-2 h-4 w-4" /> Programar Notificaciones para este Nivel
-            </Button>
+            <div className="border-t pt-6">
+              <Button
+                  type="submit"
+                  className="w-full md:w-auto"
+                  disabled={fullyConfiguredLevelsCount === 0 || isLoadingProgress}
+              >
+                <SendHorizonal className="mr-2 h-4 w-4" /> Programar Todas las Notificaciones ({fullyConfiguredLevelsCount} nivel(es) configurado(s))
+              </Button>
+              {fullyConfiguredLevelsCount === 0 && !isLoadingProgress && (
+                <p className="text-sm text-muted-foreground mt-2">
+                  No hay niveles de práctica completamente configurados para enviar notificaciones. 
+                  Por favor, seleccione un nivel, complete su fecha, hora, asunto y mensaje.
+                </p>
+              )}
+            </div>
           </CardContent>
         </Card>
       </form>
     </>
   );
 }
-
-
-    
