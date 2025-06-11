@@ -24,6 +24,9 @@ import { es } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 
 const CONFIRMED_STUDENT_IDS_KEY = 'confirmedPracticumStudentIds';
+const LAST_NOTIFIED_INSTITUTION_ID_KEY = 'lastNotifiedInstitutionId';
+const LAST_NOTIFIED_INSTITUTION_NAME_KEY = 'lastNotifiedInstitutionName';
+
 
 const formatDateForEmail = (date: Date | undefined, type: 'inicio' | 'termino'): string => {
   if (!date) return `Semana [Fecha ${type === 'inicio' ? 'Inicio' : 'Término'}]`;
@@ -202,7 +205,7 @@ export default function InstitutionNotificationsPage() {
     }
 
     if (!isLoadingProgress && maxAccessLevel >= STAGES.INSTITUTION_NOTIFICATION) {
-      loadInitialData(); // This will eventually call setAllStudents
+      loadInitialData(); 
       if (typeof window !== 'undefined') {
         try {
           const storedIds = localStorage.getItem(CONFIRMED_STUDENT_IDS_KEY);
@@ -215,7 +218,6 @@ export default function InstitutionNotificationsPage() {
               setConfirmedStage1StudentIds([]);
             }
           } else {
-            // No IDs stored, ensure it's an empty array
             setConfirmedStage1StudentIds([]);
           }
         } catch (error) {
@@ -225,7 +227,7 @@ export default function InstitutionNotificationsPage() {
             description: "No se pudieron cargar los estudiantes seleccionados de la etapa anterior.",
             variant: "destructive",
           });
-          setConfirmedStage1StudentIds([]); // Reset to empty on error
+          setConfirmedStage1StudentIds([]); 
         }
       }
     }
@@ -346,6 +348,15 @@ export default function InstitutionNotificationsPage() {
     }
 
     const studentsActuallySelected = studentsForInstitutionCheckboxes.filter(s => selectedStudentsMap[s.id]);
+    const studentIdsToPass = studentsActuallySelected.map(s => s.id);
+
+    // Save selected student IDs AND institution details to localStorage for the next stage
+    if (typeof window !== 'undefined') {
+        localStorage.setItem(CONFIRMED_STUDENT_IDS_KEY, JSON.stringify(studentIdsToPass));
+        localStorage.setItem(LAST_NOTIFIED_INSTITUTION_ID_KEY, selectedInstitution.id);
+        localStorage.setItem(LAST_NOTIFIED_INSTITUTION_NAME_KEY, selectedInstitution.name);
+    }
+
 
     console.log("Enviando correo a:", editableContactEmail);
     console.log("Nombre Contacto:", editableContactName);
@@ -518,7 +529,7 @@ export default function InstitutionNotificationsPage() {
           <Card>
             <CardHeader>
                 <CardTitle>Lista de estudiantes seleccionados para {selectedInstitution.name}</CardTitle>
-                <CardDescription>Seleccione los estudiantes (previamente confirmados y asignados a la comuna de {selectedInstitution.location}) para incluir en esta notificación.</CardDescription>
+                <CardDescription>Seleccione los estudiantes (previamente confirmados y asignados a la comuna de {selectedInstitution.location}) para incluir en esta notificación. Estos serán los estudiantes disponibles en la siguiente etapa.</CardDescription>
             </CardHeader>
             <CardContent>
                 <ScrollArea className="h-48 rounded-md border p-2">
@@ -552,7 +563,7 @@ export default function InstitutionNotificationsPage() {
             <Card>
                 <CardHeader>
                     <CardTitle>Plantilla de correo editable</CardTitle>
-                    <CardDescription>Revise y edite el contenido del correo si es necesario. La información del calendario y estudiantes se actualizará automáticamente.</CardDescription>
+                    <CardDescription>Revise el contenido del correo. La información del calendario y estudiantes se actualizará automáticamente.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div>
@@ -582,9 +593,10 @@ export default function InstitutionNotificationsPage() {
             className="w-full md:w-auto" 
             disabled={isSubmitDisabled}
         >
-          <Send className="mr-2 h-4 w-4" /> Enviar correo al centro
+          <Send className="mr-2 h-4 w-4" /> Enviar correo al centro y pasar a notificar estudiantes
         </Button>
       </form>
     </>
   );
 }
+
