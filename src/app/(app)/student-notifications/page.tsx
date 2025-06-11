@@ -6,13 +6,13 @@ import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import { Textarea } from "@/components/ui/textarea"; // Using Textarea
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { CalendarIcon, SendHorizonal, Info } from "lucide-react";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { getStudents, getAcademicLevels } from "@/lib/data";
@@ -85,6 +85,7 @@ export default function StudentNotificationsPage() {
   const [institutionContactName, setInstitutionContactName] = React.useState<string>("(Nombre de directivo no disponible)");
   const [institutionContactRole, setInstitutionContactRole] = React.useState<string>("(Cargo de directivo no disponible)");
   const [institutionContactEmail, setInstitutionContactEmail] = React.useState<string>("(Email de directivo no disponible)");
+  
   const [practicumProfStartDate, setPracticumProfStartDate] = React.useState<Date | undefined>();
   const [practicumProfEndDate, setPracticumProfEndDate] = React.useState<Date | undefined>();
   const [practicumOtherStartDate, setPracticumOtherStartDate] = React.useState<Date | undefined>();
@@ -130,23 +131,21 @@ export default function StudentNotificationsPage() {
           const contactEmail = localStorage.getItem(LAST_NOTIFIED_INSTITUTION_CONTACT_EMAIL_KEY);
           setInstitutionContactEmail(contactEmail && contactEmail.trim() !== "" ? contactEmail : "(Email de directivo no disponible)");
 
-
-          const profStart = localStorage.getItem(PRACTICUM_PROF_START_DATE_KEY);
-          if (profStart) setPracticumProfStartDate(new Date(profStart));
-          const profEnd = localStorage.getItem(PRACTICUM_PROF_END_DATE_KEY);
-          if (profEnd) setPracticumProfEndDate(new Date(profEnd));
-          const otherStart = localStorage.getItem(PRACTICUM_OTHER_START_DATE_KEY);
-          if (otherStart) setPracticumOtherStartDate(new Date(otherStart));
-          const otherEnd = localStorage.getItem(PRACTICUM_OTHER_END_DATE_KEY);
-          if (otherEnd) setPracticumOtherEndDate(new Date(otherEnd));
+          const profStartStr = localStorage.getItem(PRACTICUM_PROF_START_DATE_KEY);
+          if (profStartStr) setPracticumProfStartDate(parseISO(profStartStr));
+          const profEndStr = localStorage.getItem(PRACTICUM_PROF_END_DATE_KEY);
+          if (profEndStr) setPracticumProfEndDate(parseISO(profEndStr));
+          const otherStartStr = localStorage.getItem(PRACTICUM_OTHER_START_DATE_KEY);
+          if (otherStartStr) setPracticumOtherStartDate(parseISO(otherStartStr));
+          const otherEndStr = localStorage.getItem(PRACTICUM_OTHER_END_DATE_KEY);
+          if (otherEndStr) setPracticumOtherEndDate(parseISO(otherEndStr));
 
           const storedProgramming = localStorage.getItem(STUDENT_NOTIFICATION_LEVEL_PROGRAMMING_KEY);
           if (storedProgramming) {
             const parsedProgramming = JSON.parse(storedProgramming) as Record<string, LevelProgramming>;
-            // Ensure dates are correctly parsed back into Date objects
             Object.keys(parsedProgramming).forEach(levelId => {
               if (parsedProgramming[levelId].scheduledDate && typeof parsedProgramming[levelId].scheduledDate === 'string') {
-                parsedProgramming[levelId].scheduledDate = new Date(parsedProgramming[levelId].scheduledDate as string);
+                parsedProgramming[levelId].scheduledDate = parseISO(parsedProgramming[levelId].scheduledDate as string);
               }
             });
             setProgrammingByLevel(parsedProgramming);
@@ -180,7 +179,6 @@ export default function StudentNotificationsPage() {
       const filteredLevels = allAcademicLevelsFromData.filter(level => activePracticumLevelNames.has(level.name));
       setDisplayableAcademicLevels(filteredLevels);
 
-      // Reset selected level if it's no longer in the displayable list
       if (selectedLevelId && !filteredLevels.find(l => l.id === selectedLevelId)) {
         setSelectedLevelId(""); 
       }
@@ -194,7 +192,7 @@ export default function StudentNotificationsPage() {
   React.useEffect(() => {
     if (selectedLevelId && programmingByLevel) {
       const programming = programmingByLevel[selectedLevelId];
-      setCurrentScheduledDate(programming?.scheduledDate ? (programming.scheduledDate instanceof Date ? programming.scheduledDate : new Date(programming.scheduledDate)) : undefined);
+      setCurrentScheduledDate(programming?.scheduledDate ? (programming.scheduledDate instanceof Date ? programming.scheduledDate : parseISO(programming.scheduledDate as string)) : undefined);
       setCurrentScheduledTime(programming?.scheduledTime || "09:00");
       setCurrentEmailSubject(programming?.emailSubject || DEFAULT_EMAIL_SUBJECT);
       setCurrentEmailMessageTemplate(programming?.emailMessageTemplate || DEFAULT_EMAIL_MESSAGE_TEMPLATE);
@@ -203,7 +201,6 @@ export default function StudentNotificationsPage() {
       if (level) {
           const filtered = studentsReadyForNotification.filter(s => s.practicumLevel === level.name);
           setStudentsInSelectedLevelForPreview(filtered);
-          // Auto-select first student for preview if none is selected or current is invalid
           if (filtered.length > 0) {
             if (!selectedStudentForPreviewId || !filtered.find(s => s.id === selectedStudentForPreviewId)) {
                  setSelectedStudentForPreviewId(filtered[0].id);
@@ -218,6 +215,7 @@ export default function StudentNotificationsPage() {
     } else { 
         setStudentsInSelectedLevelForPreview([]);
         setSelectedStudentForPreviewId("");
+        // Reset to defaults if no level is selected
         setCurrentScheduledDate(undefined);
         setCurrentScheduledTime("09:00");
         setCurrentEmailSubject(DEFAULT_EMAIL_SUBJECT);
@@ -236,20 +234,15 @@ export default function StudentNotificationsPage() {
         }),
         ...newProgramming 
       };
+      // Ensure date is stored as ISO string if it's a Date object
+      if (updatedLevelProg.scheduledDate instanceof Date) {
+        updatedLevelProg.scheduledDate = updatedLevelProg.scheduledDate.toISOString();
+      }
+      
       const newState = { ...prev, [levelId]: updatedLevelProg };
 
-      const storableState = JSON.parse(JSON.stringify(newState)); 
-      Object.keys(storableState).forEach(lId => {
-        if (storableState[lId].scheduledDate && storableState[lId].scheduledDate instanceof Date) {
-          storableState[lId].scheduledDate = (storableState[lId].scheduledDate as Date).toISOString();
-        } else if (typeof storableState[lId].scheduledDate === 'string') {
-           try {
-            storableState[lId].scheduledDate = new Date(storableState[lId].scheduledDate).toISOString();
-           } catch (e) { /* ignore */ }
-        }
-      });
       if (typeof window !== 'undefined') {
-        localStorage.setItem(STUDENT_NOTIFICATION_LEVEL_PROGRAMMING_KEY, JSON.stringify(storableState));
+        localStorage.setItem(STUDENT_NOTIFICATION_LEVEL_PROGRAMMING_KEY, JSON.stringify(newState));
       }
       return newState;
     });
@@ -308,6 +301,7 @@ export default function StudentNotificationsPage() {
         .replace(/\[Correo Electronico Directivo\]/g, institutionContactEmail);
 
       console.log(`--- Para ${student.email} (Estudiante: ${studentFullName}) ---`);
+      // console.log(finalMessage); 
     });
 
     toast({
@@ -330,23 +324,35 @@ export default function StudentNotificationsPage() {
       }
       emailPreview = currentEmailMessageTemplate
         .replace(/\[Nombre del Estudiante\]/g, `${selectedStudentDetailsForPreview.firstName} ${selectedStudentDetailsForPreview.lastNamePaternal} ${selectedStudentDetailsForPreview.lastNameMaternal}`)
-        .replace(/\[Nombre Institucion\]/g, notifiedInstitutionName) 
+        .replace(/\[Nombre Institucion\]/g, notifiedInstitutionName || "(Institución no especificada)") 
         .replace(/\[Nivel de Practica\]/g, selectedStudentDetailsForPreview.practicumLevel)
         .replace(/\[Fecha Inicio Practica\]/g, formatDateForStudentEmail(startDate, 'start'))
         .replace(/\[Fecha Termino Practica\]/g, formatDateForStudentEmail(endDate, 'end'))
-        .replace(/\[Nombre Directivo\]/g, institutionContactName) 
-        .replace(/\[Cargo Directivo\]/g, institutionContactRole)   
-        .replace(/\[Correo Electronico Directivo\]/g, institutionContactEmail); 
+        .replace(/\[Nombre Directivo\]/g, institutionContactName || "(Nombre de directivo no disponible)") 
+        .replace(/\[Cargo Directivo\]/g, institutionContactRole || "(Cargo de directivo no disponible)")   
+        .replace(/\[Correo Electronico Directivo\]/g, institutionContactEmail || "(Email de directivo no disponible)"); 
   } else {
+     const currentLevelName = displayableAcademicLevels.find(l => l.id === selectedLevelId)?.name || "(Nivel no seleccionado)";
+     const genericStudentName = studentsInSelectedLevelForPreview.length > 0 ? "(Seleccione un alumno para vista previa)" : "(No hay alumnos en este nivel para previsualizar)";
+     
+     let genericStartDate, genericEndDate;
+     if (currentLevelName.toLowerCase().includes('profesional')) {
+         genericStartDate = practicumProfStartDate;
+         genericEndDate = practicumProfEndDate;
+     } else {
+         genericStartDate = practicumOtherStartDate;
+         genericEndDate = practicumOtherEndDate;
+     }
+
      emailPreview = currentEmailMessageTemplate
-        .replace(/\[Nombre del Estudiante\]/g, "(Seleccione un alumno para vista previa)")
-        .replace(/\[Nombre Institucion\]/g, notifiedInstitutionName)
-        .replace(/\[Nivel de Practica\]/g, displayableAcademicLevels.find(l => l.id === selectedLevelId)?.name || "(Nivel no seleccionado)")
-        .replace(/\[Fecha Inicio Practica\]/g, formatDateForStudentEmail(undefined, 'start'))
-        .replace(/\[Fecha Termino Practica\]/g, formatDateForStudentEmail(undefined, 'end'))
-        .replace(/\[Nombre Directivo\]/g, institutionContactName)
-        .replace(/\[Cargo Directivo\]/g, institutionContactRole)
-        .replace(/\[Correo Electronico Directivo\]/g, institutionContactEmail);
+        .replace(/\[Nombre del Estudiante\]/g, genericStudentName)
+        .replace(/\[Nombre Institucion\]/g, notifiedInstitutionName || "(Institución no especificada)")
+        .replace(/\[Nivel de Practica\]/g, currentLevelName)
+        .replace(/\[Fecha Inicio Practica\]/g, formatDateForStudentEmail(genericStartDate, 'start'))
+        .replace(/\[Fecha Termino Practica\]/g, formatDateForStudentEmail(genericEndDate, 'end'))
+        .replace(/\[Nombre Directivo\]/g, institutionContactName || "(Nombre de directivo no disponible)")
+        .replace(/\[Cargo Directivo\]/g, institutionContactRole || "(Cargo de directivo no disponible)")
+        .replace(/\[Correo Electronico Directivo\]/g, institutionContactEmail || "(Email de directivo no disponible)");
   }
 
 
@@ -498,7 +504,7 @@ export default function StudentNotificationsPage() {
                 </div>
 
                 <div>
-                  <Label htmlFor="email-message-student">Plantilla de correo editable</Label>
+                  <Label htmlFor="email-message-student">Plantilla de correo (edite el HTML directamente)</Label>
                    <Textarea
                     id="email-message-student"
                     value={currentEmailMessageTemplate}
@@ -508,16 +514,16 @@ export default function StudentNotificationsPage() {
                         updateProgrammingForLevel(selectedLevelId, { emailMessageTemplate: newTemplate });
                     }}
                     className="mt-1 min-h-[250px] font-mono text-xs"
-                    placeholder="Escriba o pegue aquí el contenido del correo..."
-                    rows={15}
+                    placeholder="Edite aquí el contenido HTML del correo..."
                   />
                    <p className="text-xs text-muted-foreground mt-1">
                     Modifique el mensaje que se enviará a los estudiantes. Los textos que vea entre corchetes (por ejemplo: <code>[Nombre del Estudiante]</code>, <code>[Nombre Institucion]</code>) se reemplazarán automáticamente con los datos reales de cada estudiante y la institución asignada.
-                    {selectedStudentDetailsForPreview ? ` Está viendo una vista previa para ${selectedStudentDetailsForPreview.firstName} ${selectedStudentDetailsForPreview.lastNamePaternal}.` : ' Seleccione un alumno de la lista de arriba para ver una vista previa con sus datos.'}
                    </p>
                 </div>
                 <div>
-                    <Label>Vista Previa del Mensaje (para {selectedStudentDetailsForPreview ? `${selectedStudentDetailsForPreview.firstName} ${selectedStudentDetailsForPreview.lastNamePaternal}`: (studentsInSelectedLevelForPreview.length > 0 ? "alumno seleccionado" : "ningún alumno en este nivel")})</Label>
+                    <Label>
+                      Vista Previa del Mensaje (cómo lo verá {selectedStudentDetailsForPreview ? `${selectedStudentDetailsForPreview.firstName} ${selectedStudentDetailsForPreview.lastNamePaternal}` : (studentsInSelectedLevelForPreview.length > 0 ? "el alumno seleccionado" : "un alumno de este nivel")})
+                    </Label>
                     <div
                       className="mt-1 p-3 border rounded-md bg-muted min-h-[200px] text-sm overflow-auto"
                       dangerouslySetInnerHTML={{ __html: emailPreview }}
