@@ -222,10 +222,10 @@ export default function InstitutionNotificationsPage() {
               setConfirmedStage1StudentIds(parsedIds);
             } else {
               console.warn("Stored student IDs from localStorage is not an array:", parsedIds);
-              setConfirmedStage1StudentIds([]); // Initialize to empty array if not an array
+              setConfirmedStage1StudentIds([]); 
             }
           } else {
-             setConfirmedStage1StudentIds([]); // Initialize if nothing in localStorage
+             setConfirmedStage1StudentIds([]); 
           }
         } catch (error) {
           console.error("Error parsing student IDs from localStorage:", error);
@@ -245,7 +245,6 @@ export default function InstitutionNotificationsPage() {
         const confirmedSet = new Set(confirmedStage1StudentIds);
         setStudentsAvailableFromStage1(allStudents.filter(s => confirmedSet.has(s.id)));
     } else if (allStudents.length > 0 && confirmedStage1StudentIds.length === 0) {
-        // If allStudents are loaded but no confirmed IDs, it means no one was selected or loaded from localStorage
         setStudentsAvailableFromStage1([]);
     }
   }, [allStudents, confirmedStage1StudentIds]);
@@ -272,8 +271,9 @@ export default function InstitutionNotificationsPage() {
       setEditableContactRole(selectedInstitution.contactRole || "");
       setEditableContactEmail(selectedInstitution.contactEmail || "");
       
-      // Filter students available from stage 1 that match the institution's location
-      setStudentsForInstitutionCheckboxes(studentsAvailableFromStage1.filter(s => s.location === selectedInstitution.location));
+      // Show all students available from stage 1, do not filter by student's location here.
+      // The user will select which of these students to assign to THIS selectedInstitution.
+      setStudentsForInstitutionCheckboxes(studentsAvailableFromStage1);
       setSelectedStudentsMap({}); // Reset student selection for the new institution
     } else {
       setEditableContactName("");
@@ -282,7 +282,7 @@ export default function InstitutionNotificationsPage() {
       setStudentsForInstitutionCheckboxes([]);
       setSelectedStudentsMap({});
     }
-  }, [selectedInstitution, studentsAvailableFromStage1]); // Dependency on studentsAvailableFromStage1 ensures this runs when stage 1 students are loaded/updated
+  }, [selectedInstitution, studentsAvailableFromStage1]); 
 
   React.useEffect(() => {
     const currentSelectedStudentsForEmail = studentsForInstitutionCheckboxes.filter(s => selectedStudentsMap[s.id]);
@@ -420,7 +420,7 @@ export default function InstitutionNotificationsPage() {
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="commune-select">Comuna</Label>
+                <Label htmlFor="commune-select">Comuna (de la Institución)</Label>
                 <Select onValueChange={setSelectedCommuneId} value={selectedCommuneId}>
                   <SelectTrigger id="commune-select">
                     <SelectValue placeholder="Seleccione una comuna" />
@@ -543,8 +543,10 @@ export default function InstitutionNotificationsPage() {
         {selectedInstitution && (
           <Card>
             <CardHeader>
-                <CardTitle>Lista de estudiantes seleccionados para {selectedInstitution.name}</CardTitle>
-                <CardDescription>Seleccione los estudiantes (previamente confirmados y asignados a la comuna de {selectedInstitution.location}) para incluir en esta notificación. Estos serán los estudiantes disponibles en la siguiente etapa.</CardDescription>
+                <CardTitle>Estudiantes a notificar para {selectedInstitution.name}</CardTitle>
+                <CardDescription>
+                  De la lista de estudiantes confirmados en la etapa anterior, seleccione aquellos que serán asignados a {selectedInstitution.name}. Estos son los estudiantes que se incluirán en esta notificación y estarán disponibles en la siguiente etapa.
+                </CardDescription>
             </CardHeader>
             <CardContent>
                 <ScrollArea className="h-48 rounded-md border p-2">
@@ -560,13 +562,13 @@ export default function InstitutionNotificationsPage() {
                           htmlFor={`student-${student.id}`}
                           className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                         >
-                          {student.firstName} {student.lastNamePaternal} ({student.career}, {student.practicumLevel})
+                          {student.firstName} {student.lastNamePaternal} ({student.career}, {student.practicumLevel}, vive en: {student.commune || 'N/A'})
                         </label>
                       </div>
                     ))
                   ) : (
                     <p className="text-sm text-muted-foreground p-2">
-                      No hay estudiantes confirmados de la etapa anterior asignados a la comuna de {selectedInstitution.location}, o no se han cargado los datos.
+                      No hay estudiantes confirmados de la etapa anterior para asignar, o no se han cargado los datos. Asegúrese de haber confirmado estudiantes en el paso anterior.
                     </p>
                   )}
                 </ScrollArea>
