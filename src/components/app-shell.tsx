@@ -3,15 +3,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Building2, GraduationCap, Home, Mail, PanelLeft, Users, Settings, LogOut } from "lucide-react";
+import { GraduationCap, PanelLeft, Settings, LogOut, Home } from "lucide-react";
 import {
   SidebarProvider,
   Sidebar,
   SidebarHeader,
   SidebarContent,
-  SidebarMenu,
-  SidebarMenuItem,
-  SidebarMenuButton,
   SidebarFooter,
   SidebarTrigger,
   SidebarInset,
@@ -29,16 +26,10 @@ import {
 } from "@/components/ui/dropdown-menu";
 import type { ReactNode } from "react";
 
-const navItems = [
-  { href: "/students", icon: Users, label: "Gestión de Estudiantes", tooltip: "Gestionar Estudiantes" },
-  { href: "/institution-notifications", icon: Building2, label: "Notificaciones a Instituciones", tooltip: "Notificar a Instituciones" },
-  { href: "/student-notifications", icon: Mail, label: "Notificaciones a Estudiantes", tooltip: "Notificar a Estudiantes" },
-];
+// Main navigation items removed as per user request to use CoordinationHeader
 
 export function AppShell({ children }: { children: ReactNode }) {
-  const pathname = usePathname();
   const { state: sidebarState } = useSidebar();
-
 
   return (
     <div className="flex min-h-screen w-full">
@@ -52,7 +43,8 @@ export function AppShell({ children }: { children: ReactNode }) {
           </Link>
         </SidebarHeader>
         <SidebarContent className="p-2">
-          <SidebarMenu>
+          {/* SidebarMenu with main nav items removed. Can be used for other links if needed in future. */}
+          {/* <SidebarMenu>
             {navItems.map((item) => (
               <SidebarMenuItem key={item.href}>
                 <Link href={item.href}>
@@ -66,9 +58,9 @@ export function AppShell({ children }: { children: ReactNode }) {
                 </Link>
               </SidebarMenuItem>
             ))}
-          </SidebarMenu>
+          </SidebarMenu> */}
         </SidebarContent>
-        <SidebarFooter className="p-4 border-t border-sidebar-border">
+        <SidebarFooter className="p-4 border-t border-sidebar-border mt-auto"> {/* Added mt-auto */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="flex items-center justify-start gap-2 w-full p-2 h-auto text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
@@ -91,9 +83,11 @@ export function AppShell({ children }: { children: ReactNode }) {
                 <Settings className="mr-2 h-4 w-4" />
                 <span>Configuración</span>
               </DropdownMenuItem>
-              <DropdownMenuItem>
-                <Home className="mr-2 h-4 w-4" />
-                <Link href="/">Ir a Inicio</Link>
+              <DropdownMenuItem asChild>
+                <Link href="/">
+                  <Home className="mr-2 h-4 w-4" />
+                  Ir a Inicio
+                </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem>
@@ -114,7 +108,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             </div>
           </header>
           <SidebarInset>
-            <main className="flex-1 p-4 md:p-6 overflow-auto">
+            <main className="flex-1 p-4 md:p-6 pt-0 md:pt-0 overflow-auto"> {/* Adjusted padding due to CoordinationHeader in layout */}
               {children}
             </main>
           </SidebarInset>

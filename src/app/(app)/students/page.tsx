@@ -3,13 +3,12 @@
 
 import * as React from "react";
 import type { Student } from "@/lib/definitions";
-import { getStudents, getAcademicLevels } from "@/lib/data";
-import { CoordinationHeader } from "@/components/coordination-header";
+import { getStudents } from "@/lib/data"; // getAcademicLevels removed as it's handled in dialog
 import { StudentTable } from "./components/student-table";
 import { StudentEditDialog } from "./components/student-edit-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
+import { PageHeader } from "@/components/page-header"; // Added PageHeader
 import { PlusCircle, Search, Edit3, Check, UserPlus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -80,7 +79,7 @@ export default function StudentManagementPage() {
   };
 
   const handleAddNewStudent = () => {
-    setSelectedStudentForEdit(null); // Clear any previous selection
+    setSelectedStudentForEdit(null); 
     setIsNewStudentMode(true);
     setIsEditDialogOpen(true);
   };
@@ -99,13 +98,7 @@ export default function StudentManagementPage() {
         newStudentsArray = [...prevStudents];
         newStudentsArray[existingStudentIdx] = updatedStudent;
       } else {
-        // Add new student with a real ID if backend would generate one
-        // For mock, we use the ID from the dialog (which might be new-timestamp or existing)
         newStudentsArray = [...prevStudents, updatedStudent];
-      }
-      // If editing, ensure selection reflects update
-      if (selectedStudentsForConfirmation.has(updatedStudent.id)) {
-         // Potentially re-filter or update UI if relevant fields changed
       }
       return newStudentsArray;
     });
@@ -114,7 +107,6 @@ export default function StudentManagementPage() {
       description: `${updatedStudent.name} ha sido guardado exitosamente.`,
     });
     handleDialogClose();
-     // Potentially clear selection if editing one, or keep if adding many
     if(!isNewStudentMode) setSelectedStudentsForConfirmation(new Set());
   };
 
@@ -148,8 +140,6 @@ export default function StudentManagementPage() {
       title: "Selección Confirmada",
       description: `Estudiantes seleccionados: ${selectedNames}. (Simulado)`,
     });
-    // Here you would typically proceed to the next step or save the selection
-    // For now, just clear selection
     setSelectedStudentsForConfirmation(new Set());
   }
 
@@ -157,19 +147,12 @@ export default function StudentManagementPage() {
 
   return (
     <>
-      <CoordinationHeader activeIndex={0} />
+      {/* CoordinationHeader removed, now it's in (app)/layout.tsx */}
       
-      <div className="mb-6">
-        <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center">
-                <h2 className="text-2xl font-semibold text-foreground">Selección de estudiantes</h2>
-                <Badge variant="secondary" className="ml-3 bg-blue-100 text-blue-700 border-blue-300">En proceso</Badge>
-            </div>
-        </div>
-        <p className="text-muted-foreground">
-          Selecciona los alumnos que podrían realizar su práctica en esta institución.
-        </p>
-      </div>
+      <PageHeader 
+        title="Selección de Estudiantes"
+        description="Selecciona los alumnos que podrían realizar su práctica en esta institución."
+      />
 
       <div className="flex items-center gap-2 mb-4">
         <Button variant="default" className="bg-primary hover:bg-primary/90">Estudiantes existentes</Button>
@@ -194,7 +177,7 @@ export default function StudentManagementPage() {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        <Button onClick={handleAddNewStudent} className="w-full sm:w-auto">
+        <Button onClick={handleAddNewStudent} className="w-full sm:w-auto"> {/* This button is redundant with "Agregar nuevo estudiante" above, but keeping as per original screenshot fielesness. Consider removing one. */}
           <PlusCircle className="mr-2 h-4 w-4" /> Agregar
         </Button>
       </div>
