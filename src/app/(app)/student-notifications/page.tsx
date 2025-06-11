@@ -52,11 +52,13 @@ Correo electrónico: [Correo Electronico Directivo]
 
 Posterior a este correo, deberá coordinar el inicio de su pasantía de acuerdo calendario de prácticas UCSC y hacer entrega de su carpeta de práctica y documentación personal, que incluye:
 
-Certificado de Antecedentes Link de descarga
-Certificado de Inhabilidades para trabajar con menores de edad Link de descarga
-Certificado de Inhabilidades por maltrato relevante Link de descarga
-Horario universitario
-Otra documentación
+<ul>
+    <li>Certificado de Antecedentes <a href="https://www.chileatiende.gob.cl/fichas/3442-certificado-de-antecedentes" target="_blank" rel="noopener noreferrer">Link de descarga</a></li>
+    <li>Certificado de Inhabilidades para trabajar con menores de edad <a href="https://inhabilidades.srcei.cl/ConsInhab/consultaInhabilidad.do" target="_blank" rel="noopener noreferrer">Link de descarga</a></li>
+    <li>Certificado de Inhabilidades por maltrato relevante <a href="https://inhabilidades.srcei.cl/InhabilidadesRelevante/#/inicio" target="_blank" rel="noopener noreferrer">Link de descarga</a></li>
+    <li>Horario universitario</li>
+    <li>Otra documentación</li>
+</ul>
 
 Se informa, además, que el equipo directivo del establecimiento está en conocimiento de su adscripción y por tanto es importante que asista presencialmente al centro educativo.
 
