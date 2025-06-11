@@ -10,9 +10,7 @@ export type Student = {
   commune?: string; // Stores the name of the commune, optional
   tutor?: string; // Stores the name of the tutor, optional
   practicumLevel: string; // Nivel de Práctica, stores the name
-  periodo?: string; // Periodo académico, ej: "2024-1"
   specialConditions?: string;
-  avatar?: string; // Optional: URL to an avatar image
 };
 
 export type Institution = {
@@ -44,3 +42,4 @@ export type Tutor = {
   id: string;
   name: string;
 };
+

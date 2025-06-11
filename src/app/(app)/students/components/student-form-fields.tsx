@@ -36,19 +36,15 @@ export const studentFormSchema = z.object({
   tutor: z.string().optional(),
   practicumLevel: z.string().min(1, { message: "Nivel de práctica es requerido." }),
   specialConditions: z.string().optional(),
-  // Fields for edit dialog only, not in add form initially
-  periodo: z.string().optional(),
-  avatar: z.string().url({ message: "Debe ser una URL válida." }).optional().or(z.literal('')),
 });
 
 export type StudentFormData = z.infer<typeof studentFormSchema>;
 
 interface StudentFormFieldsProps {
   form: UseFormReturn<StudentFormData>;
-  isEditMode?: boolean; // To conditionally show fields like 'periodo' and 'avatar'
 }
 
-export function StudentFormFields({ form, isEditMode = false }: StudentFormFieldsProps) {
+export function StudentFormFields({ form }: StudentFormFieldsProps) {
   const [academicLevels, setAcademicLevels] = React.useState<AcademicLevel[]>([]);
   const [careers, setCareers] = React.useState<Career[]>([]);
   const [communes, setCommunes] = React.useState<Commune[]>([]);
@@ -255,36 +251,7 @@ export function StudentFormFields({ form, isEditMode = false }: StudentFormField
           </FormItem>
         )}
       />
-      {isEditMode && (
-        <>
-          <FormField
-            control={form.control}
-            name="periodo"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Periodo Académico (Opcional)</FormLabel>
-                <FormControl>
-                  <Input placeholder="Ej: 2024-1" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="avatar"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>URL de Avatar (Opcional)</FormLabel>
-                <FormControl>
-                  <Input placeholder="https://placehold.co/100x100.png" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </>
-      )}
     </div>
   );
 }
+

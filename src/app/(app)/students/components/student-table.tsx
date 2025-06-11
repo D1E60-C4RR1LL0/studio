@@ -34,7 +34,6 @@ export function StudentTable({ students, isLoading, selectedStudents, onSelectio
               <TableHead>RUT</TableHead>
               <TableHead>Carrera</TableHead>
               <TableHead>Nivel</TableHead>
-              <TableHead>Periodo</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -45,7 +44,6 @@ export function StudentTable({ students, isLoading, selectedStudents, onSelectio
                 <TableCell><Skeleton className="h-4 w-[100px]" /></TableCell>
                 <TableCell><Skeleton className="h-4 w-[120px]" /></TableCell>
                 <TableCell><Skeleton className="h-4 w-[100px]" /></TableCell>
-                <TableCell><Skeleton className="h-4 w-[80px]" /></TableCell>
               </TableRow>
             ))}
           </TableBody>
@@ -59,7 +57,7 @@ export function StudentTable({ students, isLoading, selectedStudents, onSelectio
       <div className="flex flex-col items-center justify-center py-10 text-center border rounded-md">
         <UserCircle className="w-16 h-16 text-muted-foreground mb-4" />
         <h3 className="text-xl font-semibold">No se encontraron estudiantes</h3>
-        <p className="text-muted-foreground">No hay estudiantes que coincidan con sus criterios actuales.</p>
+        <p className="text-muted-foreground">No hay estudiantes que coincidan con sus criterios actuales o no se han agregado estudiantes aún.</p>
       </div>
     );
   }
@@ -74,7 +72,6 @@ export function StudentTable({ students, isLoading, selectedStudents, onSelectio
             <TableHead>RUT</TableHead>
             <TableHead>Carrera</TableHead>
             <TableHead>Nivel</TableHead>
-            <TableHead>Periodo</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -98,7 +95,6 @@ export function StudentTable({ students, isLoading, selectedStudents, onSelectio
               <TableCell className="hidden md:table-cell">{student.rut}</TableCell>
               <TableCell className="hidden md:table-cell">{student.career}</TableCell>
               <TableCell>{student.practicumLevel}</TableCell>
-              <TableCell>{student.periodo || '-'}</TableCell>
             </TableRow>
           ))}
         </TableBody>
@@ -106,3 +102,4 @@ export function StudentTable({ students, isLoading, selectedStudents, onSelectio
     </div>
   );
 }
+

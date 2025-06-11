@@ -5,15 +5,15 @@ import * as React from "react";
 import type { Student } from "@/lib/definitions";
 import { getStudents, saveStudent } from "@/lib/data";
 import { StudentTable } from "./components/student-table";
-import { StudentEditDialog } from "./components/student-edit-dialog";
 import { AddStudentForm } from "./components/add-student-form";
+import { EditStudentForm } from "./components/edit-student-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/page-header";
 import { Search, Edit3, Check, UserPlus, List } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
-type ViewMode = "table" | "addForm";
+type ViewMode = "table" | "addForm" | "editForm";
 
 export default function StudentManagementPage() {
   const [students, setStudents] = React.useState<Student[]>([]);
@@ -21,33 +21,31 @@ export default function StudentManagementPage() {
   const [searchTerm, setSearchTerm] = React.useState("");
   const [isLoading, setIsLoading] = React.useState(true);
   
-  const [selectedStudentForEdit, setSelectedStudentForEdit] = React.useState<Student | null>(null);
-  const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
-  
   const [selectedStudentsForConfirmation, setSelectedStudentsForConfirmation] = React.useState<Set<string>>(new Set());
   const [viewMode, setViewMode] = React.useState<ViewMode>("table");
 
   const { toast } = useToast();
 
-  React.useEffect(() => {
-    async function fetchData() {
-      try {
-        setIsLoading(true);
-        const data = await getStudents();
-        setStudents(data);
-        setFilteredStudents(data);
-      } catch (error) {
-        toast({
-          title: "Error al obtener estudiantes",
-          description: "No se pudieron cargar los datos de los estudiantes. Intente más tarde.",
-          variant: "destructive",
-        });
-      } finally {
-        setIsLoading(false);
-      }
+  const fetchData = React.useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const data = await getStudents();
+      setStudents(data);
+      // setFilteredStudents(data); // Filtered students will be updated by useEffect
+    } catch (error) {
+      toast({
+        title: "Error al obtener estudiantes",
+        description: "No se pudieron cargar los datos de los estudiantes. Intente más tarde.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
     }
-    fetchData();
   }, [toast]);
+
+  React.useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   React.useEffect(() => {
     const lowercasedFilter = searchTerm.toLowerCase();
@@ -57,58 +55,32 @@ export default function StudentManagementPage() {
         fullName.includes(lowercasedFilter) ||
         item.rut.toLowerCase().includes(lowercasedFilter) ||
         item.career.toLowerCase().includes(lowercasedFilter) ||
-        item.practicumLevel.toLowerCase().includes(lowercasedFilter) ||
-        (item.periodo && item.periodo.toLowerCase().includes(lowercasedFilter))
+        item.practicumLevel.toLowerCase().includes(lowercasedFilter)
       );
     });
     setFilteredStudents(filteredData);
   }, [searchTerm, students]);
-
-  const handleEditStudent = () => {
-    if (selectedStudentsForConfirmation.size === 1) {
-      const studentIdToEdit = Array.from(selectedStudentsForConfirmation)[0];
-      const student = students.find(s => s.id === studentIdToEdit);
-      if (student) {
-        setSelectedStudentForEdit(student);
-        setIsEditDialogOpen(true);
-      }
-    } else {
-      toast({
-        title: "Selección Inválida",
-        description: "Por favor, seleccione un solo estudiante para editar.",
-        variant: "destructive",
-      });
-    }
-  };
   
-  const handleDialogClose = () => {
-    setIsEditDialogOpen(false);
-    setSelectedStudentForEdit(null);
-  };
-
-  const handleSaveStudent = async (studentToSave: Student) => {
+  const handleSaveStudent = async (studentToSave: Student | Omit<Student, 'id'>) => {
     try {
-      const savedStudent = await saveStudent(studentToSave);
-      setStudents(prevStudents => {
-        const existingStudentIdx = prevStudents.findIndex(s => s.id === savedStudent.id);
-        let newStudentsArray;
-        if (existingStudentIdx > -1) {
-          newStudentsArray = [...prevStudents];
-          newStudentsArray[existingStudentIdx] = savedStudent;
-        } else {
-          newStudentsArray = [...prevStudents, savedStudent];
-        }
-        return newStudentsArray;
-      });
+      // For adding a new student, `studentToSave` will be Omit<Student, 'id'>
+      // For editing, it will be Student (with an id)
+      const studentWithPossibleId = studentToSave as Partial<Student> & Omit<Student, 'id'>;
+
+      const studentPayload: Student = studentWithPossibleId.id 
+        ? studentWithPossibleId as Student // If id exists, it's an existing student
+        : { ...studentWithPossibleId, id: `new-${Date.now()}` } as Student; // If no id, create a temp one for saving
+
+      const savedStudent = await saveStudent(studentPayload);
+      
+      await fetchData(); // Refetch all students to update the list
+      
       toast({
         title: "Estudiante Guardado",
         description: `${savedStudent.firstName} ${savedStudent.lastNamePaternal} ha sido guardado exitosamente.`,
       });
-      if (viewMode === 'addForm') {
-        setViewMode('table'); // Switch back to table after adding
-      }
-      handleDialogClose(); // Close edit dialog if open
-      setSelectedStudentsForConfirmation(new Set()); // Clear selection
+      setViewMode('table'); 
+      setSelectedStudentsForConfirmation(new Set()); 
     } catch (error) {
        toast({
         title: "Error al guardar",
@@ -117,6 +89,7 @@ export default function StudentManagementPage() {
       });
     }
   };
+
 
   const handleTableSelectionChange = (studentId: string, isSelected: boolean) => {
     setSelectedStudentsForConfirmation(prevSelected => {
@@ -148,16 +121,27 @@ export default function StudentManagementPage() {
       title: "Selección Confirmada",
       description: `Estudiantes seleccionados: ${selectedNames}. (Simulado)`,
     });
+    // Here you would typically proceed to the next step, e.g., institution notifications
+    // For now, just clear selection
     setSelectedStudentsForConfirmation(new Set());
   }
-
-  const canEdit = selectedStudentsForConfirmation.size === 1;
+  
+  const pageTitles = {
+    table: "Selección de Estudiantes",
+    addForm: "Agregar Nuevo Estudiante",
+    editForm: "Editar Información del Estudiante"
+  };
+  const pageDescriptions = {
+    table: "Selecciona los alumnos que podrían realizar su práctica en esta institución.",
+    addForm: "Complete el formulario para agregar un nuevo estudiante a la base de datos.",
+    editForm: "Busque por RUT y modifique los datos del estudiante."
+  }
 
   return (
     <>
       <PageHeader 
-        title="Selección de Estudiantes"
-        description={viewMode === 'table' ? "Selecciona los alumnos que podrían realizar su práctica en esta institución." : "Agregue un nuevo estudiante a la base de datos."}
+        title={pageTitles[viewMode]}
+        description={pageDescriptions[viewMode]}
       />
 
       <div className="flex items-center gap-2 mb-6">
@@ -177,7 +161,11 @@ export default function StudentManagementPage() {
             <UserPlus className="mr-2 h-4 w-4" />
             Agregar nuevo estudiante
         </Button>
-        <Button variant="outline" onClick={handleEditStudent} disabled={!canEdit || viewMode === 'addForm'}>
+        <Button 
+            variant={viewMode === 'editForm' ? 'default' : 'outline'} 
+            onClick={() => setViewMode('editForm')}
+            className={viewMode === 'editForm' ? 'bg-primary hover:bg-primary/90' : ''}
+        >
             <Edit3 className="mr-2 h-4 w-4" />
             Editar estudiante
         </Button>
@@ -206,7 +194,7 @@ export default function StudentManagementPage() {
           />
 
           <div className="mt-6 flex justify-start">
-            <Button onClick={handleConfirmSelection} size="lg" className="bg-green-600 hover:bg-green-700 text-white">
+            <Button onClick={handleConfirmSelection} size="lg" className="bg-green-600 hover:bg-green-700 text-white" disabled={selectedStudentsForConfirmation.size === 0}>
               <Check className="mr-2 h-5 w-5" /> Confirmar selección
             </Button>
           </div>
@@ -219,15 +207,14 @@ export default function StudentManagementPage() {
           onCancel={() => setViewMode('table')} 
         />
       )}
-
-      {isEditDialogOpen && selectedStudentForEdit && (
-        <StudentEditDialog
-          student={selectedStudentForEdit}
-          isOpen={isEditDialogOpen}
-          onClose={handleDialogClose}
+      
+      {viewMode === 'editForm' && (
+        <EditStudentForm
           onSave={handleSaveStudent}
+          onCancel={() => setViewMode('table')}
         />
       )}
     </>
   );
 }
+

@@ -2,11 +2,11 @@
 import type { Student, Institution, AcademicLevel, Career, Commune, Tutor } from './definitions';
 
 export const mockStudentsData: Student[] = [
-  { id: '1', firstName: 'Ana Sofía', lastNamePaternal: 'Pérez', lastNameMaternal: 'García', rut: '11.111.111-1', career: 'Ingeniería de Software', email: 'ana.perez@example.com', practicumLevel: 'Práctica I', periodo: '2024-1', tutor: 'Dr. Carlos Soto', commune: 'Santiago', specialConditions: 'Requiere configuración para trabajo remoto', avatar: 'https://placehold.co/100x100.png' },
-  { id: '2', firstName: 'Juan José', lastNamePaternal: 'Rodríguez', lastNameMaternal: 'Vera', rut: '22.222.222-2', career: 'Diseño Gráfico', email: 'juan.rodriguez@example.com', practicumLevel: 'Práctica Profesional', periodo: '2024-1', tutor: 'Prof. Laura Vera', commune: 'Valparaíso', avatar: 'https://placehold.co/100x100.png' },
-  { id: '3', firstName: 'María Fernanda', lastNamePaternal: 'González', lastNameMaternal: 'Díaz', rut: '33.333.333-3', career: 'Administración de Empresas', email: 'maria.gonzalez@example.com', practicumLevel: 'Práctica II', periodo: '2023-2', tutor: 'Dr. Roberto Diaz', commune: 'Providencia', specialConditions: 'Necesita lugar de trabajo accesible', avatar: 'https://placehold.co/100x100.png' },
-  { id: '4', firstName: 'Luis Alberto', lastNamePaternal: 'Martínez', lastNameMaternal: 'Soto', rut: '44.444.444-4', career: 'Ingeniería de Software', email: 'luis.martinez@example.com', practicumLevel: 'Práctica I', periodo: '2024-1', tutor: 'Dr. Carlos Soto', commune: 'Concepción', avatar: 'https://placehold.co/100x100.png' },
-  { id: '5', firstName: 'Camila Andrea', lastNamePaternal: 'Silva', lastNameMaternal: 'Reyes', rut: '55.555.555-5', career: 'Ingeniería Civil', email: 'camila.silva@example.com', practicumLevel: 'Práctica Profesional', periodo: '2023-2', tutor: 'Prof. Elena Reyes', commune: 'Antofagasta', avatar: 'https://placehold.co/100x100.png' },
+  { id: '1', firstName: 'Ana Sofía', lastNamePaternal: 'Pérez', lastNameMaternal: 'García', rut: '11.111.111-1', career: 'Ingeniería de Software', email: 'ana.perez@example.com', practicumLevel: 'Práctica I', tutor: 'Dr. Carlos Soto', commune: 'Santiago', specialConditions: 'Requiere configuración para trabajo remoto' },
+  { id: '2', firstName: 'Juan José', lastNamePaternal: 'Rodríguez', lastNameMaternal: 'Vera', rut: '22.222.222-2', career: 'Diseño Gráfico', email: 'juan.rodriguez@example.com', practicumLevel: 'Práctica Profesional', tutor: 'Prof. Laura Vera', commune: 'Valparaíso' },
+  { id: '3', firstName: 'María Fernanda', lastNamePaternal: 'González', lastNameMaternal: 'Díaz', rut: '33.333.333-3', career: 'Administración de Empresas', email: 'maria.gonzalez@example.com', practicumLevel: 'Práctica II', tutor: 'Dr. Roberto Diaz', commune: 'Providencia', specialConditions: 'Necesita lugar de trabajo accesible' },
+  { id: '4', firstName: 'Luis Alberto', lastNamePaternal: 'Martínez', lastNameMaternal: 'Soto', rut: '44.444.444-4', career: 'Ingeniería de Software', email: 'luis.martinez@example.com', practicumLevel: 'Práctica I', tutor: 'Dr. Carlos Soto', commune: 'Concepción' },
+  { id: '5', firstName: 'Camila Andrea', lastNamePaternal: 'Silva', lastNameMaternal: 'Reyes', rut: '55.555.555-5', career: 'Ingeniería Civil', email: 'camila.silva@example.com', practicumLevel: 'Práctica Profesional', tutor: 'Prof. Elena Reyes', commune: 'Antofagasta' },
 ];
 // Use a mutable copy for operations like add/update
 let mockStudents: Student[] = [...mockStudentsData];
@@ -26,6 +26,7 @@ export const mockAcademicLevels: AcademicLevel[] = [
   { id: 'level3', name: 'Práctica Profesional' },
   { id: 'level4', name: 'Pasantía Fase Inicial' },
   { id: 'level5', name: 'Pasantía Fase Final' },
+  { id: 'level6', name: 'Práctica Pedagógica I'},
 ];
 
 export const mockCareers: Career[] = [
@@ -53,6 +54,7 @@ export const mockTutors: Tutor[] = [
     { id: 'tut3', name: 'Dr. Roberto Diaz' },
     { id: 'tut4', name: 'Prof. Elena Reyes' },
     { id: 'tut5', name: 'Mg. Andrea Campos' },
+    { id: 'tut6', name: 'Juan Pérez (juan.perez@ucsc.cl)'}
 ];
 
 export async function getStudents(): Promise<Student[]> {
@@ -71,6 +73,12 @@ export async function saveStudent(studentToSave: Student): Promise<Student> {
   if (index !== -1) {
     mockStudents[index] = studentToSave;
   } else {
+    // This case for adding new student
+    // If ID is temporary like `new-${Date.now()}` or we need to generate a new one.
+    // For simplicity, if it's a new student, assign a new ID if not present or is temporary.
+    if (!studentToSave.id || studentToSave.id.startsWith('new-')) {
+      studentToSave.id = (mockStudents.length + 1).toString(); 
+    }
     mockStudents.push(studentToSave);
   }
   return studentToSave;
@@ -116,3 +124,4 @@ export async function getTutors(): Promise<Tutor[]> {
     await new Promise(resolve => setTimeout(resolve, 200));
     return mockTutors;
 }
+
