@@ -11,7 +11,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { CalendarIcon, SendHorizonal, Info } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { CalendarIcon, SendHorizonal, Info, CheckCircle2 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -51,9 +52,9 @@ Los datos de contacto del establecimiento son:
 - Correo electrónico: [Correo Electronico Directivo]
 
 Posterior a este correo, deberá coordinar el inicio de su pasantía de acuerdo calendario de prácticas UCSC y hacer entrega de su carpeta de práctica y documentación personal, que incluye:
-- Certificado de Antecedentes (Descargar de: https://www.chileatiende.gob.cl/fichas/3442-certificado-de-antecedentes)
-- Certificado de Inhabilidades para trabajar con menores de edad (Descargar de: https://inhabilidades.srcei.cl/ConsInhab/consultaInhabilidad.do)
-- Certificado de Inhabilidades por maltrato relevante (Descargar de: https://inhabilidades.srcei.cl/InhabilidadesRelevante/#/inicio)
+- Certificado de Antecedentes (Link de descarga: https://www.chileatiende.gob.cl/fichas/3442-certificado-de-antecedentes)
+- Certificado de Inhabilidades para trabajar con menores de edad (Link de descarga: https://inhabilidades.srcei.cl/ConsInhab/consultaInhabilidad.do)
+- Certificado de Inhabilidades por maltrato relevante (Link de descarga: https://inhabilidades.srcei.cl/InhabilidadesRelevante/#/inicio)
 - Horario universitario
 - Otra documentación
 
@@ -106,6 +107,11 @@ export default function StudentNotificationsPage() {
 
   const { toast } = useToast();
   const { maxAccessLevel, isLoadingProgress } = usePracticumProgress();
+
+  const [isSuccessDialogOpen, setIsSuccessDialogOpen] = React.useState(false);
+  const [successDialogTitle, setSuccessDialogTitle] = React.useState("");
+  const [successDialogMessage, setSuccessDialogMessage] = React.useState("");
+
 
   React.useEffect(() => {
     async function loadData() {
@@ -217,13 +223,12 @@ export default function StudentNotificationsPage() {
     } else { 
         setStudentsInSelectedLevelForPreview([]);
         setSelectedStudentForPreviewId("");
-        // Reset to defaults if no level is selected
         setCurrentScheduledDate(undefined);
         setCurrentScheduledTime("09:00");
         setCurrentEmailSubject(DEFAULT_EMAIL_SUBJECT);
         setCurrentEmailMessageTemplate(DEFAULT_EMAIL_MESSAGE_TEMPLATE);
     }
-  }, [selectedLevelId, programmingByLevel, displayableAcademicLevels, studentsReadyForNotification]); 
+  }, [selectedLevelId, programmingByLevel, displayableAcademicLevels, studentsReadyForNotification, selectedStudentForPreviewId]); 
 
   const updateProgrammingForLevel = (levelId: string, newProgramming: Partial<LevelProgramming>) => {
     if (!levelId) return; 
@@ -237,10 +242,7 @@ export default function StudentNotificationsPage() {
         ...newProgramming 
       };
       
-      if (updatedLevelProg.scheduledDate && !(updatedLevelProg.scheduledDate instanceof Date) && typeof updatedLevelProg.scheduledDate === 'string') {
-         // It's already an ISO string from localStorage or a new assignment, keep as is or parse if needs validation
-      } else if (updatedLevelProg.scheduledDate instanceof Date) {
-        // If it's a Date object (e.g., from Calendar picker), convert to ISO string for storage
+      if (updatedLevelProg.scheduledDate && updatedLevelProg.scheduledDate instanceof Date) {
         updatedLevelProg.scheduledDate = updatedLevelProg.scheduledDate.toISOString();
       }
       
@@ -278,14 +280,13 @@ export default function StudentNotificationsPage() {
           );
 
           if (studentsForThisLevel.length > 0) {
-            // Ensure scheduledDate is a Date object before operations
             const dateToParse = programming.scheduledDate instanceof Date 
                                ? programming.scheduledDate 
                                : parseISO(programming.scheduledDate as string);
             
             const scheduledDateTime = new Date(dateToParse);
             const [hours, minutes] = programming.scheduledTime.split(':').map(Number);
-            scheduledDateTime.setHours(hours, minutes, 0, 0); // Also reset seconds/milliseconds
+            scheduledDateTime.setHours(hours, minutes, 0, 0); 
 
             configuredLevelsAndStudents.push({
               level,
@@ -335,7 +336,6 @@ export default function StudentNotificationsPage() {
           .replace(/\[Correo Electronico Directivo\]/g, institutionContactEmail);
 
         console.log(`   Para ${student.email} (Estudiante: ${studentFullName}) - Correo simulado`);
-        // console.log(finalMessage); 
         totalStudentsNotifiedCount++;
       });
     });
@@ -344,6 +344,10 @@ export default function StudentNotificationsPage() {
       title: "Notificaciones Programadas (Simulado)",
       description: `Correos para ${totalStudentsNotifiedCount} estudiante(s) en ${configuredLevelsAndStudents.length} nivel(es) han sido programados. Este es el último paso del flujo principal.`,
     });
+    
+    setSuccessDialogTitle("¡Notificaciones Programadas Exitosamente!");
+    setSuccessDialogMessage(`Los correos para ${totalStudentsNotifiedCount} estudiante(s) en ${configuredLevelsAndStudents.length} nivel(es) han sido programados. Puede revisar la consola del navegador para ver los detalles de los correos simulados.`);
+    setIsSuccessDialogOpen(true);
   };
 
 
@@ -429,7 +433,6 @@ export default function StudentNotificationsPage() {
                 <Select
                     onValueChange={(value) => {
                         setSelectedLevelId(value);
-                        // setSelectedStudentForPreviewId(""); // No resetear alumno si el nivel cambia pero el alumno sigue en la lista del nuevo nivel
                     }}
                     value={selectedLevelId}
                     disabled={displayableAcademicLevels.length === 0}
@@ -503,7 +506,7 @@ export default function StudentNotificationsPage() {
                           mode="single"
                           selected={currentScheduledDate instanceof Date ? currentScheduledDate : (currentScheduledDate ? parseISO(currentScheduledDate as string) : undefined)}
                           onSelect={(date) => {
-                            setCurrentScheduledDate(date); // Update local state for immediate UI feedback
+                            setCurrentScheduledDate(date); 
                             updateProgrammingForLevel(selectedLevelId, { scheduledDate: date });
                           }}
                           initialFocus
@@ -521,7 +524,7 @@ export default function StudentNotificationsPage() {
                       value={currentScheduledTime}
                       onChange={(e) => {
                         const newTime = e.target.value;
-                        setCurrentScheduledTime(newTime); // Update local state for immediate UI feedback
+                        setCurrentScheduledTime(newTime); 
                         updateProgrammingForLevel(selectedLevelId, { scheduledTime: newTime });
                       }}
                       className="mt-1"
@@ -537,7 +540,7 @@ export default function StudentNotificationsPage() {
                     value={currentEmailSubject}
                     onChange={(e) => {
                         const newSubject = e.target.value;
-                        setCurrentEmailSubject(newSubject); // Update local state for immediate UI feedback
+                        setCurrentEmailSubject(newSubject); 
                         updateProgrammingForLevel(selectedLevelId, { emailSubject: newSubject });
                     }}
                     className="mt-1"
@@ -552,7 +555,7 @@ export default function StudentNotificationsPage() {
                     value={currentEmailMessageTemplate}
                     onChange={(e) => {
                         const newTemplate = e.target.value;
-                        setCurrentEmailMessageTemplate(newTemplate); // Update local state for immediate UI feedback
+                        setCurrentEmailMessageTemplate(newTemplate); 
                         updateProgrammingForLevel(selectedLevelId, { emailMessageTemplate: newTemplate });
                     }}
                     className="mt-1 min-h-[250px]"
@@ -591,6 +594,24 @@ export default function StudentNotificationsPage() {
           </CardContent>
         </Card>
       </form>
+
+      <Dialog open={isSuccessDialogOpen} onOpenChange={setIsSuccessDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center">
+              <CheckCircle2 className="mr-2 h-6 w-6 text-green-500" />
+              {successDialogTitle}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-sm text-muted-foreground">{successDialogMessage}</p>
+          </div>
+          <DialogFooter className="sm:justify-center">
+            <Button onClick={() => setIsSuccessDialogOpen(false)}>Entendido</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
+
