@@ -65,7 +65,7 @@ const DEFAULT_EMAIL_MESSAGE_TEMPLATE = `
 
 
 const formatDateForStudentEmail = (date: Date | undefined, type: 'start' | 'end'): string => {
-  if (!date) return type === 'start' ? "[Fecha Inicio Practica]" : "[Fecha Termino Practica]";
+  if (!date) return type === 'start' ? "[Fecha Inicio Practica indefinida]" : "[Fecha Termino Practica indefinida]";
   if (type === 'start') {
     return format(date, "'semana del' dd 'de' MMMM", { locale: es });
   }
@@ -81,10 +81,10 @@ export default function StudentNotificationsPage() {
   const [allAcademicLevelsFromData, setAllAcademicLevelsFromData] = React.useState<AcademicLevel[]>([]);
   const [displayableAcademicLevels, setDisplayableAcademicLevels] = React.useState<AcademicLevel[]>([]);
 
-  const [notifiedInstitutionName, setNotifiedInstitutionName] = React.useState<string>("");
-  const [institutionContactName, setInstitutionContactName] = React.useState<string>("");
-  const [institutionContactRole, setInstitutionContactRole] = React.useState<string>("");
-  const [institutionContactEmail, setInstitutionContactEmail] = React.useState<string>("");
+  const [notifiedInstitutionName, setNotifiedInstitutionName] = React.useState<string>("(Institución no especificada)");
+  const [institutionContactName, setInstitutionContactName] = React.useState<string>("(Nombre de directivo no disponible)");
+  const [institutionContactRole, setInstitutionContactRole] = React.useState<string>("(Cargo de directivo no disponible)");
+  const [institutionContactEmail, setInstitutionContactEmail] = React.useState<string>("(Email de directivo no disponible)");
   const [practicumProfStartDate, setPracticumProfStartDate] = React.useState<Date | undefined>();
   const [practicumProfEndDate, setPracticumProfEndDate] = React.useState<Date | undefined>();
   const [practicumOtherStartDate, setPracticumOtherStartDate] = React.useState<Date | undefined>();
@@ -118,10 +118,18 @@ export default function StudentNotificationsPage() {
           const storedStudentIds = localStorage.getItem(CONFIRMED_STUDENT_IDS_KEY);
           setConfirmedStudentIdsFromPreviousStage(storedStudentIds ? JSON.parse(storedStudentIds) : []);
 
-          setNotifiedInstitutionName(localStorage.getItem(LAST_NOTIFIED_INSTITUTION_NAME_KEY) || "Institución no especificada");
-          setInstitutionContactName(localStorage.getItem(LAST_NOTIFIED_INSTITUTION_CONTACT_NAME_KEY) || "[Nombre Directivo]");
-          setInstitutionContactRole(localStorage.getItem(LAST_NOTIFIED_INSTITUTION_CONTACT_ROLE_KEY) || "[Cargo Directivo]");
-          setInstitutionContactEmail(localStorage.getItem(LAST_NOTIFIED_INSTITUTION_CONTACT_EMAIL_KEY) || "[Correo Electronico Directivo]");
+          const instName = localStorage.getItem(LAST_NOTIFIED_INSTITUTION_NAME_KEY);
+          setNotifiedInstitutionName(instName && instName.trim() !== "" ? instName : "(Institución no especificada)");
+          
+          const contactName = localStorage.getItem(LAST_NOTIFIED_INSTITUTION_CONTACT_NAME_KEY);
+          setInstitutionContactName(contactName && contactName.trim() !== "" ? contactName : "(Nombre de directivo no disponible)");
+
+          const contactRole = localStorage.getItem(LAST_NOTIFIED_INSTITUTION_CONTACT_ROLE_KEY);
+          setInstitutionContactRole(contactRole && contactRole.trim() !== "" ? contactRole : "(Cargo de directivo no disponible)");
+
+          const contactEmail = localStorage.getItem(LAST_NOTIFIED_INSTITUTION_CONTACT_EMAIL_KEY);
+          setInstitutionContactEmail(contactEmail && contactEmail.trim() !== "" ? contactEmail : "(Email de directivo no disponible)");
+
 
           const profStart = localStorage.getItem(PRACTICUM_PROF_START_DATE_KEY);
           if (profStart) setPracticumProfStartDate(new Date(profStart));
@@ -172,7 +180,7 @@ export default function StudentNotificationsPage() {
       setDisplayableAcademicLevels(filteredLevels);
 
       if (selectedLevelId && !filteredLevels.find(l => l.id === selectedLevelId)) {
-        setSelectedLevelId("");
+        setSelectedLevelId(""); // Reset if current selection is no longer valid
       }
     } else {
       setDisplayableAcademicLevels([]);
@@ -194,44 +202,48 @@ export default function StudentNotificationsPage() {
           const filtered = studentsReadyForNotification.filter(s => s.practicumLevel === level.name);
           setStudentsInSelectedLevelForPreview(filtered);
           if (filtered.length > 0) {
+            // If no student is selected for preview, or the current one is not in the new list, select the first one.
             if (!selectedStudentForPreviewId || !filtered.find(s => s.id === selectedStudentForPreviewId)) {
                  setSelectedStudentForPreviewId(filtered[0].id);
             }
           } else {
-            setSelectedStudentForPreviewId("");
+            setSelectedStudentForPreviewId(""); // No students for this level
           }
       } else {
         setStudentsInSelectedLevelForPreview([]);
         setSelectedStudentForPreviewId("");
       }
-    } else {
+    } else { // No level selected or programmingByLevel not ready
         setStudentsInSelectedLevelForPreview([]);
         setSelectedStudentForPreviewId("");
+        // Reset fields if no level is selected
         setCurrentScheduledDate(undefined);
         setCurrentScheduledTime("09:00");
         setCurrentEmailSubject(DEFAULT_EMAIL_SUBJECT);
         setCurrentEmailMessageTemplate(DEFAULT_EMAIL_MESSAGE_TEMPLATE);
     }
-  }, [selectedLevelId, programmingByLevel, displayableAcademicLevels, studentsReadyForNotification]);
+  }, [selectedLevelId, programmingByLevel, displayableAcademicLevels, studentsReadyForNotification]); // Added studentsReadyForNotification
 
   const updateProgrammingForLevel = (levelId: string, newProgramming: Partial<LevelProgramming>) => {
-    if (!levelId) return;
+    if (!levelId) return; // Do nothing if no level is selected
     setProgrammingByLevel(prev => {
       const updatedLevelProg = {
-        ...(prev[levelId] || {
+        ...(prev[levelId] || { // Default structure if not existing
             scheduledTime: "09:00",
             emailSubject: DEFAULT_EMAIL_SUBJECT,
             emailMessageTemplate: DEFAULT_EMAIL_MESSAGE_TEMPLATE
         }),
-        ...newProgramming
+        ...newProgramming // Apply new changes
       };
       const newState = { ...prev, [levelId]: updatedLevelProg };
 
-      const storableState = JSON.parse(JSON.stringify(newState));
+      // Prepare for localStorage: convert Date to ISO string
+      const storableState = JSON.parse(JSON.stringify(newState)); // Deep clone
       Object.keys(storableState).forEach(lId => {
         if (storableState[lId].scheduledDate && storableState[lId].scheduledDate instanceof Date) {
           storableState[lId].scheduledDate = (storableState[lId].scheduledDate as Date).toISOString();
         } else if (typeof storableState[lId].scheduledDate === 'string') {
+           // If it's already a string, ensure it's a valid ISO string or store as is (could be already ISO)
            try {
             storableState[lId].scheduledDate = new Date(storableState[lId].scheduledDate).toISOString();
            } catch (e) { /* ignore if not a valid date string */ }
@@ -270,6 +282,7 @@ export default function StudentNotificationsPage() {
     console.log(`Fecha y hora programada: ${scheduledDateTime.toLocaleString('es-CL')}`);
     console.log(`Asunto: ${currentEmailSubject}`);
 
+    // Get all students for the selected level, not just the previewed one
     const actualStudentsToSend = studentsReadyForNotification.filter(s => s.practicumLevel === levelName);
 
     actualStudentsToSend.forEach(student => {
@@ -285,30 +298,32 @@ export default function StudentNotificationsPage() {
       }
 
       const finalMessage = currentEmailMessageTemplate
-        .replace(/\\[Nombre del Estudiante\\]/g, studentFullName)
-        .replace(/\\[Nombre Institucion\\]/g, notifiedInstitutionName || "la institución asignada")
-        .replace(/\\[Nivel de Practica\\]/g, student.practicumLevel)
-        .replace(/\\[Fecha Inicio Practica\\]/g, formatDateForStudentEmail(startDate, 'start'))
-        .replace(/\\[Fecha Termino Practica\\]/g, formatDateForStudentEmail(endDate, 'end'))
-        .replace(/\\[Nombre Directivo\\]/g, institutionContactName)
-        .replace(/\\[Cargo Directivo\\]/g, institutionContactRole)
-        .replace(/\\[Correo Electronico Directivo\\]/g, institutionContactEmail);
+        .replace(/\[Nombre del Estudiante\]/g, studentFullName)
+        .replace(/\[Nombre Institucion\]/g, notifiedInstitutionName)
+        .replace(/\[Nivel de Practica\]/g, student.practicumLevel)
+        .replace(/\[Fecha Inicio Practica\]/g, formatDateForStudentEmail(startDate, 'start'))
+        .replace(/\[Fecha Termino Practica\]/g, formatDateForStudentEmail(endDate, 'end'))
+        .replace(/\[Nombre Directivo\]/g, institutionContactName)
+        .replace(/\[Cargo Directivo\]/g, institutionContactRole)
+        .replace(/\[Correo Electronico Directivo\]/g, institutionContactEmail);
 
       console.log(`--- Para ${student.email} (Estudiante: ${studentFullName}) ---`);
-      console.log(`Mensaje: ${finalMessage}`);
+      // console.log(`Mensaje: ${finalMessage}`); // Full HTML, can be very long
     });
 
     toast({
       title: "Notificaciones Programadas (Simulado)",
       description: `Correos para ${actualStudentsToSend.length} estudiante(s) de ${levelName} programados para ${scheduledDateTime.toLocaleString('es-CL')}. Este es el último paso del flujo principal.`,
     });
+    // Potentially advance stage or clear localStorage for this step if needed in a real scenario
   };
 
   const selectedStudentDetailsForPreview = allStudentsData.find(s => s.id === selectedStudentForPreviewId);
-  let emailPreview = DEFAULT_EMAIL_MESSAGE_TEMPLATE;
+  let emailPreview = currentEmailMessageTemplate; // Start with the current template (HTML)
 
   if (selectedStudentDetailsForPreview) {
       let startDate, endDate;
+      // Determine which set of dates to use based on the student's practicum level
       if (selectedStudentDetailsForPreview.practicumLevel.toLowerCase().includes('profesional')) {
           startDate = practicumProfStartDate;
           endDate = practicumProfEndDate;
@@ -317,24 +332,26 @@ export default function StudentNotificationsPage() {
           endDate = practicumOtherEndDate;
       }
       emailPreview = currentEmailMessageTemplate
-        .replace(/\\[Nombre del Estudiante\\]/g, `${selectedStudentDetailsForPreview.firstName} ${selectedStudentDetailsForPreview.lastNamePaternal} ${selectedStudentDetailsForPreview.lastNameMaternal}`)
-        .replace(/\\[Nombre Institucion\\]/g, notifiedInstitutionName || "la institución asignada")
-        .replace(/\\[Nivel de Practica\\]/g, selectedStudentDetailsForPreview.practicumLevel)
-        .replace(/\\[Fecha Inicio Practica\\]/g, formatDateForStudentEmail(startDate, 'start'))
-        .replace(/\\[Fecha Termino Practica\\]/g, formatDateForStudentEmail(endDate, 'end'))
-        .replace(/\\[Nombre Directivo\\]/g, institutionContactName)
-        .replace(/\\[Cargo Directivo\\]/g, institutionContactRole)
-        .replace(/\\[Correo Electronico Directivo\\]/g, institutionContactEmail);
+        .replace(/\[Nombre del Estudiante\]/g, `${selectedStudentDetailsForPreview.firstName} ${selectedStudentDetailsForPreview.lastNamePaternal} ${selectedStudentDetailsForPreview.lastNameMaternal}`)
+        .replace(/\[Nombre Institucion\]/g, notifiedInstitutionName) // Already has a fallback if not set
+        .replace(/\[Nivel de Practica\]/g, selectedStudentDetailsForPreview.practicumLevel)
+        .replace(/\[Fecha Inicio Practica\]/g, formatDateForStudentEmail(startDate, 'start'))
+        .replace(/\[Fecha Termino Practica\]/g, formatDateForStudentEmail(endDate, 'end'))
+        .replace(/\[Nombre Directivo\]/g, institutionContactName) // Already has a fallback
+        .replace(/\[Cargo Directivo\]/g, institutionContactRole)   // Already has a fallback
+        .replace(/\[Correo Electronico Directivo\]/g, institutionContactEmail); // Already has a fallback
   } else {
+     // Fallback for preview if no student is selected (e.g., when a level is chosen but no student yet)
+     // Uses the fallbacks defined in state for institution details
      emailPreview = currentEmailMessageTemplate
-        .replace(/\\[Nombre del Estudiante\\]/g, "(Nombre del Estudiante)")
-        .replace(/\\[Nombre Institucion\\]/g, notifiedInstitutionName || "la institución asignada")
-        .replace(/\\[Nivel de Practica\\]/g, "[Nivel de Practica]")
-        .replace(/\\[Fecha Inicio Practica\\]/g, formatDateForStudentEmail(undefined, 'start'))
-        .replace(/\\[Fecha Termino Practica\\]/g, formatDateForStudentEmail(undefined, 'end'))
-        .replace(/\\[Nombre Directivo\\]/g, institutionContactName || "[Nombre Directivo]")
-        .replace(/\\[Cargo Directivo\\]/g, institutionContactRole || "[Cargo Directivo]")
-        .replace(/\\[Correo Electronico Directivo\\]/g, institutionContactEmail || "[Correo Electronico Directivo]");
+        .replace(/\[Nombre del Estudiante\]/g, "(Seleccione un alumno para vista previa)")
+        .replace(/\[Nombre Institucion\]/g, notifiedInstitutionName)
+        .replace(/\[Nivel de Practica\]/g, displayableAcademicLevels.find(l => l.id === selectedLevelId)?.name || "(Nivel no seleccionado)")
+        .replace(/\[Fecha Inicio Practica\]/g, formatDateForStudentEmail(undefined, 'start'))
+        .replace(/\[Fecha Termino Practica\]/g, formatDateForStudentEmail(undefined, 'end'))
+        .replace(/\[Nombre Directivo\]/g, institutionContactName)
+        .replace(/\[Cargo Directivo\]/g, institutionContactRole)
+        .replace(/\[Correo Electronico Directivo\]/g, institutionContactEmail);
   }
 
 
@@ -369,7 +386,7 @@ export default function StudentNotificationsPage() {
                 <Select
                     onValueChange={(value) => {
                         setSelectedLevelId(value);
-                        setSelectedStudentForPreviewId("");
+                        setSelectedStudentForPreviewId(""); // Reset student preview when level changes
                     }}
                     value={selectedLevelId}
                     disabled={displayableAcademicLevels.length === 0}
@@ -410,7 +427,7 @@ export default function StudentNotificationsPage() {
             </div>
 
             {!selectedLevelId && displayableAcademicLevels.length > 0 && (
-                 <Alert variant="default" className="bg-accent/10 border-accent/30">
+                 <Alert variant="default" className="bg-accent/10 border-accent/30"> {/* Use a softer alert */}
                     <Info className="h-4 w-4 text-accent" />
                     <AlertTitle className="text-accent">Seleccione un Nivel de Práctica</AlertTitle>
                     <AlertDescription>
@@ -448,7 +465,7 @@ export default function StudentNotificationsPage() {
                           }}
                           initialFocus
                           locale={es}
-                          fromDate={new Date()}
+                          fromDate={new Date()} // Prevent selecting past dates
                         />
                       </PopoverContent>
                     </Popover>
@@ -505,7 +522,7 @@ export default function StudentNotificationsPage() {
                    </p>
                 </div>
                 <div>
-                    <Label>Vista Previa del Mensaje (para {selectedStudentDetailsForPreview ? `${selectedStudentDetailsForPreview.firstName} ${selectedStudentDetailsForPreview.lastNamePaternal}`: "alumno seleccionado"})</Label>
+                    <Label>Vista Previa del Mensaje (para {selectedStudentDetailsForPreview ? `${selectedStudentDetailsForPreview.firstName} ${selectedStudentDetailsForPreview.lastNamePaternal}`: (studentsInSelectedLevelForPreview.length > 0 ? "alumno seleccionado" : "ningún alumno en este nivel")})</Label>
                     <div
                       className="mt-1 p-3 border rounded-md bg-muted min-h-[200px] text-sm overflow-auto"
                       dangerouslySetInnerHTML={{ __html: emailPreview }}
@@ -527,3 +544,5 @@ export default function StudentNotificationsPage() {
     </>
   );
 }
+
+    
