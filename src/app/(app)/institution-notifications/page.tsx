@@ -5,7 +5,6 @@ import * as React from "react";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-// Textarea ya no se usa para el cuerpo del correo, pero podría ser necesario para otros campos si se reintroduce.
 // import { Textarea } from "@/components/ui/textarea"; 
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -193,13 +192,6 @@ export default function InstitutionNotificationsPage() {
         setCommunes(communeData);
         setAllInstitutions(instData);
         setAllStudents(studentData);
-
-        if (typeof window !== 'undefined') {
-            const storedIds = localStorage.getItem(CONFIRMED_STUDENT_IDS_KEY);
-            if (storedIds) {
-                setConfirmedStage1StudentIds(JSON.parse(storedIds));
-            }
-        }
       } catch (error) {
         toast({
           title: "Error al cargar datos iniciales",
@@ -208,8 +200,34 @@ export default function InstitutionNotificationsPage() {
         });
       }
     }
+
     if (!isLoadingProgress && maxAccessLevel >= STAGES.INSTITUTION_NOTIFICATION) {
-      loadInitialData();
+      loadInitialData(); // This will eventually call setAllStudents
+      if (typeof window !== 'undefined') {
+        try {
+          const storedIds = localStorage.getItem(CONFIRMED_STUDENT_IDS_KEY);
+          if (storedIds) {
+            const parsedIds = JSON.parse(storedIds);
+            if (Array.isArray(parsedIds)) {
+              setConfirmedStage1StudentIds(parsedIds);
+            } else {
+              console.warn("Stored student IDs from localStorage is not an array:", parsedIds);
+              setConfirmedStage1StudentIds([]);
+            }
+          } else {
+            // No IDs stored, ensure it's an empty array
+            setConfirmedStage1StudentIds([]);
+          }
+        } catch (error) {
+          console.error("Error parsing student IDs from localStorage:", error);
+          toast({
+            title: "Error al leer selección previa",
+            description: "No se pudieron cargar los estudiantes seleccionados de la etapa anterior.",
+            variant: "destructive",
+          });
+          setConfirmedStage1StudentIds([]); // Reset to empty on error
+        }
+      }
     }
   }, [toast, isLoadingProgress, maxAccessLevel]);
 
@@ -269,7 +287,7 @@ export default function InstitutionNotificationsPage() {
       practiceEndDateOther,
       practiceWeeksOther
     );
-    setEmailBody(body); // This updates the state that will be used by dangerouslySetInnerHTML
+    setEmailBody(body);
   }, [
       selectedInstitution, 
       editableContactName, 
@@ -570,5 +588,3 @@ export default function InstitutionNotificationsPage() {
     </>
   );
 }
-
-    
