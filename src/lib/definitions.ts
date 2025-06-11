@@ -1,12 +1,14 @@
+
 export type Student = {
   id: string;
   name: string;
-  rut: string; 
+  rut: string;
   career: string;
   email: string;
-  practicumLevel: string;
+  practicumLevel: string; // Nivel de Práctica
+  periodo?: string; // Nuevo campo: Periodo académico, ej: "2024-1"
   tutor?: string;
-  location: string; 
+  location: string;
   specialConditions?: string;
   avatar?: string; // Optional: URL to an avatar image
 };
@@ -14,7 +16,7 @@ export type Student = {
 export type Institution = {
   id: string;
   name: string;
-  location: string; 
+  location: string;
   contactName: string;
   contactEmail: string;
   contactPhone?: string;

@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -12,6 +13,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { CalendarIcon, SendHorizonal } from "lucide-react";
 import { format } from "date-fns";
+import { es } from "date-fns/locale"; // Import Spanish locale for date-fns
 import { cn } from "@/lib/utils";
 import { getStudents, getAcademicLevels } from "@/lib/data";
 import type { Student, AcademicLevel } from "@/lib/definitions";
@@ -38,8 +40,8 @@ export default function StudentNotificationsPage() {
         setAcademicLevels(levelData);
       } catch (error) {
          toast({
-          title: "Error loading data",
-          description: "Could not load students or academic levels.",
+          title: "Error al cargar datos",
+          description: "No se pudieron cargar estudiantes o niveles académicos.",
           variant: "destructive",
         });
       }
@@ -53,8 +55,8 @@ export default function StudentNotificationsPage() {
     e.preventDefault();
     if (!selectedStudent || !selectedLevelId || !emailSubject || !emailMessage || !scheduledDate) {
        toast({
-        title: "Missing Information",
-        description: "Please fill all required fields including student, level, message, and schedule.",
+        title: "Información Faltante",
+        description: "Por favor complete todos los campos requeridos incluyendo estudiante, nivel, mensaje y horario.",
         variant: "destructive",
       });
       return;
@@ -64,14 +66,17 @@ export default function StudentNotificationsPage() {
     const [hours, minutes] = scheduledTime.split(':').map(Number);
     scheduledDateTime.setHours(hours, minutes);
     
-    console.log("Sending email to:", selectedStudent.email);
-    console.log("Subject:", emailSubject);
-    console.log("Message:", emailMessage);
-    console.log("Scheduled for:", scheduledDateTime.toLocaleString());
+    // Replace placeholder in message
+    const finalMessage = emailMessage.replace(/\[Nombre del Estudiante\]/g, selectedStudent.name);
+
+    console.log("Enviando correo a:", selectedStudent.email);
+    console.log("Asunto:", emailSubject);
+    console.log("Mensaje:", finalMessage);
+    console.log("Programado para:", scheduledDateTime.toLocaleString('es-CL'));
 
     toast({
-      title: "Notification Scheduled (Simulated)",
-      description: `Email for ${selectedStudent.name} scheduled for ${scheduledDateTime.toLocaleString()}.`,
+      title: "Notificación Programada (Simulado)",
+      description: `Correo para ${selectedStudent.name} programado para ${scheduledDateTime.toLocaleString('es-CL')}.`,
     });
 
     // Reset form
@@ -86,22 +91,22 @@ export default function StudentNotificationsPage() {
   return (
     <>
       <PageHeader
-        title="Student Notifications"
-        description="Customize and schedule email notifications for students."
+        title="Notificaciones a Estudiantes"
+        description="Personalizar y programar notificaciones por correo electrónico para estudiantes."
       />
       <form onSubmit={handleSendNotification}>
         <Card>
           <CardHeader>
-            <CardTitle>Compose & Schedule Notification</CardTitle>
-            <CardDescription>Select a student, academic level, customize the message, and set a sending schedule.</CardDescription>
+            <CardTitle>Redactar y Programar Notificación</CardTitle>
+            <CardDescription>Seleccione un estudiante, nivel académico, personalice el mensaje y establezca un horario de envío.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <Label htmlFor="student-select">Select Student</Label>
+                <Label htmlFor="student-select">Seleccionar Estudiante</Label>
                 <Select onValueChange={setSelectedStudentId} value={selectedStudentId}>
                   <SelectTrigger id="student-select">
-                    <SelectValue placeholder="Choose a student" />
+                    <SelectValue placeholder="Elija un estudiante" />
                   </SelectTrigger>
                   <SelectContent>
                     {students.map(student => (
@@ -111,10 +116,10 @@ export default function StudentNotificationsPage() {
                 </Select>
               </div>
               <div>
-                <Label htmlFor="level-select">Select Academic Level</Label>
+                <Label htmlFor="level-select">Seleccionar Nivel Académico</Label>
                 <Select onValueChange={setSelectedLevelId} value={selectedLevelId}>
                   <SelectTrigger id="level-select">
-                    <SelectValue placeholder="Choose an academic level" />
+                    <SelectValue placeholder="Elija un nivel académico" />
                   </SelectTrigger>
                   <SelectContent>
                     {academicLevels.map(level => (
@@ -126,10 +131,10 @@ export default function StudentNotificationsPage() {
             </div>
 
             <div>
-              <Label htmlFor="email-subject-student">Email Subject</Label>
+              <Label htmlFor="email-subject-student">Asunto del Correo</Label>
               <Input 
                 id="email-subject-student" 
-                placeholder="Regarding your Practicum Assignment" 
+                placeholder="Respecto a su Asignación de Práctica" 
                 value={emailSubject}
                 onChange={(e) => setEmailSubject(e.target.value)}
                 required
@@ -137,21 +142,21 @@ export default function StudentNotificationsPage() {
             </div>
 
             <div>
-              <Label htmlFor="email-message-student">Customize Email Message</Label>
+              <Label htmlFor="email-message-student">Personalizar Mensaje del Correo</Label>
               <Textarea
                 id="email-message-student"
-                placeholder="Dear [Student Name],\n\nThis email contains important information about your upcoming practicum..."
+                placeholder="Estimado/a [Nombre del Estudiante],\n\nEste correo contiene información importante sobre su próxima práctica..."
                 rows={8}
                 value={emailMessage}
                 onChange={(e) => setEmailMessage(e.target.value)}
                 required
               />
-              {selectedStudent && <p className="text-xs text-muted-foreground mt-1">Available placeholder: [Student Name] will be replaced with "{selectedStudent.name}".</p>}
+              {selectedStudent && <p className="text-xs text-muted-foreground mt-1">Marcador disponible: [Nombre del Estudiante] será reemplazado por "{selectedStudent.name}".</p>}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <Label htmlFor="schedule-date">Schedule Date</Label>
+                <Label htmlFor="schedule-date">Fecha de Programación</Label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
@@ -163,7 +168,7 @@ export default function StudentNotificationsPage() {
                       )}
                     >
                       <CalendarIcon className="mr-2 h-4 w-4" />
-                      {scheduledDate ? format(scheduledDate, "PPP") : <span>Pick a date</span>}
+                      {scheduledDate ? format(scheduledDate, "PPP", { locale: es }) : <span>Elija una fecha</span>}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0">
@@ -172,12 +177,13 @@ export default function StudentNotificationsPage() {
                       selected={scheduledDate}
                       onSelect={setScheduledDate}
                       initialFocus
+                      locale={es}
                     />
                   </PopoverContent>
                 </Popover>
               </div>
               <div>
-                <Label htmlFor="schedule-time">Schedule Time</Label>
+                <Label htmlFor="schedule-time">Hora de Programación</Label>
                 <Input 
                   id="schedule-time" 
                   type="time" 
@@ -189,7 +195,7 @@ export default function StudentNotificationsPage() {
             </div>
             
             <Button type="submit" className="w-full md:w-auto">
-              <SendHorizonal className="mr-2 h-4 w-4" /> Schedule Notification
+              <SendHorizonal className="mr-2 h-4 w-4" /> Programar Notificación
             </Button>
           </CardContent>
         </Card>

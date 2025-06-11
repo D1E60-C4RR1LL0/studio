@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -24,7 +25,8 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { mockAcademicLevels } from "@/lib/data"; // Using mock data for levels
+import { getAcademicLevels } from "@/lib/data"; 
+import type { AcademicLevel } from "@/lib/definitions";
 import {
   Select,
   SelectContent,
@@ -35,15 +37,16 @@ import {
 
 
 const studentFormSchema = z.object({
-  name: z.string().min(2, { message: "Name must be at least 2 characters." }),
-  rut: z.string().regex(/^\d{1,2}\.\d{3}\.\d{3}-[\dkK]$/, { message: "Invalid RUT format (e.g., 12.345.678-9)." }),
-  career: z.string().min(2, { message: "Career must be at least 2 characters." }),
-  email: z.string().email({ message: "Invalid email address." }),
-  practicumLevel: z.string().min(1, { message: "Practicum level is required." }),
+  name: z.string().min(2, { message: "El nombre debe tener al menos 2 caracteres." }),
+  rut: z.string().regex(/^\d{1,2}\.\d{3}\.\d{3}-[\dkK]$/, { message: "Formato de RUT inválido (ej: 12.345.678-9)." }),
+  career: z.string().min(2, { message: "La carrera debe tener al menos 2 caracteres." }),
+  email: z.string().email({ message: "Dirección de correo inválida." }),
+  practicumLevel: z.string().min(1, { message: "El nivel de práctica es requerido." }),
+  periodo: z.string().optional(),
   tutor: z.string().optional(),
-  location: z.string().min(2, { message: "Location must be at least 2 characters." }),
+  location: z.string().min(2, { message: "La ubicación debe tener al menos 2 caracteres." }),
   specialConditions: z.string().optional(),
-  avatar: z.string().url().optional().or(z.literal('')),
+  avatar: z.string().url({ message: "Debe ser una URL válida." }).optional().or(z.literal('')),
 });
 
 type StudentFormData = z.infer<typeof studentFormSchema>;
@@ -56,6 +59,16 @@ interface StudentEditDialogProps {
 }
 
 export function StudentEditDialog({ student, isOpen, onClose, onSave }: StudentEditDialogProps) {
+  const [academicLevels, setAcademicLevels] = React.useState<AcademicLevel[]>([]);
+
+  React.useEffect(() => {
+    async function loadLevels() {
+      const levels = await getAcademicLevels();
+      setAcademicLevels(levels);
+    }
+    loadLevels();
+  }, []);
+  
   const form = useForm<StudentFormData>({
     resolver: zodResolver(studentFormSchema),
     defaultValues: student || {
@@ -64,6 +77,7 @@ export function StudentEditDialog({ student, isOpen, onClose, onSave }: StudentE
       career: "",
       email: "",
       practicumLevel: "",
+      periodo: "",
       tutor: "",
       location: "",
       specialConditions: "",
@@ -72,22 +86,25 @@ export function StudentEditDialog({ student, isOpen, onClose, onSave }: StudentE
   });
   
   React.useEffect(() => {
-    if (student) {
-      form.reset(student);
-    } else {
-      form.reset({
-        name: "", rut: "", career: "", email: "", practicumLevel: "", tutor: "", location: "", specialConditions: "", avatar: ""
-      });
+    if (isOpen) { // Reset form only when dialog opens or student changes
+      if (student) {
+        form.reset(student);
+      } else {
+        form.reset({
+          name: "", rut: "", career: "", email: "", practicumLevel: "", periodo: "", tutor: "", location: "", specialConditions: "", avatar: ""
+        });
+      }
     }
   }, [student, form, isOpen]);
 
 
   const onSubmit = (data: StudentFormData) => {
-    if (!student) return; // Should not happen if dialog is for editing or adding existing
-    
+    // student prop could be the new student template or an existing student
+    // if it's a new student, its id would be `new-${Date.now()}`
     const studentToSave: Student = {
-      ...student, // Preserves ID and any other non-form fields
-      ...data,
+      ...(student || {}), // spread existing student data (like ID) or empty object
+      ...data, // override with form data
+      id: student?.id || `new-${Date.now()}`, // ensure ID is present
     };
     onSave(studentToSave);
   };
@@ -96,9 +113,9 @@ export function StudentEditDialog({ student, isOpen, onClose, onSave }: StudentE
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{student?.id.startsWith('new-') ? "Add New Student" : "Edit Student Information"}</DialogTitle>
+          <DialogTitle>{student?.id.startsWith('new-') ? "Agregar Nuevo Estudiante" : "Editar Información del Estudiante"}</DialogTitle>
           <DialogDescription>
-            {student?.id.startsWith('new-') ? "Enter the details for the new student." : `Update the details for ${student?.name}.`}
+            {student?.id.startsWith('new-') ? "Ingrese los detalles para el nuevo estudiante." : `Actualice los detalles para ${student?.name}.`}
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -109,9 +126,9 @@ export function StudentEditDialog({ student, isOpen, onClose, onSave }: StudentE
                 name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Full Name</FormLabel>
+                    <FormLabel>Nombre Completo</FormLabel>
                     <FormControl>
-                      <Input placeholder="e.g., Ana Pérez García" {...field} />
+                      <Input placeholder="Ej: Ana Pérez García" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -124,7 +141,7 @@ export function StudentEditDialog({ student, isOpen, onClose, onSave }: StudentE
                   <FormItem>
                     <FormLabel>RUT</FormLabel>
                     <FormControl>
-                      <Input placeholder="e.g., 12.345.678-9" {...field} />
+                      <Input placeholder="Ej: 12.345.678-9" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -135,9 +152,9 @@ export function StudentEditDialog({ student, isOpen, onClose, onSave }: StudentE
                 name="career"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Career</FormLabel>
+                    <FormLabel>Carrera</FormLabel>
                     <FormControl>
-                      <Input placeholder="e.g., Software Engineering" {...field} />
+                      <Input placeholder="Ej: Ingeniería de Software" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -148,9 +165,9 @@ export function StudentEditDialog({ student, isOpen, onClose, onSave }: StudentE
                 name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Email Address</FormLabel>
+                    <FormLabel>Dirección de Correo</FormLabel>
                     <FormControl>
-                      <Input type="email" placeholder="e.g., ana.perez@example.com" {...field} />
+                      <Input type="email" placeholder="Ej: ana.perez@example.com" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -161,15 +178,15 @@ export function StudentEditDialog({ student, isOpen, onClose, onSave }: StudentE
                 name="practicumLevel"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Practicum Level</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormLabel>Nivel de Práctica</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Select a practicum level" />
+                          <SelectValue placeholder="Seleccione un nivel de práctica" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {mockAcademicLevels.map(level => (
+                        {academicLevels.map(level => (
                           <SelectItem key={level.id} value={level.name}>{level.name}</SelectItem>
                         ))}
                       </SelectContent>
@@ -180,12 +197,25 @@ export function StudentEditDialog({ student, isOpen, onClose, onSave }: StudentE
               />
               <FormField
                 control={form.control}
+                name="periodo"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Periodo Académico (Opcional)</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Ej: 2024-1" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
                 name="tutor"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Academic Tutor (Optional)</FormLabel>
+                    <FormLabel>Tutor Académico (Opcional)</FormLabel>
                     <FormControl>
-                      <Input placeholder="e.g., Dr. Carlos Soto" {...field} />
+                      <Input placeholder="Ej: Dr. Carlos Soto" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -197,9 +227,9 @@ export function StudentEditDialog({ student, isOpen, onClose, onSave }: StudentE
               name="location"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Practicum Location/Institution</FormLabel>
+                  <FormLabel>Lugar/Institución de Práctica</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g., Tech Solutions Inc." {...field} />
+                    <Input placeholder="Ej: Soluciones Tecnológicas Inc." {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -210,7 +240,7 @@ export function StudentEditDialog({ student, isOpen, onClose, onSave }: StudentE
               name="avatar"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Avatar URL (Optional)</FormLabel>
+                  <FormLabel>URL de Avatar (Opcional)</FormLabel>
                   <FormControl>
                     <Input placeholder="https://placehold.co/100x100.png" {...field} />
                   </FormControl>
@@ -223,9 +253,9 @@ export function StudentEditDialog({ student, isOpen, onClose, onSave }: StudentE
               name="specialConditions"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Special Conditions (Optional)</FormLabel>
+                  <FormLabel>Condiciones Especiales (Opcional)</FormLabel>
                   <FormControl>
-                    <Textarea placeholder="e.g., Requires remote work setup, accessible workplace needed." {...field} />
+                    <Textarea placeholder="Ej: Requiere equipamiento para trabajo remoto, necesidad de lugar accesible." {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -233,9 +263,9 @@ export function StudentEditDialog({ student, isOpen, onClose, onSave }: StudentE
             />
             <DialogFooter>
               <Button type="button" variant="outline" onClick={onClose}>
-                Cancel
+                Cancelar
               </Button>
-              <Button type="submit">Save Changes</Button>
+              <Button type="submit">Guardar Cambios</Button>
             </DialogFooter>
           </form>
         </Form>

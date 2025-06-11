@@ -1,14 +1,16 @@
+
 "use client";
 
 import * as React from "react";
 import type { Student } from "@/lib/definitions";
-import { getStudents } from "@/lib/data";
-import { PageHeader } from "@/components/page-header";
+import { getStudents, getAcademicLevels } from "@/lib/data";
+import { CoordinationHeader } from "@/components/coordination-header";
 import { StudentTable } from "./components/student-table";
 import { StudentEditDialog } from "./components/student-edit-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { PlusCircle, Search } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { PlusCircle, Search, Edit3, Check, UserPlus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 export default function StudentManagementPage() {
@@ -16,8 +18,13 @@ export default function StudentManagementPage() {
   const [filteredStudents, setFilteredStudents] = React.useState<Student[]>([]);
   const [searchTerm, setSearchTerm] = React.useState("");
   const [isLoading, setIsLoading] = React.useState(true);
-  const [selectedStudent, setSelectedStudent] = React.useState<Student | null>(null);
+  
+  const [selectedStudentForEdit, setSelectedStudentForEdit] = React.useState<Student | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
+  const [isNewStudentMode, setIsNewStudentMode] = React.useState(false);
+
+  const [selectedStudentsForConfirmation, setSelectedStudentsForConfirmation] = React.useState<Set<string>>(new Set());
+
   const { toast } = useToast();
 
   React.useEffect(() => {
@@ -29,8 +36,8 @@ export default function StudentManagementPage() {
         setFilteredStudents(data);
       } catch (error) {
         toast({
-          title: "Error fetching students",
-          description: "Could not load student data. Please try again later.",
+          title: "Error al obtener estudiantes",
+          description: "No se pudieron cargar los datos de los estudiantes. Intente más tarde.",
           variant: "destructive",
         });
       } finally {
@@ -43,91 +50,171 @@ export default function StudentManagementPage() {
   React.useEffect(() => {
     const lowercasedFilter = searchTerm.toLowerCase();
     const filteredData = students.filter(item => {
-      return Object.values(item).some(val =>
-        String(val).toLowerCase().includes(lowercasedFilter)
+      return (
+        item.name.toLowerCase().includes(lowercasedFilter) ||
+        item.rut.toLowerCase().includes(lowercasedFilter) ||
+        item.career.toLowerCase().includes(lowercasedFilter) ||
+        item.practicumLevel.toLowerCase().includes(lowercasedFilter) ||
+        (item.periodo && item.periodo.toLowerCase().includes(lowercasedFilter))
       );
     });
     setFilteredStudents(filteredData);
   }, [searchTerm, students]);
 
-  const handleEdit = (student: Student) => {
-    setSelectedStudent(student);
-    setIsEditDialogOpen(true);
+  const handleEditStudent = () => {
+    if (selectedStudentsForConfirmation.size === 1) {
+      const studentIdToEdit = Array.from(selectedStudentsForConfirmation)[0];
+      const student = students.find(s => s.id === studentIdToEdit);
+      if (student) {
+        setSelectedStudentForEdit(student);
+        setIsNewStudentMode(false);
+        setIsEditDialogOpen(true);
+      }
+    } else {
+      toast({
+        title: "Selección Inválida",
+        description: "Por favor, seleccione un solo estudiante para editar.",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleAddNew = () => {
-    // For a real "add new" scenario, you'd initialize a new student object
-    // For this example, we'll open the dialog with a blank-ish student or a template
-    setSelectedStudent({ 
-      id: `new-${Date.now()}`, // Temporary ID
-      name: "", 
-      rut: "", 
-      career: "", 
-      email: "", 
-      practicumLevel: "", 
-      location: "" 
-    });
+  const handleAddNewStudent = () => {
+    setSelectedStudentForEdit(null); // Clear any previous selection
+    setIsNewStudentMode(true);
     setIsEditDialogOpen(true);
   };
   
   const handleDialogClose = () => {
     setIsEditDialogOpen(false);
-    setSelectedStudent(null);
+    setSelectedStudentForEdit(null);
+    setIsNewStudentMode(false);
   };
 
   const handleSaveStudent = (updatedStudent: Student) => {
-    // This would typically involve an API call to save the student
-    // For mock purposes, we update the local state
     setStudents(prevStudents => {
       const existingStudentIdx = prevStudents.findIndex(s => s.id === updatedStudent.id);
+      let newStudentsArray;
       if (existingStudentIdx > -1) {
-        // Update existing student
-        const newStudents = [...prevStudents];
-        newStudents[existingStudentIdx] = updatedStudent;
-        return newStudents;
+        newStudentsArray = [...prevStudents];
+        newStudentsArray[existingStudentIdx] = updatedStudent;
       } else {
-        // Add new student
-        return [...prevStudents, updatedStudent];
+        // Add new student with a real ID if backend would generate one
+        // For mock, we use the ID from the dialog (which might be new-timestamp or existing)
+        newStudentsArray = [...prevStudents, updatedStudent];
       }
+      // If editing, ensure selection reflects update
+      if (selectedStudentsForConfirmation.has(updatedStudent.id)) {
+         // Potentially re-filter or update UI if relevant fields changed
+      }
+      return newStudentsArray;
     });
     toast({
-      title: "Student Saved",
-      description: `${updatedStudent.name} has been successfully saved.`,
+      title: "Estudiante Guardado",
+      description: `${updatedStudent.name} ha sido guardado exitosamente.`,
     });
     handleDialogClose();
+     // Potentially clear selection if editing one, or keep if adding many
+    if(!isNewStudentMode) setSelectedStudentsForConfirmation(new Set());
   };
+
+  const handleTableSelectionChange = (studentId: string, isSelected: boolean) => {
+    setSelectedStudentsForConfirmation(prevSelected => {
+      const newSelected = new Set(prevSelected);
+      if (isSelected) {
+        newSelected.add(studentId);
+      } else {
+        newSelected.delete(studentId);
+      }
+      return newSelected;
+    });
+  };
+  
+  const handleConfirmSelection = () => {
+    if (selectedStudentsForConfirmation.size === 0) {
+      toast({
+        title: "Ningún estudiante seleccionado",
+        description: "Por favor, seleccione al menos un estudiante para confirmar.",
+        variant: "destructive",
+      });
+      return;
+    }
+    const selectedNames = students
+        .filter(s => selectedStudentsForConfirmation.has(s.id))
+        .map(s => s.name)
+        .join(', ');
+
+    toast({
+      title: "Selección Confirmada",
+      description: `Estudiantes seleccionados: ${selectedNames}. (Simulado)`,
+    });
+    // Here you would typically proceed to the next step or save the selection
+    // For now, just clear selection
+    setSelectedStudentsForConfirmation(new Set());
+  }
+
+  const canEdit = selectedStudentsForConfirmation.size === 1;
 
   return (
     <>
-      <PageHeader
-        title="Student Management"
-        description="Search, view, and edit student practicum information."
-        actions={
-          <Button onClick={handleAddNew}>
-            <PlusCircle className="mr-2 h-4 w-4" /> Add New Student
-          </Button>
-        }
-      />
-      <div className="mb-4 flex items-center gap-4">
-        <div className="relative flex-1">
+      <CoordinationHeader activeIndex={0} />
+      
+      <div className="mb-6">
+        <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center">
+                <h2 className="text-2xl font-semibold text-foreground">Selección de estudiantes</h2>
+                <Badge variant="secondary" className="ml-3 bg-blue-100 text-blue-700 border-blue-300">En proceso</Badge>
+            </div>
+        </div>
+        <p className="text-muted-foreground">
+          Selecciona los alumnos que podrían realizar su práctica en esta institución.
+        </p>
+      </div>
+
+      <div className="flex items-center gap-2 mb-4">
+        <Button variant="default" className="bg-primary hover:bg-primary/90">Estudiantes existentes</Button>
+        <Button variant="outline" onClick={handleAddNewStudent}>
+            <UserPlus className="mr-2 h-4 w-4" />
+            Agregar nuevo estudiante
+        </Button>
+        <Button variant="outline" onClick={handleEditStudent} disabled={!canEdit}>
+            <Edit3 className="mr-2 h-4 w-4" />
+            Editar estudiante
+        </Button>
+      </div>
+
+      <div className="mb-4 flex flex-col sm:flex-row items-center gap-4">
+        <div className="relative flex-1 w-full sm:w-auto">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             type="search"
-            placeholder="Search students by name, RUT, career, etc..."
+            placeholder="Buscar alumno por nombre o RUT"
             className="pl-8 w-full"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
+        <Button onClick={handleAddNewStudent} className="w-full sm:w-auto">
+          <PlusCircle className="mr-2 h-4 w-4" /> Agregar
+        </Button>
       </div>
+
       <StudentTable
         students={filteredStudents}
-        onEdit={handleEdit}
         isLoading={isLoading}
+        selectedStudents={selectedStudentsForConfirmation}
+        onSelectionChange={handleTableSelectionChange}
       />
-      {selectedStudent && (
+
+      <div className="mt-6 flex justify-start">
+        <Button onClick={handleConfirmSelection} size="lg" className="bg-green-600 hover:bg-green-700 text-white">
+          <Check className="mr-2 h-5 w-5" /> Confirmar selección
+        </Button>
+      </div>
+
+      {(isEditDialogOpen) && (
         <StudentEditDialog
-          student={selectedStudent}
+          student={isNewStudentMode ? { id: `new-${Date.now()}`, name: "", rut: "", career: "", email: "", practicumLevel: "", location: "", periodo: "" } : selectedStudentForEdit}
           isOpen={isEditDialogOpen}
           onClose={handleDialogClose}
           onSave={handleSaveStudent}

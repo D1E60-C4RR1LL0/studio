@@ -1,8 +1,9 @@
+
 "use client";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Building2, GraduationCap, Home, Mail, PanelLeft, Users, Settings } from "lucide-react";
+import { Building2, GraduationCap, Home, Mail, PanelLeft, Users, Settings, LogOut } from "lucide-react";
 import {
   SidebarProvider,
   Sidebar,
@@ -29,9 +30,9 @@ import {
 import type { ReactNode } from "react";
 
 const navItems = [
-  { href: "/students", icon: Users, label: "Student Management", tooltip: "Manage Students" },
-  { href: "/institution-notifications", icon: Building2, label: "Institution Notifications", tooltip: "Notify Institutions" },
-  { href: "/student-notifications", icon: Mail, label: "Student Notifications", tooltip: "Notify Students" },
+  { href: "/students", icon: Users, label: "Gestión de Estudiantes", tooltip: "Gestionar Estudiantes" },
+  { href: "/institution-notifications", icon: Building2, label: "Notificaciones a Instituciones", tooltip: "Notificar a Instituciones" },
+  { href: "/student-notifications", icon: Mail, label: "Notificaciones a Estudiantes", tooltip: "Notificar a Estudiantes" },
 ];
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -46,7 +47,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <Link href="/" className="flex items-center gap-2 group">
             <GraduationCap className="h-8 w-8 text-sidebar-primary transition-transform group-hover:scale-110" />
             {sidebarState === "expanded" && (
-              <h1 className="text-xl font-semibold text-sidebar-foreground font-headline">Practicum Manager</h1>
+              <h1 className="text-xl font-semibold text-sidebar-foreground font-headline">Gestor de Prácticas</h1>
             )}
           </Link>
         </SidebarHeader>
@@ -72,31 +73,32 @@ export function AppShell({ children }: { children: ReactNode }) {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="flex items-center justify-start gap-2 w-full p-2 h-auto text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
                 <Avatar className="h-8 w-8">
-                  <AvatarImage src="https://placehold.co/100x100.png" alt="User Avatar" data-ai-hint="person avatar" />
-                  <AvatarFallback>PM</AvatarFallback>
+                  <AvatarImage src="https://placehold.co/100x100.png" alt="Avatar de Usuario" data-ai-hint="person avatar" />
+                  <AvatarFallback>GU</AvatarFallback> {/* Gestor Usuario */}
                 </Avatar>
                 {sidebarState === "expanded" && (
                   <div className="text-left">
-                    <p className="text-sm font-medium">Admin User</p>
-                    <p className="text-xs text-sidebar-foreground/70">admin@practicum.com</p>
+                    <p className="text-sm font-medium">Usuario Admin</p>
+                    <p className="text-xs text-sidebar-foreground/70">admin@practicas.com</p>
                   </div>
                 )}
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent side="top" align={sidebarState === "expanded" ? "end" : "center"} className="w-56">
-              <DropdownMenuLabel>My Account</DropdownMenuLabel>
+              <DropdownMenuLabel>Mi Cuenta</DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem>
                 <Settings className="mr-2 h-4 w-4" />
-                <span>Settings</span>
+                <span>Configuración</span>
               </DropdownMenuItem>
               <DropdownMenuItem>
                 <Home className="mr-2 h-4 w-4" />
-                <Link href="/">Go to Homepage</Link>
+                <Link href="/">Ir a Inicio</Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem>
-                <span>Log out</span>
+                <LogOut className="mr-2 h-4 w-4" />
+                <span>Cerrar sesión</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

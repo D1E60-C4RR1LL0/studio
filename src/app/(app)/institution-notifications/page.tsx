@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -31,12 +32,12 @@ export default function InstitutionNotificationsPage() {
         setInstitutions(instData);
         setStudents(studentData);
         if (instData.length > 0) {
-          setSelectedInstitution(instData[0]); // Select first institution by default
+          setSelectedInstitution(instData[0]); 
         }
       } catch (error) {
         toast({
-          title: "Error loading data",
-          description: "Could not load institutions or students.",
+          title: "Error al cargar datos",
+          description: "No se pudieron cargar las instituciones o estudiantes.",
           variant: "destructive",
         });
       }
@@ -47,6 +48,7 @@ export default function InstitutionNotificationsPage() {
   const handleInstitutionChange = (institutionId: string) => {
     const inst = institutions.find(i => i.id === institutionId);
     setSelectedInstitution(inst || null);
+    setSelectedStudents({}); // Reset student selection when institution changes
   };
 
   const handleStudentSelect = (studentId: string, checked: boolean) => {
@@ -57,8 +59,8 @@ export default function InstitutionNotificationsPage() {
     e.preventDefault();
     if (!selectedInstitution || Object.values(selectedStudents).filter(Boolean).length === 0) {
       toast({
-        title: "Missing information",
-        description: "Please select an institution and at least one student.",
+        title: "Información faltante",
+        description: "Por favor, seleccione una institución y al menos un estudiante.",
         variant: "destructive",
       });
       return;
@@ -69,15 +71,15 @@ export default function InstitutionNotificationsPage() {
       .map(s => `- ${s.name} (${s.career}, ${s.practicumLevel})`)
       .join("\n");
 
-    const finalEmailBody = `Dear ${selectedInstitution.contactName},\n\n${emailBody}\n\nPlease find below the list of students for the practicum:\n${studentsForEmail}\n\nSincerely,\nPracticum Management Team`;
+    const finalEmailBody = `Estimado/a ${selectedInstitution.contactName},\n\n${emailBody}\n\nA continuación, la lista de estudiantes para la práctica:\n${studentsForEmail}\n\nAtentamente,\nEquipo de Gestión de Prácticas`;
     
-    console.log("Sending email to:", selectedInstitution.contactEmail);
-    console.log("Subject:", emailSubject);
-    console.log("Body:", finalEmailBody);
+    console.log("Enviando correo a:", selectedInstitution.contactEmail);
+    console.log("Asunto:", emailSubject);
+    console.log("Cuerpo:", finalEmailBody);
 
     toast({
-      title: "Notification Sent (Simulated)",
-      description: `Email prepared for ${selectedInstitution.name}.`,
+      title: "Notificación Enviada (Simulado)",
+      description: `Correo preparado para ${selectedInstitution.name}.`,
     });
     // Reset form or parts of it
     setSelectedStudents({});
@@ -89,22 +91,22 @@ export default function InstitutionNotificationsPage() {
   return (
     <>
       <PageHeader
-        title="Institution Notifications"
-        description="Compose and send notifications to practicum institutions."
+        title="Notificaciones a Instituciones"
+        description="Redactar y enviar notificaciones a las instituciones de práctica."
       />
       <form onSubmit={handleSendNotification}>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <Card className="md:col-span-1">
             <CardHeader>
-              <CardTitle>Institution & Contact</CardTitle>
-              <CardDescription>Select an institution and verify contact details.</CardDescription>
+              <CardTitle>Institución y Contacto</CardTitle>
+              <CardDescription>Seleccione una institución y verifique los detalles de contacto.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <Label htmlFor="institution-select">Institution</Label>
+                <Label htmlFor="institution-select">Institución</Label>
                 <Select onValueChange={handleInstitutionChange} value={selectedInstitution?.id || ""}>
                   <SelectTrigger id="institution-select">
-                    <SelectValue placeholder="Select an institution" />
+                    <SelectValue placeholder="Seleccione una institución" />
                   </SelectTrigger>
                   <SelectContent>
                     {institutions.map(inst => (
@@ -116,15 +118,15 @@ export default function InstitutionNotificationsPage() {
               {selectedInstitution && (
                 <>
                   <div>
-                    <Label htmlFor="contact-name">Contact Name</Label>
+                    <Label htmlFor="contact-name">Nombre de Contacto</Label>
                     <Input id="contact-name" value={selectedInstitution.contactName} readOnly />
                   </div>
                   <div>
-                    <Label htmlFor="contact-email">Contact Email</Label>
+                    <Label htmlFor="contact-email">Correo de Contacto</Label>
                     <Input id="contact-email" type="email" value={selectedInstitution.contactEmail} readOnly />
                   </div>
                   <div>
-                    <Label htmlFor="contact-phone">Contact Phone (Optional)</Label>
+                    <Label htmlFor="contact-phone">Teléfono de Contacto (Opcional)</Label>
                     <Input id="contact-phone" value={selectedInstitution.contactPhone || ""} readOnly />
                   </div>
                 </>
@@ -134,25 +136,25 @@ export default function InstitutionNotificationsPage() {
 
           <Card className="md:col-span-2">
             <CardHeader>
-              <CardTitle>Compose Email</CardTitle>
-              <CardDescription>Select students and write your message.</CardDescription>
+              <CardTitle>Redactar Correo</CardTitle>
+              <CardDescription>Seleccione estudiantes y escriba su mensaje.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <Label htmlFor="email-subject">Subject</Label>
+                <Label htmlFor="email-subject">Asunto</Label>
                 <Input 
                   id="email-subject" 
-                  placeholder="Practicum Student Information" 
+                  placeholder="Información Estudiantes de Práctica" 
                   value={emailSubject}
                   onChange={(e) => setEmailSubject(e.target.value)}
                   required
                 />
               </div>
               <div>
-                <Label htmlFor="email-body">Message Body</Label>
+                <Label htmlFor="email-body">Cuerpo del Mensaje</Label>
                 <Textarea
                   id="email-body"
-                  placeholder="Enter your main message here. The student list will be appended automatically."
+                  placeholder="Ingrese su mensaje principal aquí. La lista de estudiantes se adjuntará automáticamente."
                   rows={6}
                   value={emailBody}
                   onChange={(e) => setEmailBody(e.target.value)}
@@ -160,9 +162,9 @@ export default function InstitutionNotificationsPage() {
                 />
               </div>
               <div>
-                <Label>Select Students for this Institution ({selectedInstitution?.name || 'N/A'})</Label>
+                <Label>Seleccionar Estudiantes para esta Institución ({selectedInstitution?.name || 'N/A'})</Label>
                 <ScrollArea className="h-48 rounded-md border p-2 mt-1">
-                  {students.filter(s => s.location === selectedInstitution?.name).length > 0 ? (
+                  {selectedInstitution && students.filter(s => s.location === selectedInstitution?.name).length > 0 ? (
                     students.filter(s => s.location === selectedInstitution?.name).map(student => (
                       <div key={student.id} className="flex items-center space-x-2 p-1.5">
                         <Checkbox
@@ -179,12 +181,12 @@ export default function InstitutionNotificationsPage() {
                       </div>
                     ))
                   ) : (
-                    <p className="text-sm text-muted-foreground p-2">No students currently assigned to {selectedInstitution?.name || 'the selected institution'}.</p>
+                    <p className="text-sm text-muted-foreground p-2">No hay estudiantes asignados actualmente a {selectedInstitution?.name || 'la institución seleccionada'}.</p>
                   )}
                 </ScrollArea>
               </div>
               <Button type="submit" className="w-full md:w-auto" disabled={!selectedInstitution}>
-                <Send className="mr-2 h-4 w-4" /> Send Notification
+                <Send className="mr-2 h-4 w-4" /> Enviar Notificación
               </Button>
             </CardContent>
           </Card>
