@@ -8,6 +8,7 @@ export const mockStudentsData: Student[] = [
   { id: '3', firstName: 'María Fernanda', lastNamePaternal: 'González', lastNameMaternal: 'Díaz', rut: '33.333.333-3', career: 'Administración de Empresas', email: 'maria.gonzalez@example.com', practicumLevel: 'Práctica II', tutor: 'Dr. Roberto Diaz', commune: 'Providencia', location: 'Santiago', specialConditions: 'Necesita lugar de trabajo accesible' },
   { id: '4', firstName: 'Luis Alberto', lastNamePaternal: 'Martínez', lastNameMaternal: 'Soto', rut: '44.444.444-4', career: 'Ingeniería de Software', email: 'luis.martinez@example.com', practicumLevel: 'Práctica I', tutor: 'Dr. Carlos Soto', commune: 'Concepción', location: 'Concepción' },
   { id: '5', firstName: 'Camila Andrea', lastNamePaternal: 'Silva', lastNameMaternal: 'Reyes', rut: '55.555.555-5', career: 'Ingeniería Civil', email: 'camila.silva@example.com', practicumLevel: 'Práctica Profesional', tutor: 'Prof. Elena Reyes', commune: 'Antofagasta', location: 'Antofagasta' },
+  { id: '6', firstName: 'Pedro Pascal', lastNamePaternal: 'Pérez', lastNameMaternal: 'Gómez', rut: '66.666.666-6', career: 'Pedagogía en Educación Parvularia', email: 'pedro.perez@example.com', practicumLevel: 'Práctica Pedagógica II', tutor: 'Prof. Andrea Campos', commune: 'Concepción', location: 'Concepción' },
 ];
 
 // Use a mutable copy for operations like add/update
@@ -20,11 +21,10 @@ function initializeStudents(): Student[] {
         return JSON.parse(storedStudents);
       } catch (e) {
         console.error("Error parsing students from localStorage", e);
-        // Fallback to mock data if parsing fails
       }
     }
   }
-  return [...mockStudentsData]; // Make a mutable copy
+  return [...mockStudentsData].map(s => ({ ...s, location: s.location || s.commune || 'Desconocida' }));
 }
 
 let mockStudents: Student[] = initializeStudents();
@@ -37,11 +37,12 @@ function persistStudents() {
 
 
 export const mockInstitutions: Institution[] = [
-  { id: 'inst1', name: 'Soluciones Tecnológicas Inc.', location: 'Santiago', contactName: 'Roberto Morales', contactEmail: 'roberto.morales@techsolutions.com', contactPhone: '+56912345678', logo: 'https://placehold.co/150x50.png' },
-  { id: 'inst2', name: 'Diseños Creativos LLC', location: 'Valparaíso', contactName: 'Sofia Castro', contactEmail: 'sofia.castro@creativedesigns.com', contactPhone: '+56987654321', logo: 'https://placehold.co/150x50.png' },
-  { id: 'inst3', name: 'Global Corp', location: 'Santiago', contactName: 'Fernando López', contactEmail: 'fernando.lopez@globalcorp.com', logo: 'https://placehold.co/150x50.png' },
-  { id: 'inst4', name: 'Innovatech', location: 'Concepción', contactName: 'Gabriela Núñez', contactEmail: 'gabriela.nunez@innovatech.com', contactPhone: '+56911223344', logo: 'https://placehold.co/150x50.png' },
-  { id: 'inst5', name: 'Construcciones BuildWell', location: 'Antofagasta', contactName: 'Andrés Torres', contactEmail: 'andres.torres@buildwell.com', logo: 'https://placehold.co/150x50.png' },
+  { id: 'inst1', name: 'Soluciones Tecnológicas Inc.', location: 'Santiago', contactName: 'Roberto Morales', contactEmail: 'roberto.morales@techsolutions.com', contactPhone: '+56912345678', contactRole: 'Gerente de Proyectos', logo: 'https://placehold.co/150x50.png' },
+  { id: 'inst2', name: 'Diseños Creativos LLC', location: 'Valparaíso', contactName: 'Sofia Castro', contactEmail: 'sofia.castro@creativedesigns.com', contactPhone: '+56987654321', contactRole: 'Directora de Arte', logo: 'https://placehold.co/150x50.png' },
+  { id: 'inst3', name: 'Global Corp', location: 'Santiago', contactName: 'Fernando López', contactEmail: 'fernando.lopez@globalcorp.com', contactRole: 'Jefe de Operaciones', logo: 'https://placehold.co/150x50.png' },
+  { id: 'inst4', name: 'Escuela Tres Palitos', location: 'Concepción', contactName: 'Condorito Pérez', contactEmail: 'condor.rector@palitos.cl', contactPhone: '+56911223344', contactRole: 'Director Académico', logo: 'https://placehold.co/150x50.png' },
+  { id: 'inst5', name: 'Construcciones BuildWell', location: 'Antofagasta', contactName: 'Andrés Torres', contactEmail: 'andres.torres@buildwell.com', contactRole: 'Jefe de Obra', logo: 'https://placehold.co/150x50.png' },
+  { id: 'inst6', name: 'Colegio Los Robles', location: 'Concepción', contactName: 'Ana María Silva', contactEmail: 'amsilva@losrobles.cl', contactRole: 'Coordinadora Académica', logo: 'https://placehold.co/150x50.png'}
 ];
 
 export const mockAcademicLevels: AcademicLevel[] = [
@@ -51,6 +52,7 @@ export const mockAcademicLevels: AcademicLevel[] = [
   { id: 'level4', name: 'Pasantía Fase Inicial' },
   { id: 'level5', name: 'Pasantía Fase Final' },
   { id: 'level6', name: 'Práctica Pedagógica I'},
+  { id: 'level7', name: 'Práctica Pedagógica II'},
 ];
 
 export const mockCareers: Career[] = [
@@ -60,6 +62,7 @@ export const mockCareers: Career[] = [
     { id: 'car4', name: 'Ingeniería Civil' },
     { id: 'car5', name: 'Psicología' },
     { id: 'car6', name: 'Pedagogía en Educación Básica' },
+    { id: 'car7', name: 'Pedagogía en Educación Parvularia' },
 ];
 
 export const mockCommunes: Commune[] = [
@@ -70,6 +73,8 @@ export const mockCommunes: Commune[] = [
     { id: 'com5', name: 'Viña del Mar' },
     { id: 'com6', name: 'Concepción' },
     { id: 'com7', name: 'Antofagasta' },
+    { id: 'com8', name: 'Talcahuano'},
+    { id: 'com9', name: 'San Pedro de la Paz'},
 ];
 
 export const mockTutors: Tutor[] = [
@@ -83,15 +88,13 @@ export const mockTutors: Tutor[] = [
 
 export async function getStudents(): Promise<Student[]> {
   await new Promise(resolve => setTimeout(resolve, 500));
-  // Ensure mockStudents is initialized if it's empty (e.g. localStorage was cleared)
   if (mockStudents.length === 0 && typeof window !== 'undefined' && !localStorage.getItem('practicumStudents')) {
-    mockStudents = [...mockStudentsData];
-    persistStudents(); // Persist the default if nothing was there
+    mockStudents = [...mockStudentsData].map(s => ({ ...s, location: s.location || s.commune || 'Desconocida' }));
+    persistStudents();
   } else if (mockStudents.length === 0 && (typeof window === 'undefined' || !localStorage.getItem('practicumStudents'))) {
-    // For server-side or first load if localStorage is empty
-    mockStudents = [...mockStudentsData];
+    mockStudents = [...mockStudentsData].map(s => ({ ...s, location: s.location || s.commune || 'Desconocida' }));
   }
-  return [...mockStudents]; // Return a copy
+  return [...mockStudents];
 }
 
 export async function getStudentById(id: string): Promise<Student | undefined> {
@@ -103,7 +106,6 @@ export async function saveStudent(studentToSave: Student): Promise<Student> {
   await new Promise(resolve => setTimeout(resolve, 500));
   const index = mockStudents.findIndex(s => s.id === studentToSave.id);
   
-  // Ensure location is set, default to commune if not explicitly provided
   const studentWithLocation = {
     ...studentToSave,
     location: studentToSave.location || studentToSave.commune || 'Desconocida' 

@@ -6,22 +6,23 @@ export type Student = {
   lastNamePaternal: string;
   lastNameMaternal: string;
   email: string;
-  career: string; 
-  commune?: string; 
-  tutor?: string; 
-  practicumLevel: string; 
+  career: string;
+  commune?: string;
+  tutor?: string;
+  practicumLevel: string;
   specialConditions?: string;
-  location?: string; // Used for matching students to institutions, can be same as commune or more general
+  location?: string; // Usado para asignar estudiantes a la ubicación de una institución
 };
 
 export type Institution = {
   id: string;
   name: string;
-  location: string; 
+  location: string; // Generalmente la comuna
   contactName: string;
   contactEmail: string;
   contactPhone?: string;
-  logo?: string; 
+  contactRole?: string; // Nuevo campo: Cargo del contacto
+  logo?: string;
 };
 
 export type AcademicLevel = {
