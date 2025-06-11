@@ -5,7 +5,7 @@ import * as React from "react";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import { Textarea } from "@/components/ui/textarea"; // Re-enabled
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getInstitutions, getStudents, getCommunes } from "@/lib/data";
@@ -22,6 +22,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { format, parse } from "date-fns";
 import { es } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+// import RichTextEditor from "@/components/rich-text-editor"; // Disabled
 
 const CONFIRMED_STUDENT_IDS_KEY = 'confirmedPracticumStudentIds';
 
@@ -42,17 +43,31 @@ const generateEmailBodyTemplate = (
   otherEndDate?: Date,
   otherWeeks?: string
 ): string => {
-  const studentListItems = selectedStudentsForEmail.map(student => {
-    const fullName = `${student.firstName} ${student.lastNamePaternal} ${student.lastNameMaternal}`;
-    return `${fullName.padEnd(40)} ${student.rut.padEnd(18)} ${student.career.padEnd(30)} ${student.practicumLevel.padEnd(25)}`;
-  }).join("\n");
+  let studentTableRowsHTML = "";
+  if (selectedStudentsForEmail.length > 0) {
+    studentTableRowsHTML = selectedStudentsForEmail.map(student => {
+      const fullName = `${student.firstName} ${student.lastNamePaternal} ${student.lastNameMaternal}`;
+      return `<tr><td style="border: 1px solid #ddd; padding: 8px;">${fullName}</td><td style="border: 1px solid #ddd; padding: 8px;">${student.rut}</td><td style="border: 1px solid #ddd; padding: 8px;">${student.career}</td><td style="border: 1px solid #ddd; padding: 8px;">${student.practicumLevel}</td></tr>`;
+    }).join("");
+  } else {
+    studentTableRowsHTML = `<tr><td colspan="4" style="border: 1px solid #ddd; padding: 8px; text-align: center;">(No hay estudiantes seleccionados para esta notificación)</td></tr>`;
+  }
   
-  const studentListHeader = `${"NOMBRE COMPLETO".padEnd(40)} ${"RUT".padEnd(18)} ${"CARRERA".padEnd(30)} ${"NIVEL PRÁCTICA".padEnd(25)}`;
-  const studentListSeparator = "-".repeat(studentListHeader.length > 0 ? studentListHeader.split('\n')[0].length : 113);
+  const studentListHTML = `
+    <table style="border-collapse: collapse; width: 100%; border: 1px solid #ddd; font-family: Arial, sans-serif; font-size: 10pt;">
+      <thead style="background-color: #f2f2f2;">
+        <tr>
+          <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">NOMBRE COMPLETO</th>
+          <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">RUT</th>
+          <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">CARRERA</th>
+          <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">NIVEL PRÁCTICA</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${studentTableRowsHTML}
+      </tbody>
+    </table>`;
 
-
-  const calendarHeader = `${"NIVEL DE PRÁCTICA".padEnd(35)} ${"FECHA INICIO".padEnd(25)} ${"FECHA TÉRMINO".padEnd(25)} ${"Nº SEMANAS"}`;
-  const calendarSeparator = "-".repeat(calendarHeader.length);
 
   const profStartDateText = formatDateForEmail(profStartDate, 'inicio');
   const profEndDateText = formatDateForEmail(profEndDate, 'termino');
@@ -62,40 +77,57 @@ const generateEmailBodyTemplate = (
   const otherEndDateText = formatDateForEmail(otherEndDate, 'termino');
   const otherWeeksText = otherWeeks || "[Nº]";
 
-  const practiceCalendar = `
-${calendarHeader}
-${calendarSeparator}
-${"P. PROFESIONAL".padEnd(35)} ${profStartDateText.padEnd(25)} ${profEndDateText.padEnd(25)} ${profWeeksText}
-${"PPV - PPIV - PPIII - PPII - PPI".padEnd(35)} ${otherStartDateText.padEnd(25)} ${otherEndDateText.padEnd(25)} ${otherWeeksText}
-  `.trim();
+  const practiceCalendarHTML = `
+    <table style="border-collapse: collapse; width: 100%; border: 1px solid #ddd; margin-bottom: 15px; font-family: Arial, sans-serif; font-size: 10pt;">
+      <thead style="background-color: #f2f2f2;">
+        <tr>
+          <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">NIVEL DE PRÁCTICA</th>
+          <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">FECHA INICIO</th>
+          <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">FECHA TÉRMINO</th>
+          <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Nº SEMANAS</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td style="border: 1px solid #ddd; padding: 8px;">P. PROFESIONAL</td>
+          <td style="border: 1px solid #ddd; padding: 8px;">${profStartDateText}</td>
+          <td style="border: 1px solid #ddd; padding: 8px;">${profEndDateText}</td>
+          <td style="border: 1px solid #ddd; padding: 8px;">${profWeeksText}</td>
+        </tr>
+        <tr>
+          <td style="border: 1px solid #ddd; padding: 8px;">PPV - PPIV - PPIII - PPII - PPI</td>
+          <td style="border: 1px solid #ddd; padding: 8px;">${otherStartDateText}</td>
+          <td style="border: 1px solid #ddd; padding: 8px;">${otherEndDateText}</td>
+          <td style="border: 1px solid #ddd; padding: 8px;">${otherWeeksText}</td>
+        </tr>
+      </tbody>
+    </table>`;
 
-  const documentationList = `Al iniciar su pasantía, cada estudiante deberá hacer entrega de su carpeta de práctica con documentación institucional y personal; la cual considera:
-* Certificado de Antecedentes
-* Certificado de Inhabilidades para trabajar con menores de edad
-* Certificado de Inhabilidades por maltrato relevante
-* Horario universitario
-* Otra documentación`;
+  const documentationListHTML = `
+    <p style="font-family: Arial, sans-serif; font-size: 10pt; margin-top: 15px;">Al iniciar su pasantía, cada estudiante deberá hacer entrega de su carpeta de práctica con documentación institucional y personal; la cual considera:</p>
+    <ul style="font-family: Arial, sans-serif; font-size: 10pt;">
+      <li>Certificado de Antecedentes</li>
+      <li>Certificado de Inhabilidades para trabajar con menores de edad</li>
+      <li>Certificado de Inhabilidades por maltrato relevante</li>
+      <li>Horario universitario</li>
+      <li>Otra documentación</li>
+    </ul>`;
   
   let roleSalutation = "";
   if (contactRole && contactRole.trim() !== "") {
     roleSalutation = `en su calidad de ${contactRole} de `;
   }
 
-  return `Estimado/a ${contactName || '[Nombre Contacto]'}${contactRole ? `, ${roleSalutation}${institutionName || '[Nombre Institución]'}` : (institutionName ? ` de ${institutionName || '[Nombre Institución]'}`: '')}.
-
-Le saludo de manera cordial en nombre de la Unidad de Práctica Pedagógica (UPP) de la Facultad de Educación de la Universidad Católica de la Santísima Concepción, y presento a usted el inicio de las pasantías de estudiantes de Pedagogía de nuestra Facultad, de acuerdo con el siguiente calendario de prácticas UCSC primer semestre 2025:
-
-${practiceCalendar}
-
-Adjuntamos la lista de estudiantes propuestos para realizar su práctica en su establecimiento:
-${studentListItems.length > 0 ? `${studentListHeader}\n${studentListSeparator}\n${studentListItems}` : " (No hay estudiantes seleccionados para esta notificación)"}
-
-${documentationList}
-
-Finalmente, como UPP agradecemos el espacio formativo otorgado por su comunidad educativa.
-
-Se despide atentamente,
-Equipo Unidad de Prácticas Pedagógicas UCSC`;
+  return `
+    <p style="font-family: Arial, sans-serif; font-size: 10pt; margin-bottom: 10px;">Estimado/a ${contactName || '[Nombre Contacto]'}${contactRole ? `, ${roleSalutation}${institutionName || '[Nombre Institución]'}` : (institutionName ? ` de ${institutionName || '[Nombre Institución]'}`: '')}.</p>
+    <p style="font-family: Arial, sans-serif; font-size: 10pt; margin-bottom: 15px;">Le saludo de manera cordial en nombre de la Unidad de Práctica Pedagógica (UPP) de la Facultad de Educación de la Universidad Católica de la Santísima Concepción, y presento a usted el inicio de las pasantías de estudiantes de Pedagogía de nuestra Facultad, de acuerdo con el siguiente calendario de prácticas UCSC primer semestre 2025:</p>
+    ${practiceCalendarHTML}
+    <p style="font-family: Arial, sans-serif; font-size: 10pt; margin-top: 15px; margin-bottom: 5px;">Adjuntamos la lista de estudiantes propuestos para realizar su práctica en su establecimiento:</p>
+    ${studentListHTML}
+    ${documentationListHTML}
+    <p style="font-family: Arial, sans-serif; font-size: 10pt; margin-top: 20px;">Finalmente, como UPP agradecemos el espacio formativo otorgado por su comunidad educativa.</p>
+    <p style="font-family: Arial, sans-serif; font-size: 10pt; margin-top: 15px;">Se despide atentamente,<br />Equipo Unidad de Prácticas Pedagógicas UCSC</p>
+  `;
 };
 
 
@@ -187,6 +219,7 @@ export default function InstitutionNotificationsPage() {
         const confirmedSet = new Set(confirmedStage1StudentIds);
         setStudentsAvailableFromStage1(allStudents.filter(s => confirmedSet.has(s.id)));
     } else if (allStudents.length > 0 && confirmedStage1StudentIds.length === 0) {
+        // If there are students but none were confirmed from stage 1, available students should be empty.
         setStudentsAvailableFromStage1([]);
     }
   }, [allStudents, confirmedStage1StudentIds]);
@@ -212,9 +245,9 @@ export default function InstitutionNotificationsPage() {
       setEditableContactName(selectedInstitution.contactName || "");
       setEditableContactRole(selectedInstitution.contactRole || "");
       setEditableContactEmail(selectedInstitution.contactEmail || "");
-      // Filter confirmed students whose location matches the selected institution's location
+      
       setStudentsForInstitutionCheckboxes(studentsAvailableFromStage1.filter(s => s.location === selectedInstitution.location));
-      setSelectedStudentsMap({}); // Reset student selection when institution changes
+      setSelectedStudentsMap({}); 
     } else {
       setEditableContactName("");
       setEditableContactRole("");
@@ -222,7 +255,7 @@ export default function InstitutionNotificationsPage() {
       setStudentsForInstitutionCheckboxes([]);
       setSelectedStudentsMap({});
     }
-  }, [selectedInstitution, studentsAvailableFromStage1]); // depends on studentsAvailableFromStage1
+  }, [selectedInstitution, studentsAvailableFromStage1]); 
 
   React.useEffect(() => {
     const currentSelectedStudentsForEmail = studentsForInstitutionCheckboxes.filter(s => selectedStudentsMap[s.id]);
@@ -299,12 +332,13 @@ export default function InstitutionNotificationsPage() {
 
     const studentsActuallySelected = studentsForInstitutionCheckboxes.filter(s => selectedStudentsMap[s.id]);
 
+    // For simulation, we'll log the HTML content. In a real app, you'd use a mailer service.
     console.log("Enviando correo a:", editableContactEmail);
     console.log("Nombre Contacto:", editableContactName);
     console.log("Cargo Contacto:", editableContactRole);
     console.log("Institución:", selectedInstitution.name);
     console.log("Asunto:", emailSubject);
-    console.log("Cuerpo del Correo:", emailBody);
+    console.log("Cuerpo del Correo (HTML):", emailBody); 
     console.log("Estudiantes seleccionados para este correo:", studentsActuallySelected.map(s => s.firstName));
     
     toast({
@@ -520,12 +554,12 @@ export default function InstitutionNotificationsPage() {
                     <div>
                         <Label htmlFor="email-body">Cuerpo del correo</Label>
                         <Textarea
-                        id="email-body"
-                        rows={25}
-                        value={emailBody}
-                        onChange={(e) => setEmailBody(e.target.value)}
-                        className="font-mono text-xs whitespace-pre-wrap" 
-                        required
+                          id="email-body"
+                          value={emailBody}
+                          onChange={(e) => setEmailBody(e.target.value)}
+                          className="min-h-[400px]"
+                          placeholder="Escriba aquí el cuerpo del correo. Puede usar el formato HTML básico si lo prefiere, o pegar contenido de la plantilla generada."
+                          required
                         />
                     </div>
                 </CardContent>
@@ -544,3 +578,4 @@ export default function InstitutionNotificationsPage() {
   );
 }
 
+    
