@@ -45,7 +45,7 @@ export function EditStudentForm({ onSave, onCancel }: EditStudentFormProps) {
     setIsLoadingStudent(true);
     setStudentNotFound(false);
     setCurrentStudent(null);
-    form.reset(); // Reset form before searching
+    form.reset(); 
 
     const normalizedSearchRut = normalizeRut(rutSearch.trim());
 
@@ -75,10 +75,9 @@ export function EditStudentForm({ onSave, onCancel }: EditStudentFormProps) {
           description: "Se encontraron varios estudiantes. Por favor, ingrese un RUT más específico.",
           variant: "default",
         });
-        setStudentNotFound(false); // Not "not found", but too many
+        setStudentNotFound(false); 
       } else {
         setStudentNotFound(true);
-        // Toast for "not found" is now implicit via the studentNotFound state and the <p> tag
       }
     } catch (error) {
       toast({ title: "Error en la búsqueda", description: "No se pudo realizar la búsqueda.", variant: "destructive" });
@@ -124,7 +123,7 @@ export function EditStudentForm({ onSave, onCancel }: EditStudentFormProps) {
               disabled={isLoadingStudent}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
-                  e.preventDefault(); // Prevent form submission if any
+                  e.preventDefault(); 
                   handleSearchStudent();
                 }
               }}
@@ -143,7 +142,7 @@ export function EditStudentForm({ onSave, onCancel }: EditStudentFormProps) {
               <div className="flex justify-start gap-4 pt-4">
                 <Button
                   type="submit"
-                  className="bg-green-600 hover:bg-green-700 text-white"
+                  className="bg-green-500 hover:bg-green-600 text-white"
                   disabled={form.formState.isSubmitting || !form.formState.isDirty}
                 >
                   <Save className="mr-2 h-4 w-4" /> Guardar cambios

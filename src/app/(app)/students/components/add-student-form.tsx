@@ -62,7 +62,7 @@ export function AddStudentForm({ onSave, onCancel }: AddStudentFormProps) {
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <StudentFormFields form={form} />
             <div className="flex justify-start gap-4 pt-4">
-              <Button type="submit" className="bg-green-600 hover:bg-green-700 text-white" disabled={form.formState.isSubmitting}>
+              <Button type="submit" className="bg-green-500 hover:bg-green-600 text-white" disabled={form.formState.isSubmitting}>
                 <Save className="mr-2 h-4 w-4" /> Guardar estudiante
               </Button>
               <Button type="button" variant="outline" onClick={onCancel}>
@@ -75,4 +75,3 @@ export function AddStudentForm({ onSave, onCancel }: AddStudentFormProps) {
     </Card>
   );
 }
-

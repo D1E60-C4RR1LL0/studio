@@ -59,16 +59,16 @@ export default function StudentManagementPage() {
 
   React.useEffect(() => {
     const lowercasedSearchTerm = searchTerm.toLowerCase();
-    const normalizedRutSearchTerm = normalizeRut(searchTerm); // Normalize search term for RUT comparison
+    const normalizedRutSearchTerm = normalizeRut(searchTerm); 
 
     const filteredData = students.filter(item => {
       const fullName = `${item.firstName} ${item.lastNamePaternal} ${item.lastNameMaternal}`.toLowerCase();
-      const itemRutNormalized = normalizeRut(item.rut); // Normalize student's RUT for comparison
+      const itemRutNormalized = normalizeRut(item.rut); 
 
       return (
         fullName.includes(lowercasedSearchTerm) ||
-        item.rut.toLowerCase().includes(lowercasedSearchTerm) || // Keep original for partial formatted RUT match
-        (normalizedRutSearchTerm.length > 0 && itemRutNormalized.includes(normalizedRutSearchTerm)) || // Compare normalized RUTs
+        item.rut.toLowerCase().includes(lowercasedSearchTerm) || 
+        (normalizedRutSearchTerm.length > 0 && itemRutNormalized.includes(normalizedRutSearchTerm)) || 
         item.career.toLowerCase().includes(lowercasedSearchTerm) ||
         item.practicumLevel.toLowerCase().includes(lowercasedSearchTerm)
       );
@@ -128,7 +128,6 @@ export default function StudentManagementPage() {
         .map(s => `${s.firstName} ${s.lastNamePaternal}`)
         .join(', ');
 
-    // Store selected student IDs in localStorage
     if (typeof window !== 'undefined') {
         localStorage.setItem(CONFIRMED_STUDENT_IDS_KEY, JSON.stringify(Array.from(selectedStudentsForConfirmation)));
     }
@@ -221,7 +220,7 @@ export default function StudentManagementPage() {
             <Button 
                 onClick={handleConfirmSelection} 
                 size="lg" 
-                className="bg-green-600 hover:bg-green-700 text-white" 
+                className="bg-green-500 hover:bg-green-600 text-white" 
                 disabled={selectedStudentsForConfirmation.size === 0 || isLoadingPracticumProgress}
             >
               <Check className="mr-2 h-5 w-5" /> Confirmar selección
