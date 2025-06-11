@@ -33,25 +33,23 @@ const PRACTICUM_OTHER_END_DATE_KEY = 'practicumOtherEndDate';
 const STUDENT_NOTIFICATION_LEVEL_PROGRAMMING_KEY = 'studentNotificationLevelProgramming';
 
 interface LevelProgramming {
-  scheduledDate?: Date | string; // Store as ISO string in localStorage, convert to Date on load
+  scheduledDate?: Date | string; 
   scheduledTime: string;
   emailSubject: string;
   emailMessageTemplate: string;
 }
 
 const DEFAULT_EMAIL_SUBJECT = "Confirmación de Práctica Pedagógica";
-const DEFAULT_EMAIL_MESSAGE_TEMPLATE = `Estimado/a estudiante [Nombre del Estudiante]
-
-Junto con saludar, se informa que, desde la coordinación de gestión de centros de Práctica de la UPP, ha sido adscrito/a a [Nombre Institucion], para desarrollar su [Nivel de Practica], que inicia la [Fecha Inicio Practica] hasta la [Fecha Termino Practica].
-
-Los datos de contacto del establecimiento son:
-
-Nombre directivo: [Nombre Directivo]
-Cargo: [Cargo Directivo]
-Correo electrónico: [Correo Electronico Directivo]
-
-Posterior a este correo, deberá coordinar el inicio de su pasantía de acuerdo calendario de prácticas UCSC y hacer entrega de su carpeta de práctica y documentación personal, que incluye:
-
+const DEFAULT_EMAIL_MESSAGE_TEMPLATE = `
+<p>Estimado/a estudiante [Nombre del Estudiante]</p>
+<p>Junto con saludar, se informa que, desde la coordinación de gestión de centros de Práctica de la UPP, ha sido adscrito/a a [Nombre Institucion], para desarrollar su [Nivel de Practica], que inicia la [Fecha Inicio Practica] hasta la [Fecha Termino Practica].</p>
+<p>Los datos de contacto del establecimiento son:</p>
+<ul>
+    <li>Nombre directivo: [Nombre Directivo]</li>
+    <li>Cargo: [Cargo Directivo]</li>
+    <li>Correo electrónico: [Correo Electronico Directivo]</li>
+</ul>
+<p>Posterior a este correo, deberá coordinar el inicio de su pasantía de acuerdo calendario de prácticas UCSC y hacer entrega de su carpeta de práctica y documentación personal, que incluye:</p>
 <ul>
     <li>Certificado de Antecedentes <a href="https://www.chileatiende.gob.cl/fichas/3442-certificado-de-antecedentes" target="_blank" rel="noopener noreferrer">Link de descarga</a></li>
     <li>Certificado de Inhabilidades para trabajar con menores de edad <a href="https://inhabilidades.srcei.cl/ConsInhab/consultaInhabilidad.do" target="_blank" rel="noopener noreferrer">Link de descarga</a></li>
@@ -59,17 +57,13 @@ Posterior a este correo, deberá coordinar el inicio de su pasantía de acuerdo 
     <li>Horario universitario</li>
     <li>Otra documentación</li>
 </ul>
-
-Se informa, además, que el equipo directivo del establecimiento está en conocimiento de su adscripción y por tanto es importante que asista presencialmente al centro educativo.
-
-Favor no responder a este correo. Para dudas y/o consulta favor escribir a sus respectivas coordinadoras de prácticas.
-
-Saludos cordiales,
-
-Unidad de Prácticas Pedagógicas UCSC`;
+<p>Se informa, además, que el equipo directivo del establecimiento está en conocimiento de su adscripción y por tanto es importante que asista presencialmente al centro educativo.</p>
+<p>Favor no responder a este correo. Para dudas y/o consulta favor escribir a sus respectivas coordinadoras de prácticas.</p>
+<p>Saludos cordiales,</p>
+<p>Unidad de Prácticas Pedagógicas UCSC</p>
+`;
 
 
-// Helper function to format dates for student emails
 const formatDateForStudentEmail = (date: Date | undefined, type: 'start' | 'end'): string => {
   if (!date) return type === 'start' ? "[Fecha Inicio Practica]" : "[Fecha Termino Practica]";
   if (type === 'start') {
@@ -87,7 +81,6 @@ export default function StudentNotificationsPage() {
   const [allAcademicLevelsFromData, setAllAcademicLevelsFromData] = React.useState<AcademicLevel[]>([]);
   const [displayableAcademicLevels, setDisplayableAcademicLevels] = React.useState<AcademicLevel[]>([]);
 
-  // Institution and Practicum details from previous stage
   const [notifiedInstitutionName, setNotifiedInstitutionName] = React.useState<string>("");
   const [institutionContactName, setInstitutionContactName] = React.useState<string>("");
   const [institutionContactRole, setInstitutionContactRole] = React.useState<string>("");
@@ -179,7 +172,7 @@ export default function StudentNotificationsPage() {
       setDisplayableAcademicLevels(filteredLevels);
 
       if (selectedLevelId && !filteredLevels.find(l => l.id === selectedLevelId)) {
-        setSelectedLevelId(""); // Reset if current selection is no longer valid
+        setSelectedLevelId(""); 
       }
     } else {
       setDisplayableAcademicLevels([]);
@@ -189,7 +182,6 @@ export default function StudentNotificationsPage() {
 
 
   React.useEffect(() => {
-    // This effect populates the form fields when a level is selected
     if (selectedLevelId && programmingByLevel) {
       const programming = programmingByLevel[selectedLevelId];
       setCurrentScheduledDate(programming?.scheduledDate ? (programming.scheduledDate instanceof Date ? programming.scheduledDate : new Date(programming.scheduledDate)) : undefined);
@@ -203,7 +195,7 @@ export default function StudentNotificationsPage() {
           setStudentsInSelectedLevelForPreview(filtered);
           if (filtered.length > 0) {
             if (!selectedStudentForPreviewId || !filtered.find(s => s.id === selectedStudentForPreviewId)) {
-                 setSelectedStudentForPreviewId(filtered[0].id); // Auto-select first for preview
+                 setSelectedStudentForPreviewId(filtered[0].id); 
             }
           } else {
             setSelectedStudentForPreviewId("");
@@ -213,7 +205,6 @@ export default function StudentNotificationsPage() {
         setSelectedStudentForPreviewId("");
       }
     } else { 
-        // Reset form fields if no level is selected
         setStudentsInSelectedLevelForPreview([]);
         setSelectedStudentForPreviewId("");
         setCurrentScheduledDate(undefined);
@@ -236,13 +227,11 @@ export default function StudentNotificationsPage() {
       };
       const newState = { ...prev, [levelId]: updatedLevelProg };
       
-      // Create a storable version with date as ISO string
       const storableState = JSON.parse(JSON.stringify(newState)); 
       Object.keys(storableState).forEach(lId => {
         if (storableState[lId].scheduledDate && storableState[lId].scheduledDate instanceof Date) {
           storableState[lId].scheduledDate = (storableState[lId].scheduledDate as Date).toISOString();
         } else if (typeof storableState[lId].scheduledDate === 'string') {
-           // Ensure it's a valid ISO string if it came from localStorage directly
            try {
             storableState[lId].scheduledDate = new Date(storableState[lId].scheduledDate).toISOString();
            } catch (e) { /* ignore if not a valid date string */ }
@@ -316,7 +305,7 @@ export default function StudentNotificationsPage() {
   };
 
   const selectedStudentDetailsForPreview = allStudentsData.find(s => s.id === selectedStudentForPreviewId);
-  let emailPreview = DEFAULT_EMAIL_MESSAGE_TEMPLATE; // Default before replacements
+  let emailPreview = DEFAULT_EMAIL_MESSAGE_TEMPLATE; 
 
   if (selectedStudentDetailsForPreview) {
       let startDate, endDate;
@@ -459,7 +448,7 @@ export default function StudentNotificationsPage() {
                           }}
                           initialFocus
                           locale={es}
-                          fromDate={new Date()} // Emails can only be scheduled for future dates
+                          fromDate={new Date()} 
                         />
                       </PopoverContent>
                     </Popover>
@@ -501,7 +490,7 @@ export default function StudentNotificationsPage() {
                   <Textarea
                     id="email-message-student"
                     placeholder={DEFAULT_EMAIL_MESSAGE_TEMPLATE}
-                    rows={12} // Increased rows for better visibility of the template
+                    rows={12}
                     value={currentEmailMessageTemplate}
                     onChange={(e) => {
                         const newTemplate = e.target.value;
