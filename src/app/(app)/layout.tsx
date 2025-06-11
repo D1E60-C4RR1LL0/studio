@@ -2,7 +2,7 @@
 "use client";
 
 import type { ReactNode } from 'react';
-import { AppShellProvider } from '@/components/app-shell';
+import { AppShell } from '@/components/app-shell';
 import { CoordinationHeader } from '@/components/coordination-header';
 import { usePathname } from 'next/navigation';
 
@@ -17,14 +17,14 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   } else if (pathname.startsWith('/student-notifications')) {
     activeIndex = 2;
   }
-  // Add more conditions if other pages should influence activeIndex
 
   return (
-    <AppShellProvider>
-      <div className="p-4 md:p-6"> {/* Added padding here for CoordinationHeader */}
+    <AppShell>
+      <div className="p-4 md:p-6"> {/* Padding for CoordinationHeader and subsequent page content */}
         <CoordinationHeader activeIndex={activeIndex} />
+        {children}
       </div>
-      {children}
-    </AppShellProvider>
+    </AppShell>
   );
 }
+
