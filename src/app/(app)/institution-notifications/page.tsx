@@ -31,8 +31,10 @@ const LAST_NOTIFIED_INSTITUTION_CONTACT_ROLE_KEY = 'lastNotifiedInstitutionConta
 const LAST_NOTIFIED_INSTITUTION_CONTACT_EMAIL_KEY = 'lastNotifiedInstitutionContactEmail';
 const PRACTICUM_PROF_START_DATE_KEY = 'practicumProfStartDate';
 const PRACTICUM_PROF_END_DATE_KEY = 'practicumProfEndDate';
+const PRACTICUM_PROF_WEEKS_KEY = 'practicumProfWeeks';
 const PRACTICUM_OTHER_START_DATE_KEY = 'practicumOtherStartDate';
 const PRACTICUM_OTHER_END_DATE_KEY = 'practicumOtherEndDate';
+const PRACTICUM_OTHER_WEEKS_KEY = 'practicumOtherWeeks';
 
 
 const formatDateForEmail = (date: Date | undefined, type: 'inicio' | 'termino'): string => {
@@ -368,8 +370,10 @@ export default function InstitutionNotificationsPage() {
         localStorage.setItem(LAST_NOTIFIED_INSTITUTION_CONTACT_EMAIL_KEY, editableContactEmail);
         if (practiceStartDateProf) localStorage.setItem(PRACTICUM_PROF_START_DATE_KEY, practiceStartDateProf.toISOString());
         if (practiceEndDateProf) localStorage.setItem(PRACTICUM_PROF_END_DATE_KEY, practiceEndDateProf.toISOString());
+        if (practiceWeeksProf) localStorage.setItem(PRACTICUM_PROF_WEEKS_KEY, practiceWeeksProf);
         if (practiceStartDateOther) localStorage.setItem(PRACTICUM_OTHER_START_DATE_KEY, practiceStartDateOther.toISOString());
         if (practiceEndDateOther) localStorage.setItem(PRACTICUM_OTHER_END_DATE_KEY, practiceEndDateOther.toISOString());
+        if (practiceWeeksOther) localStorage.setItem(PRACTICUM_OTHER_WEEKS_KEY, practiceWeeksOther);
     }
 
 
@@ -616,4 +620,3 @@ export default function InstitutionNotificationsPage() {
     </>
   );
 }
-

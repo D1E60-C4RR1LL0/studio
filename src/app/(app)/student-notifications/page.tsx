@@ -6,7 +6,7 @@ import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea"; // Reverted to Textarea
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -266,14 +266,14 @@ export default function StudentNotificationsPage() {
     scheduledDateTime.setHours(hours, minutes);
 
     const levelName = displayableAcademicLevels.find(l=>l.id === selectedLevelId)?.name;
-    console.log(\`Programando notificaciones para nivel: \${levelName}\`);
-    console.log(\`Fecha y hora programada: \${scheduledDateTime.toLocaleString('es-CL')}\`);
-    console.log(\`Asunto: \${currentEmailSubject}\`);
+    console.log(`Programando notificaciones para nivel: ${levelName}`);
+    console.log(`Fecha y hora programada: ${scheduledDateTime.toLocaleString('es-CL')}`);
+    console.log(`Asunto: ${currentEmailSubject}`);
 
     const actualStudentsToSend = studentsReadyForNotification.filter(s => s.practicumLevel === levelName);
 
     actualStudentsToSend.forEach(student => {
-      const studentFullName = \`\${student.firstName} \${student.lastNamePaternal} \${student.lastNameMaternal}\`;
+      const studentFullName = `${student.firstName} ${student.lastNamePaternal} ${student.lastNameMaternal}`;
 
       let startDate, endDate;
       if (student.practicumLevel.toLowerCase().includes('profesional')) {
@@ -294,13 +294,13 @@ export default function StudentNotificationsPage() {
         .replace(/\\[Cargo Directivo\\]/g, institutionContactRole)
         .replace(/\\[Correo Electronico Directivo\\]/g, institutionContactEmail);
 
-      console.log(\`--- Para \${student.email} (Estudiante: \${studentFullName}) ---\`);
-      console.log(\`Mensaje: \${finalMessage}\`);
+      console.log(`--- Para ${student.email} (Estudiante: ${studentFullName}) ---`);
+      console.log(`Mensaje: ${finalMessage}`);
     });
 
     toast({
       title: "Notificaciones Programadas (Simulado)",
-      description: \`Correos para \${actualStudentsToSend.length} estudiante(s) de \${levelName} programados para \${scheduledDateTime.toLocaleString('es-CL')}. Este es el último paso del flujo principal.\`,
+      description: `Correos para ${actualStudentsToSend.length} estudiante(s) de ${levelName} programados para ${scheduledDateTime.toLocaleString('es-CL')}. Este es el último paso del flujo principal.`,
     });
   };
 
@@ -317,7 +317,7 @@ export default function StudentNotificationsPage() {
           endDate = practicumOtherEndDate;
       }
       emailPreview = currentEmailMessageTemplate
-        .replace(/\\[Nombre del Estudiante\\]/g, \`\${selectedStudentDetailsForPreview.firstName} \${selectedStudentDetailsForPreview.lastNamePaternal} \${selectedStudentDetailsForPreview.lastNameMaternal}\`)
+        .replace(/\\[Nombre del Estudiante\\]/g, `${selectedStudentDetailsForPreview.firstName} ${selectedStudentDetailsForPreview.lastNamePaternal} ${selectedStudentDetailsForPreview.lastNameMaternal}`)
         .replace(/\\[Nombre Institucion\\]/g, notifiedInstitutionName || "la institución asignada")
         .replace(/\\[Nivel de Practica\\]/g, selectedStudentDetailsForPreview.practicumLevel)
         .replace(/\\[Fecha Inicio Practica\\]/g, formatDateForStudentEmail(startDate, 'start'))
@@ -501,11 +501,11 @@ export default function StudentNotificationsPage() {
                   />
                    <p className="text-xs text-muted-foreground mt-1">
                     Edite el HTML de la plantilla. Marcadores disponibles: [Nombre del Estudiante], [Nombre Institucion], [Nivel de Practica], [Fecha Inicio Practica], [Fecha Termino Practica], [Nombre Directivo], [Cargo Directivo], [Correo Electronico Directivo].
-                    {selectedStudentDetailsForPreview && \` Vista previa usando datos de: \${selectedStudentDetailsForPreview.firstName} \${selectedStudentDetailsForPreview.lastNamePaternal}.\`}
+                    {selectedStudentDetailsForPreview && ` Vista previa usando datos de: ${selectedStudentDetailsForPreview.firstName} ${selectedStudentDetailsForPreview.lastNamePaternal}.`}
                    </p>
                 </div>
                 <div>
-                    <Label>Vista Previa del Mensaje (para {selectedStudentDetailsForPreview ? \`\${selectedStudentDetailsForPreview.firstName} \${selectedStudentDetailsForPreview.lastNamePaternal}\`: "alumno seleccionado"})</Label>
+                    <Label>Vista Previa del Mensaje (para {selectedStudentDetailsForPreview ? `${selectedStudentDetailsForPreview.firstName} ${selectedStudentDetailsForPreview.lastNamePaternal}`: "alumno seleccionado"})</Label>
                     <div
                       className="mt-1 p-3 border rounded-md bg-muted min-h-[200px] text-sm overflow-auto"
                       dangerouslySetInnerHTML={{ __html: emailPreview }}
