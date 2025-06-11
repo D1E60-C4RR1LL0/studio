@@ -15,7 +15,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
 import { UserCircle } from "lucide-react";
 
-
 interface StudentTableProps {
   students: Student[];
   isLoading: boolean;
@@ -71,7 +70,7 @@ export function StudentTable({ students, isLoading, selectedStudents, onSelectio
         <TableHeader>
           <TableRow>
             <TableHead className="w-[50px]">Seleccionar</TableHead>
-            <TableHead>Nombre</TableHead>
+            <TableHead>Nombre Completo</TableHead>
             <TableHead>RUT</TableHead>
             <TableHead>Carrera</TableHead>
             <TableHead>Nivel</TableHead>
@@ -86,13 +85,13 @@ export function StudentTable({ students, isLoading, selectedStudents, onSelectio
             >
               <TableCell>
                 <Checkbox
-                  aria-label={`Seleccionar ${student.name}`}
+                  aria-label={`Seleccionar ${student.firstName} ${student.lastNamePaternal}`}
                   checked={selectedStudents.has(student.id)}
                   onCheckedChange={(checked) => onSelectionChange(student.id, Boolean(checked))}
                 />
               </TableCell>
               <TableCell>
-                <div className="font-medium">{student.name}</div>
+                <div className="font-medium">{`${student.firstName} ${student.lastNamePaternal} ${student.lastNameMaternal}`}</div>
                 <div className="text-xs text-muted-foreground md:hidden">{student.rut}</div>
                 <div className="text-xs text-muted-foreground md:hidden">{student.career}</div>
               </TableCell>

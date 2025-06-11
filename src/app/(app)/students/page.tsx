@@ -3,14 +3,17 @@
 
 import * as React from "react";
 import type { Student } from "@/lib/definitions";
-import { getStudents } from "@/lib/data"; // getAcademicLevels removed as it's handled in dialog
+import { getStudents, saveStudent } from "@/lib/data";
 import { StudentTable } from "./components/student-table";
 import { StudentEditDialog } from "./components/student-edit-dialog";
+import { AddStudentForm } from "./components/add-student-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { PageHeader } from "@/components/page-header"; // Added PageHeader
-import { PlusCircle, Search, Edit3, Check, UserPlus } from "lucide-react";
+import { PageHeader } from "@/components/page-header";
+import { Search, Edit3, Check, UserPlus, List } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+
+type ViewMode = "table" | "addForm";
 
 export default function StudentManagementPage() {
   const [students, setStudents] = React.useState<Student[]>([]);
@@ -20,9 +23,9 @@ export default function StudentManagementPage() {
   
   const [selectedStudentForEdit, setSelectedStudentForEdit] = React.useState<Student | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
-  const [isNewStudentMode, setIsNewStudentMode] = React.useState(false);
-
+  
   const [selectedStudentsForConfirmation, setSelectedStudentsForConfirmation] = React.useState<Set<string>>(new Set());
+  const [viewMode, setViewMode] = React.useState<ViewMode>("table");
 
   const { toast } = useToast();
 
@@ -49,8 +52,9 @@ export default function StudentManagementPage() {
   React.useEffect(() => {
     const lowercasedFilter = searchTerm.toLowerCase();
     const filteredData = students.filter(item => {
+      const fullName = `${item.firstName} ${item.lastNamePaternal} ${item.lastNameMaternal}`.toLowerCase();
       return (
-        item.name.toLowerCase().includes(lowercasedFilter) ||
+        fullName.includes(lowercasedFilter) ||
         item.rut.toLowerCase().includes(lowercasedFilter) ||
         item.career.toLowerCase().includes(lowercasedFilter) ||
         item.practicumLevel.toLowerCase().includes(lowercasedFilter) ||
@@ -66,7 +70,6 @@ export default function StudentManagementPage() {
       const student = students.find(s => s.id === studentIdToEdit);
       if (student) {
         setSelectedStudentForEdit(student);
-        setIsNewStudentMode(false);
         setIsEditDialogOpen(true);
       }
     } else {
@@ -77,37 +80,42 @@ export default function StudentManagementPage() {
       });
     }
   };
-
-  const handleAddNewStudent = () => {
-    setSelectedStudentForEdit(null); 
-    setIsNewStudentMode(true);
-    setIsEditDialogOpen(true);
-  };
   
   const handleDialogClose = () => {
     setIsEditDialogOpen(false);
     setSelectedStudentForEdit(null);
-    setIsNewStudentMode(false);
   };
 
-  const handleSaveStudent = (updatedStudent: Student) => {
-    setStudents(prevStudents => {
-      const existingStudentIdx = prevStudents.findIndex(s => s.id === updatedStudent.id);
-      let newStudentsArray;
-      if (existingStudentIdx > -1) {
-        newStudentsArray = [...prevStudents];
-        newStudentsArray[existingStudentIdx] = updatedStudent;
-      } else {
-        newStudentsArray = [...prevStudents, updatedStudent];
+  const handleSaveStudent = async (studentToSave: Student) => {
+    try {
+      const savedStudent = await saveStudent(studentToSave);
+      setStudents(prevStudents => {
+        const existingStudentIdx = prevStudents.findIndex(s => s.id === savedStudent.id);
+        let newStudentsArray;
+        if (existingStudentIdx > -1) {
+          newStudentsArray = [...prevStudents];
+          newStudentsArray[existingStudentIdx] = savedStudent;
+        } else {
+          newStudentsArray = [...prevStudents, savedStudent];
+        }
+        return newStudentsArray;
+      });
+      toast({
+        title: "Estudiante Guardado",
+        description: `${savedStudent.firstName} ${savedStudent.lastNamePaternal} ha sido guardado exitosamente.`,
+      });
+      if (viewMode === 'addForm') {
+        setViewMode('table'); // Switch back to table after adding
       }
-      return newStudentsArray;
-    });
-    toast({
-      title: "Estudiante Guardado",
-      description: `${updatedStudent.name} ha sido guardado exitosamente.`,
-    });
-    handleDialogClose();
-    if(!isNewStudentMode) setSelectedStudentsForConfirmation(new Set());
+      handleDialogClose(); // Close edit dialog if open
+      setSelectedStudentsForConfirmation(new Set()); // Clear selection
+    } catch (error) {
+       toast({
+        title: "Error al guardar",
+        description: "No se pudo guardar el estudiante.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleTableSelectionChange = (studentId: string, isSelected: boolean) => {
@@ -133,7 +141,7 @@ export default function StudentManagementPage() {
     }
     const selectedNames = students
         .filter(s => selectedStudentsForConfirmation.has(s.id))
-        .map(s => s.name)
+        .map(s => `${s.firstName} ${s.lastNamePaternal}`)
         .join(', ');
 
     toast({
@@ -147,57 +155,74 @@ export default function StudentManagementPage() {
 
   return (
     <>
-      {/* CoordinationHeader removed, now it's in (app)/layout.tsx */}
-      
       <PageHeader 
         title="Selección de Estudiantes"
-        description="Selecciona los alumnos que podrían realizar su práctica en esta institución."
+        description={viewMode === 'table' ? "Selecciona los alumnos que podrían realizar su práctica en esta institución." : "Agregue un nuevo estudiante a la base de datos."}
       />
 
-      <div className="flex items-center gap-2 mb-4">
-        <Button variant="default" className="bg-primary hover:bg-primary/90">Estudiantes existentes</Button>
-        <Button variant="outline" onClick={handleAddNewStudent}>
+      <div className="flex items-center gap-2 mb-6">
+        <Button 
+            variant={viewMode === 'table' ? 'default' : 'outline'} 
+            onClick={() => setViewMode('table')}
+            className={viewMode === 'table' ? 'bg-primary hover:bg-primary/90' : ''}
+        >
+            <List className="mr-2 h-4 w-4" />
+            Estudiantes existentes
+        </Button>
+        <Button 
+            variant={viewMode === 'addForm' ? 'default' : 'outline'} 
+            onClick={() => setViewMode('addForm')}
+            className={viewMode === 'addForm' ? 'bg-primary hover:bg-primary/90' : ''}
+        >
             <UserPlus className="mr-2 h-4 w-4" />
             Agregar nuevo estudiante
         </Button>
-        <Button variant="outline" onClick={handleEditStudent} disabled={!canEdit}>
+        <Button variant="outline" onClick={handleEditStudent} disabled={!canEdit || viewMode === 'addForm'}>
             <Edit3 className="mr-2 h-4 w-4" />
             Editar estudiante
         </Button>
       </div>
 
-      <div className="mb-4 flex flex-col sm:flex-row items-center gap-4">
-        <div className="relative flex-1 w-full sm:w-auto">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            type="search"
-            placeholder="Buscar alumno por nombre o RUT"
-            className="pl-8 w-full"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+      {viewMode === 'table' && (
+        <>
+          <div className="mb-4 flex flex-col sm:flex-row items-center gap-4">
+            <div className="relative flex-1 w-full sm:w-auto">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="search"
+                placeholder="Buscar alumno por nombre, RUT o carrera"
+                className="pl-8 w-full"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <StudentTable
+            students={filteredStudents}
+            isLoading={isLoading}
+            selectedStudents={selectedStudentsForConfirmation}
+            onSelectionChange={handleTableSelectionChange}
           />
-        </div>
-        <Button onClick={handleAddNewStudent} className="w-full sm:w-auto"> {/* This button is redundant with "Agregar nuevo estudiante" above, but keeping as per original screenshot fielesness. Consider removing one. */}
-          <PlusCircle className="mr-2 h-4 w-4" /> Agregar
-        </Button>
-      </div>
 
-      <StudentTable
-        students={filteredStudents}
-        isLoading={isLoading}
-        selectedStudents={selectedStudentsForConfirmation}
-        onSelectionChange={handleTableSelectionChange}
-      />
+          <div className="mt-6 flex justify-start">
+            <Button onClick={handleConfirmSelection} size="lg" className="bg-green-600 hover:bg-green-700 text-white">
+              <Check className="mr-2 h-5 w-5" /> Confirmar selección
+            </Button>
+          </div>
+        </>
+      )}
 
-      <div className="mt-6 flex justify-start">
-        <Button onClick={handleConfirmSelection} size="lg" className="bg-green-600 hover:bg-green-700 text-white">
-          <Check className="mr-2 h-5 w-5" /> Confirmar selección
-        </Button>
-      </div>
+      {viewMode === 'addForm' && (
+        <AddStudentForm 
+          onSave={handleSaveStudent} 
+          onCancel={() => setViewMode('table')} 
+        />
+      )}
 
-      {(isEditDialogOpen) && (
+      {isEditDialogOpen && selectedStudentForEdit && (
         <StudentEditDialog
-          student={isNewStudentMode ? { id: `new-${Date.now()}`, name: "", rut: "", career: "", email: "", practicumLevel: "", location: "", periodo: "" } : selectedStudentForEdit}
+          student={selectedStudentForEdit}
           isOpen={isEditDialogOpen}
           onClose={handleDialogClose}
           onSave={handleSaveStudent}

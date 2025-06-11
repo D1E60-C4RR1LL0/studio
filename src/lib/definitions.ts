@@ -1,14 +1,16 @@
 
 export type Student = {
   id: string;
-  name: string;
   rut: string;
-  career: string;
+  firstName: string;
+  lastNamePaternal: string;
+  lastNameMaternal: string;
   email: string;
-  practicumLevel: string; // Nivel de Práctica
-  periodo?: string; // Nuevo campo: Periodo académico, ej: "2024-1"
-  tutor?: string;
-  location: string;
+  career: string; // Stores the name of the career
+  commune?: string; // Stores the name of the commune, optional
+  tutor?: string; // Stores the name of the tutor, optional
+  practicumLevel: string; // Nivel de Práctica, stores the name
+  periodo?: string; // Periodo académico, ej: "2024-1"
   specialConditions?: string;
   avatar?: string; // Optional: URL to an avatar image
 };
@@ -16,7 +18,7 @@ export type Student = {
 export type Institution = {
   id: string;
   name: string;
-  location: string;
+  location: string; // This might be more general, while commune is specific for student
   contactName: string;
   contactEmail: string;
   contactPhone?: string;
@@ -24,6 +26,21 @@ export type Institution = {
 };
 
 export type AcademicLevel = {
+  id: string;
+  name: string;
+};
+
+export type Career = {
+  id: string;
+  name: string;
+};
+
+export type Commune = {
+  id: string;
+  name: string;
+};
+
+export type Tutor = {
   id: string;
   name: string;
 };
