@@ -5,7 +5,7 @@ import * as React from "react";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-// import { Textarea } from "@/components/ui/textarea"; 
+// import { Textarea } from "@/components/ui/textarea"; // No longer used for email body preview
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getInstitutions, getStudents, getCommunes } from "@/lib/data";
@@ -26,6 +26,13 @@ import { cn } from "@/lib/utils";
 const CONFIRMED_STUDENT_IDS_KEY = 'confirmedPracticumStudentIds';
 const LAST_NOTIFIED_INSTITUTION_ID_KEY = 'lastNotifiedInstitutionId';
 const LAST_NOTIFIED_INSTITUTION_NAME_KEY = 'lastNotifiedInstitutionName';
+const LAST_NOTIFIED_INSTITUTION_CONTACT_NAME_KEY = 'lastNotifiedInstitutionContactName';
+const LAST_NOTIFIED_INSTITUTION_CONTACT_ROLE_KEY = 'lastNotifiedInstitutionContactRole';
+const LAST_NOTIFIED_INSTITUTION_CONTACT_EMAIL_KEY = 'lastNotifiedInstitutionContactEmail';
+const PRACTICUM_PROF_START_DATE_KEY = 'practicumProfStartDate';
+const PRACTICUM_PROF_END_DATE_KEY = 'practicumProfEndDate';
+const PRACTICUM_OTHER_START_DATE_KEY = 'practicumOtherStartDate';
+const PRACTICUM_OTHER_END_DATE_KEY = 'practicumOtherEndDate';
 
 
 const formatDateForEmail = (date: Date | undefined, type: 'inicio' | 'termino'): string => {
@@ -211,14 +218,14 @@ export default function InstitutionNotificationsPage() {
           const storedIds = localStorage.getItem(CONFIRMED_STUDENT_IDS_KEY);
           if (storedIds) {
             const parsedIds = JSON.parse(storedIds);
-            if (Array.isArray(parsedIds)) {
+             if (Array.isArray(parsedIds)) {
               setConfirmedStage1StudentIds(parsedIds);
             } else {
               console.warn("Stored student IDs from localStorage is not an array:", parsedIds);
-              setConfirmedStage1StudentIds([]);
+              setConfirmedStage1StudentIds([]); // Initialize to empty array if not an array
             }
           } else {
-            setConfirmedStage1StudentIds([]);
+             setConfirmedStage1StudentIds([]); // Initialize if nothing in localStorage
           }
         } catch (error) {
           console.error("Error parsing student IDs from localStorage:", error);
@@ -238,6 +245,7 @@ export default function InstitutionNotificationsPage() {
         const confirmedSet = new Set(confirmedStage1StudentIds);
         setStudentsAvailableFromStage1(allStudents.filter(s => confirmedSet.has(s.id)));
     } else if (allStudents.length > 0 && confirmedStage1StudentIds.length === 0) {
+        // If allStudents are loaded but no confirmed IDs, it means no one was selected or loaded from localStorage
         setStudentsAvailableFromStage1([]);
     }
   }, [allStudents, confirmedStage1StudentIds]);
@@ -264,8 +272,9 @@ export default function InstitutionNotificationsPage() {
       setEditableContactRole(selectedInstitution.contactRole || "");
       setEditableContactEmail(selectedInstitution.contactEmail || "");
       
+      // Filter students available from stage 1 that match the institution's location
       setStudentsForInstitutionCheckboxes(studentsAvailableFromStage1.filter(s => s.location === selectedInstitution.location));
-      setSelectedStudentsMap({}); 
+      setSelectedStudentsMap({}); // Reset student selection for the new institution
     } else {
       setEditableContactName("");
       setEditableContactRole("");
@@ -273,7 +282,7 @@ export default function InstitutionNotificationsPage() {
       setStudentsForInstitutionCheckboxes([]);
       setSelectedStudentsMap({});
     }
-  }, [selectedInstitution, studentsAvailableFromStage1]); 
+  }, [selectedInstitution, studentsAvailableFromStage1]); // Dependency on studentsAvailableFromStage1 ensures this runs when stage 1 students are loaded/updated
 
   React.useEffect(() => {
     const currentSelectedStudentsForEmail = studentsForInstitutionCheckboxes.filter(s => selectedStudentsMap[s.id]);
@@ -350,11 +359,17 @@ export default function InstitutionNotificationsPage() {
     const studentsActuallySelected = studentsForInstitutionCheckboxes.filter(s => selectedStudentsMap[s.id]);
     const studentIdsToPass = studentsActuallySelected.map(s => s.id);
 
-    // Save selected student IDs AND institution details to localStorage for the next stage
     if (typeof window !== 'undefined') {
         localStorage.setItem(CONFIRMED_STUDENT_IDS_KEY, JSON.stringify(studentIdsToPass));
         localStorage.setItem(LAST_NOTIFIED_INSTITUTION_ID_KEY, selectedInstitution.id);
         localStorage.setItem(LAST_NOTIFIED_INSTITUTION_NAME_KEY, selectedInstitution.name);
+        localStorage.setItem(LAST_NOTIFIED_INSTITUTION_CONTACT_NAME_KEY, editableContactName);
+        localStorage.setItem(LAST_NOTIFIED_INSTITUTION_CONTACT_ROLE_KEY, editableContactRole);
+        localStorage.setItem(LAST_NOTIFIED_INSTITUTION_CONTACT_EMAIL_KEY, editableContactEmail);
+        if (practiceStartDateProf) localStorage.setItem(PRACTICUM_PROF_START_DATE_KEY, practiceStartDateProf.toISOString());
+        if (practiceEndDateProf) localStorage.setItem(PRACTICUM_PROF_END_DATE_KEY, practiceEndDateProf.toISOString());
+        if (practiceStartDateOther) localStorage.setItem(PRACTICUM_OTHER_START_DATE_KEY, practiceStartDateOther.toISOString());
+        if (practiceEndDateOther) localStorage.setItem(PRACTICUM_OTHER_END_DATE_KEY, practiceEndDateOther.toISOString());
     }
 
 
