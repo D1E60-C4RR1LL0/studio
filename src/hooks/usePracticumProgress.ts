@@ -15,7 +15,7 @@ export const STAGES = {
 export type StageKeys = keyof typeof STAGES;
 export type StageValues = typeof STAGES[StageKeys];
 
-const STAGE_PATHS: Record<StageValues, string> = {
+export const STAGE_PATHS: Record<StageValues, string> = {
   [STAGES.STUDENT_SELECTION]: '/students',
   [STAGES.INSTITUTION_NOTIFICATION]: '/institution-notifications',
   [STAGES.STUDENT_NOTIFICATION]: '/student-notifications',
