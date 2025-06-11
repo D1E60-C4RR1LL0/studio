@@ -18,6 +18,12 @@ import { usePracticumProgress, STAGES, STAGE_PATHS } from '@/hooks/usePracticumP
 type ViewMode = "table" | "addForm" | "editForm";
 const CONFIRMED_STUDENT_IDS_KEY = 'confirmedPracticumStudentIds';
 
+// Helper function to normalize RUTs by removing dots, hyphens, and converting to uppercase.
+const normalizeRut = (rut: string | undefined): string => {
+  if (!rut) return "";
+  return rut.replace(/\./g, "").replace(/-/g, "").toUpperCase();
+};
+
 export default function StudentManagementPage() {
   const [students, setStudents] = React.useState<Student[]>([]);
   const [filteredStudents, setFilteredStudents] = React.useState<Student[]>([]);
@@ -52,14 +58,19 @@ export default function StudentManagementPage() {
   }, [fetchData]);
 
   React.useEffect(() => {
-    const lowercasedFilter = searchTerm.toLowerCase();
+    const lowercasedSearchTerm = searchTerm.toLowerCase();
+    const normalizedRutSearchTerm = normalizeRut(searchTerm); // Normalize search term for RUT comparison
+
     const filteredData = students.filter(item => {
       const fullName = `${item.firstName} ${item.lastNamePaternal} ${item.lastNameMaternal}`.toLowerCase();
+      const itemRutNormalized = normalizeRut(item.rut); // Normalize student's RUT for comparison
+
       return (
-        fullName.includes(lowercasedFilter) ||
-        item.rut.toLowerCase().includes(lowercasedFilter) ||
-        item.career.toLowerCase().includes(lowercasedFilter) ||
-        item.practicumLevel.toLowerCase().includes(lowercasedFilter)
+        fullName.includes(lowercasedSearchTerm) ||
+        item.rut.toLowerCase().includes(lowercasedSearchTerm) || // Keep original for partial formatted RUT match
+        (normalizedRutSearchTerm.length > 0 && itemRutNormalized.includes(normalizedRutSearchTerm)) || // Compare normalized RUTs
+        item.career.toLowerCase().includes(lowercasedSearchTerm) ||
+        item.practicumLevel.toLowerCase().includes(lowercasedSearchTerm)
       );
     });
     setFilteredStudents(filteredData);
