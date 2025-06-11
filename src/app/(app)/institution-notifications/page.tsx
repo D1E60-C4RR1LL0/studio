@@ -154,8 +154,8 @@ export default function InstitutionNotificationsPage() {
       setEditableContactName(selectedInstitution.contactName || "");
       setEditableContactRole(selectedInstitution.contactRole || "");
       setEditableContactEmail(selectedInstitution.contactEmail || "");
-      // Filter students available from stage 1 by the selected institution's location
-      setStudentsForInstitutionCheckboxes(studentsAvailableFromStage1.filter(s => s.location === selectedInstitution.name));
+      // Filter students available from stage 1 by the selected institution's location (commune)
+      setStudentsForInstitutionCheckboxes(studentsAvailableFromStage1.filter(s => s.location === selectedInstitution.location));
       setSelectedStudentsMap({}); // Reset student selection
     } else {
       setEditableContactName("");
@@ -320,7 +320,7 @@ export default function InstitutionNotificationsPage() {
                     ))
                   ) : (
                     <p className="text-sm text-muted-foreground p-2">
-                      No hay estudiantes confirmados de la etapa anterior asignados a la ubicación de {selectedInstitution.name}, o no se han cargado los datos.
+                      No hay estudiantes confirmados de la etapa anterior asignados a la comuna de {selectedInstitution.location}, o no se han cargado los datos.
                     </p>
                   )}
                 </ScrollArea>
