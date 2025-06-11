@@ -6,7 +6,7 @@ import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea"; // Using Textarea
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -40,28 +40,30 @@ interface LevelProgramming {
 }
 
 const DEFAULT_EMAIL_SUBJECT = "Confirmación de Práctica Pedagógica";
-const DEFAULT_EMAIL_MESSAGE_TEMPLATE = `
-<p>Estimado/a estudiante [Nombre del Estudiante]</p>
-<p>Junto con saludar, se informa que, desde la coordinación de gestión de centros de Práctica de la UPP, ha sido adscrito/a a [Nombre Institucion], para desarrollar su [Nivel de Practica], que inicia la [Fecha Inicio Practica] hasta la [Fecha Termino Practica].</p>
-<p>Los datos de contacto del establecimiento son:</p>
-<ul>
-    <li>Nombre directivo: [Nombre Directivo]</li>
-    <li>Cargo: [Cargo Directivo]</li>
-    <li>Correo electrónico: [Correo Electronico Directivo]</li>
-</ul>
-<p>Posterior a este correo, deberá coordinar el inicio de su pasantía de acuerdo calendario de prácticas UCSC y hacer entrega de su carpeta de práctica y documentación personal, que incluye:</p>
-<ul>
-    <li>Certificado de Antecedentes <a href="https://www.chileatiende.gob.cl/fichas/3442-certificado-de-antecedentes" target="_blank" rel="noopener noreferrer">Link de descarga</a></li>
-    <li>Certificado de Inhabilidades para trabajar con menores de edad <a href="https://inhabilidades.srcei.cl/ConsInhab/consultaInhabilidad.do" target="_blank" rel="noopener noreferrer">Link de descarga</a></li>
-    <li>Certificado de Inhabilidades por maltrato relevante <a href="https://inhabilidades.srcei.cl/InhabilidadesRelevante/#/inicio" target="_blank" rel="noopener noreferrer">Link de descarga</a></li>
-    <li>Horario universitario</li>
-    <li>Otra documentación</li>
-</ul>
-<p>Se informa, además, que el equipo directivo del establecimiento está en conocimiento de su adscripción y por tanto es importante que asista presencialmente al centro educativo.</p>
-<p>Favor no responder a este correo. Para dudas y/o consulta favor escribir a sus respectivas coordinadoras de prácticas.</p>
-<p>Saludos cordiales,</p>
-<p>Unidad de Prácticas Pedagógicas UCSC</p>
-`;
+
+const DEFAULT_EMAIL_MESSAGE_TEMPLATE = `Estimado/a estudiante [Nombre del Estudiante]
+
+Junto con saludar, se informa que, desde la coordinación de gestión de centros de Práctica de la UPP, ha sido adscrito/a a [Nombre Institucion], para desarrollar su [Nivel de Practica], que inicia la [Fecha Inicio Practica] hasta la [Fecha Termino Practica].
+
+Los datos de contacto del establecimiento son:
+- Nombre directivo: [Nombre Directivo]
+- Cargo: [Cargo Directivo]
+- Correo electrónico: [Correo Electronico Directivo]
+
+Posterior a este correo, deberá coordinar el inicio de su pasantía de acuerdo calendario de prácticas UCSC y hacer entrega de su carpeta de práctica y documentación personal, que incluye:
+- Certificado de Antecedentes (Enlace: https://www.chileatiende.gob.cl/fichas/3442-certificado-de-antecedentes)
+- Certificado de Inhabilidades para trabajar con menores de edad (Enlace: https://inhabilidades.srcei.cl/ConsInhab/consultaInhabilidad.do)
+- Certificado de Inhabilidades por maltrato relevante (Enlace: https://inhabilidades.srcei.cl/InhabilidadesRelevante/#/inicio)
+- Horario universitario
+- Otra documentación
+
+Se informa, además, que el equipo directivo del establecimiento está en conocimiento de su adscripción y por tanto es importante que asista presencialmente al centro educativo.
+
+Favor no responder a este correo. Para dudas y/o consulta favor escribir a sus respectivas coordinadoras de prácticas.
+
+Saludos cordiales,
+
+Unidad de Prácticas Pedagógicas UCSC`;
 
 
 const formatDateForStudentEmail = (date: Date | undefined, type: 'start' | 'end'): string => {
@@ -504,7 +506,7 @@ export default function StudentNotificationsPage() {
                 </div>
 
                 <div>
-                  <Label htmlFor="email-message-student">Plantilla de correo (edite el HTML directamente)</Label>
+                  <Label htmlFor="email-message-student">Plantilla de correo</Label>
                    <Textarea
                     id="email-message-student"
                     value={currentEmailMessageTemplate}
@@ -513,8 +515,8 @@ export default function StudentNotificationsPage() {
                         setCurrentEmailMessageTemplate(newTemplate);
                         updateProgrammingForLevel(selectedLevelId, { emailMessageTemplate: newTemplate });
                     }}
-                    className="mt-1 min-h-[250px] font-mono text-xs"
-                    placeholder="Edite aquí el contenido HTML del correo..."
+                    className="mt-1 min-h-[250px]"
+                    placeholder="Edite aquí el contenido del correo..."
                   />
                    <p className="text-xs text-muted-foreground mt-1">
                     Modifique el mensaje que se enviará a los estudiantes. Los textos que vea entre corchetes (por ejemplo: <code>[Nombre del Estudiante]</code>, <code>[Nombre Institucion]</code>) se reemplazarán automáticamente con los datos reales de cada estudiante y la institución asignada.
@@ -526,6 +528,7 @@ export default function StudentNotificationsPage() {
                     </Label>
                     <div
                       className="mt-1 p-3 border rounded-md bg-muted min-h-[200px] text-sm overflow-auto"
+                      style={{ whiteSpace: 'pre-wrap' }}
                       dangerouslySetInnerHTML={{ __html: emailPreview }}
                     />
                 </div>
@@ -545,3 +548,4 @@ export default function StudentNotificationsPage() {
     </>
   );
 }
+
