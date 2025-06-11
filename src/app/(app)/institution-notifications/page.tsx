@@ -25,10 +25,9 @@ import { cn } from "@/lib/utils";
 
 const CONFIRMED_STUDENT_IDS_KEY = 'confirmedPracticumStudentIds';
 
-const formatDateForEmail = (date: Date | undefined): string => {
-  if (!date) return '[Fecha no especificada]';
-  // Format to "10 de marzo" style for the email body
-  return format(date, "dd 'de' MMMM", { locale: es });
+const formatDateForEmail = (date: Date | undefined, type: 'inicio' | 'termino'): string => {
+  if (!date) return `Semana [Fecha ${type === 'inicio' ? 'Inicio' : 'Término'}]`;
+  return `Semana ${format(date, "dd 'de' MMMM", { locale: es })}`;
 };
 
 const generateEmailBodyTemplate = (
@@ -45,29 +44,29 @@ const generateEmailBodyTemplate = (
 ): string => {
   const studentListItems = selectedStudentsForEmail.map(student => {
     const fullName = `${student.firstName} ${student.lastNamePaternal} ${student.lastNameMaternal}`;
-    return `${student.rut.padEnd(18)} ${fullName.padEnd(40)} ${student.career.padEnd(30)} ${student.practicumLevel.padEnd(20)}`;
+    return `${fullName.padEnd(40)} ${student.rut.padEnd(18)} ${student.career.padEnd(30)} ${student.practicumLevel.padEnd(25)}`;
   }).join("\n");
   
-  const studentListHeader = `${"RUT".padEnd(18)} ${"NOMBRE COMPLETO".padEnd(40)} ${"CARRERA".padEnd(30)} ${"NIVEL PRÁCTICA".padEnd(20)}`;
-  const studentListSeparator = "-".repeat(studentListHeader.length > 0 ? studentListHeader.split('\n')[0].length : 100);
+  const studentListHeader = `${"NOMBRE COMPLETO".padEnd(40)} ${"RUT".padEnd(18)} ${"CARRERA".padEnd(30)} ${"NIVEL PRÁCTICA".padEnd(25)}`;
+  const studentListSeparator = "-".repeat(studentListHeader.length > 0 ? studentListHeader.split('\n')[0].length : 113);
 
 
-  const calendarHeader = `${"NIVEL DE PRÁCTICA".padEnd(30)} ${"FECHA INICIO".padEnd(25)} ${"FECHA TÉRMINO".padEnd(25)} ${"Nº SEMANAS"}`;
+  const calendarHeader = `${"NIVEL DE PRÁCTICA".padEnd(35)} ${"FECHA INICIO".padEnd(25)} ${"FECHA TÉRMINO".padEnd(25)} ${"Nº SEMANAS"}`;
   const calendarSeparator = "-".repeat(calendarHeader.length);
 
-  const profStartDateText = profStartDate ? `Semana ${formatDateForEmail(profStartDate)}` : "Semana [Fecha Inicio]";
-  const profEndDateText = profEndDate ? `Semana ${formatDateForEmail(profEndDate)}` : "Semana [Fecha Término]";
+  const profStartDateText = formatDateForEmail(profStartDate, 'inicio');
+  const profEndDateText = formatDateForEmail(profEndDate, 'termino');
   const profWeeksText = profWeeks || "[Nº]";
 
-  const otherStartDateText = otherStartDate ? `Semana ${formatDateForEmail(otherStartDate)}` : "Semana [Fecha Inicio]";
-  const otherEndDateText = otherEndDate ? `Semana ${formatDateForEmail(otherEndDate)}` : "Semana [Fecha Término]";
+  const otherStartDateText = formatDateForEmail(otherStartDate, 'inicio');
+  const otherEndDateText = formatDateForEmail(otherEndDate, 'termino');
   const otherWeeksText = otherWeeks || "[Nº]";
 
   const practiceCalendar = `
 ${calendarHeader}
 ${calendarSeparator}
-${"P. PROFESIONAL".padEnd(30)} ${profStartDateText.padEnd(25)} ${profEndDateText.padEnd(25)} ${profWeeksText}
-${"PPV - PPIV - PPIII - PPII - PPI".padEnd(30)} ${otherStartDateText.padEnd(25)} ${otherEndDateText.padEnd(25)} ${otherWeeksText}
+${"P. PROFESIONAL".padEnd(35)} ${profStartDateText.padEnd(25)} ${profEndDateText.padEnd(25)} ${profWeeksText}
+${"PPV - PPIV - PPIII - PPII - PPI".padEnd(35)} ${otherStartDateText.padEnd(25)} ${otherEndDateText.padEnd(25)} ${otherWeeksText}
   `.trim();
 
   const documentationList = `Al iniciar su pasantía, cada estudiante deberá hacer entrega de su carpeta de práctica con documentación institucional y personal; la cual considera:
@@ -136,14 +135,19 @@ export default function InstitutionNotificationsPage() {
   const { advanceStage, maxAccessLevel, isLoadingProgress } = usePracticumProgress();
 
   React.useEffect(() => {
-    // Try to set initial dates based on "Semana 10 de marzo" logic, assuming current year for simplicity
-    // This is a rough approximation for placeholders
     const currentYear = new Date().getFullYear();
     try {
-      setPracticeStartDateProf(parse(`10-03-${currentYear}`, 'dd-MM-yyyy', new Date()));
-      setPracticeEndDateProf(parse(`16-06-${currentYear}`, 'dd-MM-yyyy', new Date()));
-      setPracticeStartDateOther(parse(`17-03-${currentYear}`, 'dd-MM-yyyy', new Date()));
-      setPracticeEndDateOther(parse(`16-06-${currentYear}`, 'dd-MM-yyyy', new Date()));
+        // For placeholders in DatePickers initially
+      const initialProfStart = parse(`10-03-${currentYear}`, 'dd-MM-yyyy', new Date());
+      const initialProfEnd = parse(`16-06-${currentYear}`, 'dd-MM-yyyy', new Date());
+      const initialOtherStart = parse(`17-03-${currentYear}`, 'dd-MM-yyyy', new Date());
+      const initialOtherEnd = parse(`16-06-${currentYear}`, 'dd-MM-yyyy', new Date());
+
+      setPracticeStartDateProf(initialProfStart);
+      setPracticeEndDateProf(initialProfEnd);
+      setPracticeStartDateOther(initialOtherStart);
+      setPracticeEndDateOther(initialOtherEnd);
+
     } catch (error) {
       console.warn("Could not parse initial dates for practice calendar.", error)
     }
@@ -208,8 +212,9 @@ export default function InstitutionNotificationsPage() {
       setEditableContactName(selectedInstitution.contactName || "");
       setEditableContactRole(selectedInstitution.contactRole || "");
       setEditableContactEmail(selectedInstitution.contactEmail || "");
+      // Filter confirmed students whose location matches the selected institution's location
       setStudentsForInstitutionCheckboxes(studentsAvailableFromStage1.filter(s => s.location === selectedInstitution.location));
-      setSelectedStudentsMap({});
+      setSelectedStudentsMap({}); // Reset student selection when institution changes
     } else {
       setEditableContactName("");
       setEditableContactRole("");
@@ -217,7 +222,7 @@ export default function InstitutionNotificationsPage() {
       setStudentsForInstitutionCheckboxes([]);
       setSelectedStudentsMap({});
     }
-  }, [selectedInstitution, studentsAvailableFromStage1]);
+  }, [selectedInstitution, studentsAvailableFromStage1]); // depends on studentsAvailableFromStage1
 
   React.useEffect(() => {
     const currentSelectedStudentsForEmail = studentsForInstitutionCheckboxes.filter(s => selectedStudentsMap[s.id]);
@@ -401,7 +406,7 @@ export default function InstitutionNotificationsPage() {
                     <PopoverTrigger asChild>
                       <Button id="prof-start-date" variant={"outline"} className={cn("w-full justify-start text-left font-normal", !practiceStartDateProf && "text-muted-foreground")}>
                         <CalendarIcon className="mr-2 h-4 w-4" />
-                        {practiceStartDateProf ? format(practiceStartDateProf, "PPP", { locale: es }) : <span>Semana 10 de marzo</span>}
+                        {practiceStartDateProf ? format(practiceStartDateProf, "PPP", { locale: es }) : <span>Seleccione fecha</span>}
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={practiceStartDateProf} onSelect={setPracticeStartDateProf} initialFocus locale={es} /></PopoverContent>
@@ -413,7 +418,7 @@ export default function InstitutionNotificationsPage() {
                     <PopoverTrigger asChild>
                       <Button id="prof-end-date" variant={"outline"} className={cn("w-full justify-start text-left font-normal", !practiceEndDateProf && "text-muted-foreground")}>
                         <CalendarIcon className="mr-2 h-4 w-4" />
-                        {practiceEndDateProf ? format(practiceEndDateProf, "PPP", { locale: es }) : <span>Semana 16 de junio</span>}
+                        {practiceEndDateProf ? format(practiceEndDateProf, "PPP", { locale: es }) : <span>Seleccione fecha</span>}
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={practiceEndDateProf} onSelect={setPracticeEndDateProf} initialFocus locale={es} fromDate={practiceStartDateProf} /></PopoverContent>
@@ -434,7 +439,7 @@ export default function InstitutionNotificationsPage() {
                     <PopoverTrigger asChild>
                       <Button id="other-start-date" variant={"outline"} className={cn("w-full justify-start text-left font-normal", !practiceStartDateOther && "text-muted-foreground")}>
                         <CalendarIcon className="mr-2 h-4 w-4" />
-                        {practiceStartDateOther ? format(practiceStartDateOther, "PPP", { locale: es }) : <span>Semana 17 de marzo</span>}
+                        {practiceStartDateOther ? format(practiceStartDateOther, "PPP", { locale: es }) : <span>Seleccione fecha</span>}
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={practiceStartDateOther} onSelect={setPracticeStartDateOther} initialFocus locale={es} /></PopoverContent>
@@ -446,7 +451,7 @@ export default function InstitutionNotificationsPage() {
                     <PopoverTrigger asChild>
                       <Button id="other-end-date" variant={"outline"} className={cn("w-full justify-start text-left font-normal", !practiceEndDateOther && "text-muted-foreground")}>
                         <CalendarIcon className="mr-2 h-4 w-4" />
-                        {practiceEndDateOther ? format(practiceEndDateOther, "PPP", { locale: es }) : <span>Semana 16 de junio</span>}
+                        {practiceEndDateOther ? format(practiceEndDateOther, "PPP", { locale: es }) : <span>Seleccione fecha</span>}
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={practiceEndDateOther} onSelect={setPracticeEndDateOther} initialFocus locale={es} fromDate={practiceStartDateOther} /></PopoverContent>
@@ -465,7 +470,7 @@ export default function InstitutionNotificationsPage() {
           <Card>
             <CardHeader>
                 <CardTitle>Lista de estudiantes seleccionados para {selectedInstitution.name}</CardTitle>
-                <CardDescription>Seleccione los estudiantes (previamente confirmados y asignados a esta ubicación) para incluir en esta notificación.</CardDescription>
+                <CardDescription>Seleccione los estudiantes (previamente confirmados y asignados a la comuna de {selectedInstitution.location}) para incluir en esta notificación.</CardDescription>
             </CardHeader>
             <CardContent>
                 <ScrollArea className="h-48 rounded-md border p-2">
@@ -519,7 +524,7 @@ export default function InstitutionNotificationsPage() {
                         rows={25}
                         value={emailBody}
                         onChange={(e) => setEmailBody(e.target.value)}
-                        className="font-mono text-xs whitespace-pre-wrap" // Suggest monospace for table alignment
+                        className="font-mono text-xs whitespace-pre-wrap" 
                         required
                         />
                     </div>
