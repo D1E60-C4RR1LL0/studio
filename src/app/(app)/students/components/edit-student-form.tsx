@@ -11,12 +11,12 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { StudentFormFields, studentFormSchema, type StudentFormData } from "./student-form-fields";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { getStudents } from "@/lib/data"; 
+import { getStudents } from "@/lib/data";
 import { useToast } from "@/hooks/use-toast";
 import { Save, Search, XCircle } from "lucide-react";
 
 interface EditStudentFormProps {
-  onSave: (student: Student) => Promise<void>; 
+  onSave: (student: Student) => Promise<void>;
   onCancel: () => void;
 }
 
@@ -44,33 +44,41 @@ export function EditStudentForm({ onSave, onCancel }: EditStudentFormProps) {
     }
     setIsLoadingStudent(true);
     setStudentNotFound(false);
-    setCurrentStudent(null); 
-    form.reset(); 
+    setCurrentStudent(null);
+    form.reset(); // Reset form before searching
 
     const normalizedSearchRut = normalizeRut(rutSearch.trim());
 
     try {
       const allStudents = await getStudents();
-      // Normalize student.rut from data before comparing
-      const foundStudent = allStudents.find(s => normalizeRut(s.rut) === normalizedSearchRut);
-      
-      if (foundStudent) {
-        setCurrentStudent(foundStudent);
+      const foundStudents = allStudents.filter(s => normalizeRut(s.rut).startsWith(normalizedSearchRut));
+
+      if (foundStudents.length === 1) {
+        const student = foundStudents[0];
+        setCurrentStudent(student);
         form.reset({
-          rut: foundStudent.rut, // Keep original format for display and editing
-          firstName: foundStudent.firstName,
-          lastNamePaternal: foundStudent.lastNamePaternal,
-          lastNameMaternal: foundStudent.lastNameMaternal,
-          email: foundStudent.email,
-          career: foundStudent.career,
-          commune: foundStudent.commune || "",
-          tutor: foundStudent.tutor || "",
-          practicumLevel: foundStudent.practicumLevel,
-          specialConditions: foundStudent.specialConditions || "",
+          rut: student.rut,
+          firstName: student.firstName,
+          lastNamePaternal: student.lastNamePaternal,
+          lastNameMaternal: student.lastNameMaternal,
+          email: student.email,
+          career: student.career,
+          commune: student.commune || "",
+          tutor: student.tutor || "",
+          practicumLevel: student.practicumLevel,
+          specialConditions: student.specialConditions || "",
         });
+        setStudentNotFound(false);
+      } else if (foundStudents.length > 1) {
+        toast({
+          title: "Múltiples coincidencias",
+          description: "Se encontraron varios estudiantes. Por favor, ingrese un RUT más específico.",
+          variant: "default",
+        });
+        setStudentNotFound(false); // Not "not found", but too many
       } else {
         setStudentNotFound(true);
-        toast({ title: "Estudiante no encontrado", description: `No se encontró un estudiante con el RUT ${rutSearch}.`, variant: "destructive" });
+        // Toast for "not found" is now implicit via the studentNotFound state and the <p> tag
       }
     } catch (error) {
       toast({ title: "Error en la búsqueda", description: "No se pudo realizar la búsqueda.", variant: "destructive" });
@@ -83,8 +91,8 @@ export function EditStudentForm({ onSave, onCancel }: EditStudentFormProps) {
     if (!currentStudent) return;
 
     const studentToSave: Student = {
-      id: currentStudent.id, 
-      rut: data.rut, // Assumes data.rut is already in the correct format due to form validation
+      id: currentStudent.id,
+      rut: data.rut,
       firstName: data.firstName,
       lastNamePaternal: data.lastNamePaternal,
       lastNameMaternal: data.lastNameMaternal,
@@ -106,20 +114,26 @@ export function EditStudentForm({ onSave, onCancel }: EditStudentFormProps) {
       </CardHeader>
       <CardContent>
         <div className="mb-6 space-y-2">
-          <Label htmlFor="rut-search">Buscar por RUT</Label>
+          <Label htmlFor="rut-search">Buscar por RUT (puede ser parcial)</Label>
           <div className="flex gap-2">
             <Input
               id="rut-search"
-              placeholder="12.345.678-9 o 123456789"
+              placeholder="Ej: 12345678K o 12.345.678-9"
               value={rutSearch}
               onChange={(e) => setRutSearch(e.target.value)}
               disabled={isLoadingStudent}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault(); // Prevent form submission if any
+                  handleSearchStudent();
+                }
+              }}
             />
             <Button onClick={handleSearchStudent} disabled={isLoadingStudent || !rutSearch.trim()}>
               <Search className="mr-2 h-4 w-4" /> {isLoadingStudent ? "Buscando..." : "Buscar"}
             </Button>
           </div>
-          {studentNotFound && <p className="text-sm text-destructive mt-2">Estudiante no encontrado. Verifique el RUT e intente nuevamente.</p>}
+          {studentNotFound && !currentStudent && <p className="text-sm text-destructive mt-2">Estudiante no encontrado. Verifique el RUT e intente nuevamente.</p>}
         </div>
 
         {currentStudent && (
@@ -127,9 +141,9 @@ export function EditStudentForm({ onSave, onCancel }: EditStudentFormProps) {
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               <StudentFormFields form={form} />
               <div className="flex justify-start gap-4 pt-4">
-                <Button 
-                  type="submit" 
-                  className="bg-green-600 hover:bg-green-700 text-white" 
+                <Button
+                  type="submit"
+                  className="bg-green-600 hover:bg-green-700 text-white"
                   disabled={form.formState.isSubmitting || !form.formState.isDirty}
                 >
                   <Save className="mr-2 h-4 w-4" /> Guardar cambios
@@ -145,4 +159,3 @@ export function EditStudentForm({ onSave, onCancel }: EditStudentFormProps) {
     </Card>
   );
 }
-
