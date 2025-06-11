@@ -43,16 +43,40 @@ export function usePracticumProgress() {
   useEffect(() => {
     if (isLoadingProgress) return;
 
-    const currentStageIndex = (Object.keys(STAGE_PATHS) as unknown as StageValues[]).find(
-        (key: StageValues) => pathname.startsWith(STAGE_PATHS[key])
-    );
-    
-    if (currentStageIndex !== undefined && currentStageIndex > maxAccessLevel) {
-      router.replace(STAGE_PATHS[maxAccessLevel]);
+    // Leer el valor más reciente de localStorage, ya que el estado de React puede estar desfasado momentáneamente
+    // después de una llamada a advanceStage antes de que router.push complete y este efecto se vuelva a ejecutar.
+    const storedLevelString = localStorage.getItem(PRACTICUM_PROGRESS_KEY);
+    let authoritativeMaxAccessLevel = maxAccessLevel; // Comenzar con el estado actual del hook
+
+    if (storedLevelString) {
+        const storedLevelNumber = parseInt(storedLevelString, 10);
+        if (Object.values(STAGES).includes(storedLevelNumber as StageValues)) {
+            // Si localStorage tiene un nivel más avanzado que el estado actual del hook,
+            // (p.ej. advanceStage acaba de ejecutarse), usar el valor de localStorage para esta verificación.
+            if (storedLevelNumber > authoritativeMaxAccessLevel) {
+                authoritativeMaxAccessLevel = storedLevelNumber as StageValues;
+            }
+        }
     }
-  }, [pathname, maxAccessLevel, isLoadingProgress, router]);
+
+    const currentStagePath = Object.values(STAGE_PATHS).find(p => pathname.startsWith(p));
+    let currentStageValue: StageValues | undefined;
+
+    if (currentStagePath) {
+      currentStageValue = (Object.keys(STAGES) as unknown as StageValues[]).find(
+        (key: StageValues) => STAGE_PATHS[key] === currentStagePath
+      );
+    }
+    
+    // Si la ruta actual corresponde a una etapa y esa etapa es mayor que el nivel de acceso máximo autorizado (considerando localStorage),
+    // redirigir al usuario a la última etapa a la que tiene acceso.
+    if (currentStageValue !== undefined && currentStageValue > authoritativeMaxAccessLevel) {
+      router.replace(STAGE_PATHS[authoritativeMaxAccessLevel]);
+    }
+  }, [pathname, maxAccessLevel, isLoadingProgress, router]); // maxAccessLevel sigue siendo dependencia para que el efecto se reevalue cuando el estado se actualice.
 
   const advanceStage = useCallback((newLevel: StageValues) => {
+    // Solo actualiza si el nuevo nivel es realmente un avance
     if (newLevel > maxAccessLevel) {
       setMaxAccessLevel(newLevel);
       localStorage.setItem(PRACTICUM_PROGRESS_KEY, newLevel.toString());
