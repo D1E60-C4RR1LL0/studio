@@ -26,7 +26,38 @@ import { getAcademicLevels, getCareers, getCommunes, getTutors } from "@/lib/dat
 import { useToast } from "@/hooks/use-toast";
 
 export const studentFormSchema = z.object({
-  rut: z.string().regex(/^\d{1,2}\.\d{3}\.\d{3}-[\dkK]$/, { message: "Formato de RUT inválido (ej: 12.345.678-9)." }),
+  rut: z.string()
+    .min(1, { message: "RUT es requerido." })
+    .transform((val, ctx) => {
+      // Normalize: remove dots, hyphens, convert K to uppercase
+      const cleaned = val.replace(/\./g, "").replace(/-/g, "").toUpperCase();
+      
+      if (!/^\d{7,8}[\dkK]$/.test(cleaned)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "RUT inválido. Formato esperado: XXXXXXXXK o XX.XXX.XXX-K (donde X es número y K puede ser K o número).",
+        });
+        return z.NEVER; // Prevents further processing by Zod for this field
+      }
+
+      const body = cleaned.slice(0, -1);
+      const verifier = cleaned.slice(-1);
+
+      let formattedRut = "";
+      if (body.length === 8) { // e.g., 12345678
+        formattedRut = `${body.substring(0, 2)}.${body.substring(2, 5)}.${body.substring(5, 8)}-${verifier}`;
+      } else if (body.length === 7) { // e.g., 1234567
+        formattedRut = `${body.substring(0, 1)}.${body.substring(1, 4)}.${body.substring(4, 7)}-${verifier}`;
+      } else {
+        // This case should ideally be caught by the regex, but acts as a fallback.
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "RUT inválido. Largo incorrecto después de la normalización.",
+        });
+        return z.NEVER;
+      }
+      return formattedRut;
+    }),
   firstName: z.string().min(1, { message: "Nombre es requerido." }),
   lastNamePaternal: z.string().min(1, { message: "Apellido paterno es requerido." }),
   lastNameMaternal: z.string().min(1, { message: "Apellido materno es requerido." }),
@@ -85,7 +116,7 @@ export function StudentFormFields({ form }: StudentFormFieldsProps) {
             <FormItem>
               <FormLabel>RUT *</FormLabel>
               <FormControl>
-                <Input placeholder="12.345.678-9" {...field} />
+                <Input placeholder="12.345.678-9 o 12345678K" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
