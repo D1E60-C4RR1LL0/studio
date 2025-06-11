@@ -1,6 +1,7 @@
 
 "use client";
 
+import * as React from "react";
 import { Users, Building2, User as UserIcon, CheckCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -57,7 +58,7 @@ export function CoordinationHeader({ activeIndex }: CoordinationHeaderProps) {
               isCompleted={index < activeIndex}
             />
             {index < stepsData.length - 1 && (
-              <div className="hidden md:block h-px w-full bg-border absolute top-6 left-[calc(33.33%_*_(${index}_+<em>0.5))] z-[-1]" style={{ transform: 'translateX(-50%)' }}></div>
+              <div className="hidden md:block h-px w-full bg-border absolute top-6 left-[calc(33.33%_*_(${index}_+_0.5))] z-[-1]" style={{ transform: 'translateX(-50%)' }}></div>
             )}
              {index < stepsData.length - 1 && (
                  <div className="md:hidden w-px h-8 bg-border my-2 self-center"></div>
