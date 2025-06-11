@@ -6,7 +6,8 @@ import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+// import { Textarea } from "@/components/ui/textarea"; // No longer used for editable template
+import RichTextEditor from "@/components/rich-text-editor"; // Import RichTextEditor
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -33,7 +34,7 @@ const PRACTICUM_OTHER_END_DATE_KEY = 'practicumOtherEndDate';
 const STUDENT_NOTIFICATION_LEVEL_PROGRAMMING_KEY = 'studentNotificationLevelProgramming';
 
 interface LevelProgramming {
-  scheduledDate?: Date | string; 
+  scheduledDate?: Date | string;
   scheduledTime: string;
   emailSubject: string;
   emailMessageTemplate: string;
@@ -77,7 +78,7 @@ export default function StudentNotificationsPage() {
   const [allStudentsData, setAllStudentsData] = React.useState<Student[]>([]);
   const [confirmedStudentIdsFromPreviousStage, setConfirmedStudentIdsFromPreviousStage] = React.useState<string[]>([]);
   const [studentsReadyForNotification, setStudentsReadyForNotification] = React.useState<Student[]>([]);
-  
+
   const [allAcademicLevelsFromData, setAllAcademicLevelsFromData] = React.useState<AcademicLevel[]>([]);
   const [displayableAcademicLevels, setDisplayableAcademicLevels] = React.useState<AcademicLevel[]>([]);
 
@@ -95,7 +96,7 @@ export default function StudentNotificationsPage() {
   const [selectedStudentForPreviewId, setSelectedStudentForPreviewId] = React.useState<string>("");
 
   const [programmingByLevel, setProgrammingByLevel] = React.useState<Record<string, LevelProgramming>>({});
-  
+
   const [currentScheduledDate, setCurrentScheduledDate] = React.useState<Date | undefined>();
   const [currentScheduledTime, setCurrentScheduledTime] = React.useState<string>("09:00");
   const [currentEmailSubject, setCurrentEmailSubject] = React.useState<string>(DEFAULT_EMAIL_SUBJECT);
@@ -108,7 +109,7 @@ export default function StudentNotificationsPage() {
     async function loadData() {
       try {
         const [studentData, levelData] = await Promise.all([
-          getStudents(), 
+          getStudents(),
           getAcademicLevels(),
         ]);
         setAllStudentsData(studentData);
@@ -117,7 +118,7 @@ export default function StudentNotificationsPage() {
         if (typeof window !== 'undefined') {
           const storedStudentIds = localStorage.getItem(CONFIRMED_STUDENT_IDS_KEY);
           setConfirmedStudentIdsFromPreviousStage(storedStudentIds ? JSON.parse(storedStudentIds) : []);
-          
+
           setNotifiedInstitutionName(localStorage.getItem(LAST_NOTIFIED_INSTITUTION_NAME_KEY) || "Institución no especificada");
           setInstitutionContactName(localStorage.getItem(LAST_NOTIFIED_INSTITUTION_CONTACT_NAME_KEY) || "[Nombre Directivo]");
           setInstitutionContactRole(localStorage.getItem(LAST_NOTIFIED_INSTITUTION_CONTACT_ROLE_KEY) || "[Cargo Directivo]");
@@ -131,7 +132,7 @@ export default function StudentNotificationsPage() {
           if (otherStart) setPracticumOtherStartDate(new Date(otherStart));
           const otherEnd = localStorage.getItem(PRACTICUM_OTHER_END_DATE_KEY);
           if (otherEnd) setPracticumOtherEndDate(new Date(otherEnd));
-          
+
           const storedProgramming = localStorage.getItem(STUDENT_NOTIFICATION_LEVEL_PROGRAMMING_KEY);
           if (storedProgramming) {
             const parsedProgramming = JSON.parse(storedProgramming) as Record<string, LevelProgramming>;
@@ -172,7 +173,7 @@ export default function StudentNotificationsPage() {
       setDisplayableAcademicLevels(filteredLevels);
 
       if (selectedLevelId && !filteredLevels.find(l => l.id === selectedLevelId)) {
-        setSelectedLevelId(""); 
+        setSelectedLevelId("");
       }
     } else {
       setDisplayableAcademicLevels([]);
@@ -188,14 +189,14 @@ export default function StudentNotificationsPage() {
       setCurrentScheduledTime(programming?.scheduledTime || "09:00");
       setCurrentEmailSubject(programming?.emailSubject || DEFAULT_EMAIL_SUBJECT);
       setCurrentEmailMessageTemplate(programming?.emailMessageTemplate || DEFAULT_EMAIL_MESSAGE_TEMPLATE);
-      
+
       const level = displayableAcademicLevels.find(l => l.id === selectedLevelId);
       if (level) {
           const filtered = studentsReadyForNotification.filter(s => s.practicumLevel === level.name);
           setStudentsInSelectedLevelForPreview(filtered);
           if (filtered.length > 0) {
             if (!selectedStudentForPreviewId || !filtered.find(s => s.id === selectedStudentForPreviewId)) {
-                 setSelectedStudentForPreviewId(filtered[0].id); 
+                 setSelectedStudentForPreviewId(filtered[0].id);
             }
           } else {
             setSelectedStudentForPreviewId("");
@@ -204,7 +205,7 @@ export default function StudentNotificationsPage() {
         setStudentsInSelectedLevelForPreview([]);
         setSelectedStudentForPreviewId("");
       }
-    } else { 
+    } else {
         setStudentsInSelectedLevelForPreview([]);
         setSelectedStudentForPreviewId("");
         setCurrentScheduledDate(undefined);
@@ -217,17 +218,17 @@ export default function StudentNotificationsPage() {
   const updateProgrammingForLevel = (levelId: string, newProgramming: Partial<LevelProgramming>) => {
     if (!levelId) return;
     setProgrammingByLevel(prev => {
-      const updatedLevelProg = { 
-        ...(prev[levelId] || { 
-            scheduledTime: "09:00", 
-            emailSubject: DEFAULT_EMAIL_SUBJECT, 
-            emailMessageTemplate: DEFAULT_EMAIL_MESSAGE_TEMPLATE 
-        }), 
-        ...newProgramming 
+      const updatedLevelProg = {
+        ...(prev[levelId] || {
+            scheduledTime: "09:00",
+            emailSubject: DEFAULT_EMAIL_SUBJECT,
+            emailMessageTemplate: DEFAULT_EMAIL_MESSAGE_TEMPLATE
+        }),
+        ...newProgramming
       };
       const newState = { ...prev, [levelId]: updatedLevelProg };
-      
-      const storableState = JSON.parse(JSON.stringify(newState)); 
+
+      const storableState = JSON.parse(JSON.stringify(newState));
       Object.keys(storableState).forEach(lId => {
         if (storableState[lId].scheduledDate && storableState[lId].scheduledDate instanceof Date) {
           storableState[lId].scheduledDate = (storableState[lId].scheduledDate as Date).toISOString();
@@ -241,7 +242,7 @@ export default function StudentNotificationsPage() {
       return newState;
     });
   };
-  
+
   const handleSendNotification = (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedLevelId || studentsInSelectedLevelForPreview.length === 0) {
@@ -264,7 +265,7 @@ export default function StudentNotificationsPage() {
     const scheduledDateTime = new Date(currentScheduledDate);
     const [hours, minutes] = currentScheduledTime.split(':').map(Number);
     scheduledDateTime.setHours(hours, minutes);
-    
+
     const levelName = displayableAcademicLevels.find(l=>l.id === selectedLevelId)?.name;
     console.log(`Programando notificaciones para nivel: ${levelName}`);
     console.log(`Fecha y hora programada: ${scheduledDateTime.toLocaleString('es-CL')}`);
@@ -274,7 +275,7 @@ export default function StudentNotificationsPage() {
 
     actualStudentsToSend.forEach(student => {
       const studentFullName = `${student.firstName} ${student.lastNamePaternal} ${student.lastNameMaternal}`;
-      
+
       let startDate, endDate;
       if (student.practicumLevel.toLowerCase().includes('profesional')) {
           startDate = practicumProfStartDate;
@@ -305,7 +306,7 @@ export default function StudentNotificationsPage() {
   };
 
   const selectedStudentDetailsForPreview = allStudentsData.find(s => s.id === selectedStudentForPreviewId);
-  let emailPreview = DEFAULT_EMAIL_MESSAGE_TEMPLATE; 
+  let emailPreview = DEFAULT_EMAIL_MESSAGE_TEMPLATE;
 
   if (selectedStudentDetailsForPreview) {
       let startDate, endDate;
@@ -341,7 +342,7 @@ export default function StudentNotificationsPage() {
   if (isLoadingProgress) {
     return <div className="flex justify-center items-center h-64"><p>Cargando notificaciones a estudiantes...</p></div>;
   }
-  
+
   return (
     <>
       <PageHeader
@@ -362,15 +363,15 @@ export default function StudentNotificationsPage() {
               <Label htmlFor="institution-name">Institución Asignada para esta Notificación</Label>
               <Input id="institution-name" value={notifiedInstitutionName} readOnly className="mt-1 bg-muted"/>
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <Label htmlFor="level-select">Nivel de Práctica a Notificar</Label>
-                <Select 
+                <Select
                     onValueChange={(value) => {
                         setSelectedLevelId(value);
-                        setSelectedStudentForPreviewId(""); 
-                    }} 
+                        setSelectedStudentForPreviewId("");
+                    }}
                     value={selectedLevelId}
                     disabled={displayableAcademicLevels.length === 0}
                 >
@@ -392,8 +393,8 @@ export default function StudentNotificationsPage() {
               </div>
               <div>
                 <Label htmlFor="student-preview-select">Alumno (para vista previa del correo)</Label>
-                <Select 
-                    onValueChange={setSelectedStudentForPreviewId} 
+                <Select
+                    onValueChange={setSelectedStudentForPreviewId}
                     value={selectedStudentForPreviewId}
                     disabled={!selectedLevelId || studentsInSelectedLevelForPreview.length === 0}
                 >
@@ -408,7 +409,7 @@ export default function StudentNotificationsPage() {
                 </Select>
               </div>
             </div>
-            
+
             {!selectedLevelId && displayableAcademicLevels.length > 0 && (
                  <Alert variant="default" className="bg-accent/10 border-accent/30">
                     <Info className="h-4 w-4 text-accent" />
@@ -448,16 +449,16 @@ export default function StudentNotificationsPage() {
                           }}
                           initialFocus
                           locale={es}
-                          fromDate={new Date()} 
+                          fromDate={new Date()}
                         />
                       </PopoverContent>
                     </Popover>
                   </div>
                   <div>
                     <Label htmlFor="schedule-time">Horario de envío del correo</Label>
-                    <Input 
-                      id="schedule-time" 
-                      type="time" 
+                    <Input
+                      id="schedule-time"
+                      type="time"
                       value={currentScheduledTime}
                       onChange={(e) => {
                         const newTime = e.target.value;
@@ -465,14 +466,14 @@ export default function StudentNotificationsPage() {
                         updateProgrammingForLevel(selectedLevelId, { scheduledTime: newTime });
                       }}
                       className="mt-1"
-                      required 
+                      required
                     />
                   </div>
                 </div>
                 <div>
                   <Label htmlFor="email-subject-student">Asunto del Correo</Label>
-                  <Input 
-                    id="email-subject-student" 
+                  <Input
+                    id="email-subject-student"
                     placeholder={DEFAULT_EMAIL_SUBJECT}
                     value={currentEmailSubject}
                     onChange={(e) => {
@@ -487,18 +488,21 @@ export default function StudentNotificationsPage() {
 
                 <div>
                   <Label htmlFor="email-message-student">Plantilla de correo editable</Label>
-                  <Textarea
+                  <RichTextEditor
                     id="email-message-student"
-                    placeholder={DEFAULT_EMAIL_MESSAGE_TEMPLATE}
-                    rows={12}
                     value={currentEmailMessageTemplate}
-                    onChange={(e) => {
-                        const newTemplate = e.target.value;
+                    onChange={(newTemplate) => {
                         setCurrentEmailMessageTemplate(newTemplate);
                         updateProgrammingForLevel(selectedLevelId, { emailMessageTemplate: newTemplate });
                     }}
-                    className="mt-1"
-                    required
+                    className="mt-1 min-h-[250px]"
+                    modules={{ toolbar: [
+                      [{ 'header': [1, 2, 3, false] }],
+                      ['bold', 'italic', 'underline', 'strike'],
+                      [{'list': 'ordered'}, {'list': 'bullet'}],
+                      ['link'],
+                      ['clean']
+                    ]}}
                   />
                    <p className="text-xs text-muted-foreground mt-1">
                     Marcadores disponibles: [Nombre del Estudiante], [Nombre Institucion], [Nivel de Practica], [Fecha Inicio Practica], [Fecha Termino Practica], [Nombre Directivo], [Cargo Directivo], [Correo Electronico Directivo].
@@ -514,9 +518,9 @@ export default function StudentNotificationsPage() {
                 </div>
               </>
             )}
-            
-            <Button 
-                type="submit" 
+
+            <Button
+                type="submit"
                 className="w-full md:w-auto"
                 disabled={!selectedLevelId || studentsInSelectedLevelForPreview.length === 0 || !currentScheduledDate || isLoadingProgress}
             >
@@ -529,3 +533,5 @@ export default function StudentNotificationsPage() {
   );
 }
 
+
+    
