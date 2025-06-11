@@ -16,6 +16,7 @@ import { useRouter } from 'next/navigation';
 import { usePracticumProgress, STAGES, STAGE_PATHS } from '@/hooks/usePracticumProgress';
 
 type ViewMode = "table" | "addForm" | "editForm";
+const CONFIRMED_STUDENT_IDS_KEY = 'confirmedPracticumStudentIds';
 
 export default function StudentManagementPage() {
   const [students, setStudents] = React.useState<Student[]>([]);
@@ -116,6 +117,11 @@ export default function StudentManagementPage() {
         .map(s => `${s.firstName} ${s.lastNamePaternal}`)
         .join(', ');
 
+    // Store selected student IDs in localStorage
+    if (typeof window !== 'undefined') {
+        localStorage.setItem(CONFIRMED_STUDENT_IDS_KEY, JSON.stringify(Array.from(selectedStudentsForConfirmation)));
+    }
+
     toast({
       title: "Selección Confirmada",
       description: `Estudiantes seleccionados: ${selectedNames}. Avanzando al siguiente paso.`,
@@ -139,7 +145,7 @@ export default function StudentManagementPage() {
   if (isLoadingPracticumProgress || isLoading) {
     return (
         <div className="flex justify-center items-center h-64">
-            <p>Cargando gestión de estudiantes...</p> {/* Or use a spinner component */}
+            <p>Cargando gestión de estudiantes...</p>
         </div>
     );
   }

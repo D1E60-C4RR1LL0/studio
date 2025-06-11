@@ -18,18 +18,18 @@ import { useRouter } from 'next/navigation';
 import { usePracticumProgress, STAGES, STAGE_PATHS } from '@/hooks/usePracticumProgress';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
+const CONFIRMED_STUDENT_IDS_KEY = 'confirmedPracticumStudentIds';
 
 const generateEmailBodyTemplate = (
   contactName: string,
   contactRole: string,
   institutionName: string,
-  selectedStudents: Student[]
+  selectedStudentsForEmail: Student[] // Students selected via checkbox for THIS notification
 ): string => {
-  const studentListItems = selectedStudents.map(student => 
+  const studentListItems = selectedStudentsForEmail.map(student => 
     `  - ${student.firstName} ${student.lastNamePaternal} ${student.lastNameMaternal} (RUT: ${student.rut}, Carrera: ${student.career}, Nivel: ${student.practicumLevel})`
   ).join("\n");
 
-  // Placeholder for practice calendar - replace with actual data if available
   const practiceCalendar = `NIVEL DE PRÁCTICA      FECHA INICIO        FECHA TÉRMINO      Nº SEMANAS
 P. PROFESIONAL        Semana 10 de marzo   Semana 16 de junio   15
 PPV - PPIV - PPIII - PPII - PPI  Semana 17 de marzo   Semana 16 de junio   14`;
@@ -40,8 +40,14 @@ PPV - PPIV - PPIII - PPII - PPI  Semana 17 de marzo   Semana 16 de junio   14`;
 * Certificado de Inhabilidades por maltrato relevante
 * Horario universitario
 * Otra documentación`;
+  
+  let roleSalutation = "";
+  if (contactRole && contactRole.trim() !== "") {
+    roleSalutation = `en su calidad de ${contactRole} de `;
+  }
 
-  return `Estimado/a ${contactName || '[Nombre Contacto]'}${contactRole ? `, en su calidad de ${contactRole}` : ''} de ${institutionName || '[Nombre Institución]'}.
+
+  return `Estimado/a ${contactName || '[Nombre Contacto]'}${contactRole ? `, ${roleSalutation}${institutionName || '[Nombre Institución]'}` : (institutionName ? ` de ${institutionName || '[Nombre Institución]'}`: '')}.
 
 Le saludo de manera cordial en nombre de la Unidad de Práctica Pedagógica (UPP) de la Facultad de Educación de la Universidad Católica de la Santísima Concepción, y presento a usted el inicio de las pasantías de estudiantes de Pedagogía de nuestra Facultad, de acuerdo con el siguiente calendario de prácticas UCSC primer semestre 2025:
 
@@ -62,8 +68,12 @@ Equipo Unidad de Prácticas Pedagógicas UCSC`;
 export default function InstitutionNotificationsPage() {
   const [allInstitutions, setAllInstitutions] = React.useState<Institution[]>([]);
   const [filteredInstitutions, setFilteredInstitutions] = React.useState<Institution[]>([]);
+  
   const [allStudents, setAllStudents] = React.useState<Student[]>([]);
-  const [studentsForInstitution, setStudentsForInstitution] = React.useState<Student[]>([]);
+  const [confirmedStage1StudentIds, setConfirmedStage1StudentIds] = React.useState<string[]>([]);
+  const [studentsAvailableFromStage1, setStudentsAvailableFromStage1] = React.useState<Student[]>([]);
+  const [studentsForInstitutionCheckboxes, setStudentsForInstitutionCheckboxes] = React.useState<Student[]>([]); // For checkboxes
+  
   const [communes, setCommunes] = React.useState<Commune[]>([]);
   
   const [selectedCommuneId, setSelectedCommuneId] = React.useState<string>("");
@@ -93,8 +103,11 @@ export default function InstitutionNotificationsPage() {
         setAllInstitutions(instData);
         setAllStudents(studentData);
 
-        if (communeData.length > 0) {
-          // setSelectedCommuneId(communeData[0].id); // Optionally pre-select first commune
+        if (typeof window !== 'undefined') {
+            const storedIds = localStorage.getItem(CONFIRMED_STUDENT_IDS_KEY);
+            if (storedIds) {
+                setConfirmedStage1StudentIds(JSON.parse(storedIds));
+            }
         }
       } catch (error) {
         toast({
@@ -110,10 +123,22 @@ export default function InstitutionNotificationsPage() {
   }, [toast, isLoadingProgress, maxAccessLevel]);
 
   React.useEffect(() => {
+    if (allStudents.length > 0 && confirmedStage1StudentIds.length > 0) {
+        const confirmedSet = new Set(confirmedStage1StudentIds);
+        setStudentsAvailableFromStage1(allStudents.filter(s => confirmedSet.has(s.id)));
+    } else if (allStudents.length > 0 && confirmedStage1StudentIds.length === 0) {
+        // If no students were confirmed from stage 1, it means either none were selected, or localStorage is empty.
+        // In this scenario, it implies no students are eligible from stage 1.
+        setStudentsAvailableFromStage1([]);
+    }
+  }, [allStudents, confirmedStage1StudentIds]);
+
+
+  React.useEffect(() => {
     if (selectedCommuneId) {
       const commune = communes.find(c => c.id === selectedCommuneId);
       setFilteredInstitutions(allInstitutions.filter(inst => inst.location === commune?.name));
-      setSelectedInstitutionId(""); // Reset institution when commune changes
+      setSelectedInstitutionId(""); 
     } else {
       setFilteredInstitutions([]);
       setSelectedInstitutionId("");
@@ -129,27 +154,28 @@ export default function InstitutionNotificationsPage() {
       setEditableContactName(selectedInstitution.contactName || "");
       setEditableContactRole(selectedInstitution.contactRole || "");
       setEditableContactEmail(selectedInstitution.contactEmail || "");
-      setStudentsForInstitution(allStudents.filter(s => s.location === selectedInstitution.name));
+      // Filter students available from stage 1 by the selected institution's location
+      setStudentsForInstitutionCheckboxes(studentsAvailableFromStage1.filter(s => s.location === selectedInstitution.name));
       setSelectedStudentsMap({}); // Reset student selection
     } else {
       setEditableContactName("");
       setEditableContactRole("");
       setEditableContactEmail("");
-      setStudentsForInstitution([]);
+      setStudentsForInstitutionCheckboxes([]);
       setSelectedStudentsMap({});
     }
-  }, [selectedInstitution, allStudents]);
+  }, [selectedInstitution, studentsAvailableFromStage1]);
 
   React.useEffect(() => {
-    const currentSelectedStudents = studentsForInstitution.filter(s => selectedStudentsMap[s.id]);
+    const currentSelectedStudentsForEmail = studentsForInstitutionCheckboxes.filter(s => selectedStudentsMap[s.id]);
     const body = generateEmailBodyTemplate(
       editableContactName,
       editableContactRole,
       selectedInstitution?.name || "",
-      currentSelectedStudents
+      currentSelectedStudentsForEmail
     );
     setEmailBody(body);
-  }, [selectedInstitution, editableContactName, editableContactRole, selectedStudentsMap, studentsForInstitution]);
+  }, [selectedInstitution, editableContactName, editableContactRole, selectedStudentsMap, studentsForInstitutionCheckboxes]);
 
 
   const handleStudentSelect = (studentId: string, checked: boolean) => {
@@ -185,12 +211,15 @@ export default function InstitutionNotificationsPage() {
         return;
     }
 
+    const studentsActuallySelected = studentsForInstitutionCheckboxes.filter(s => selectedStudentsMap[s.id]);
+
     console.log("Enviando correo a:", editableContactEmail);
     console.log("Nombre Contacto:", editableContactName);
     console.log("Cargo Contacto:", editableContactRole);
     console.log("Institución:", selectedInstitution.name);
     console.log("Asunto:", emailSubject);
     console.log("Cuerpo del Correo:", emailBody);
+    console.log("Estudiantes seleccionados para este correo:", studentsActuallySelected.map(s => s.firstName));
     
     toast({
       title: "Notificación Enviada (Simulado)",
@@ -250,7 +279,7 @@ export default function InstitutionNotificationsPage() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4">
                 <div>
                   <Label htmlFor="contact-name">Contacto</Label>
-                  <Input id="contact-name" value={editableContactName} onChange={(e) => setEditableContactName(e.target.value)} placeholder="Nombre del contacto"/>
+                  <Input id="contact-name" value={editableContactName} onChange={(e) => setEditableContactName(e.target.value)} placeholder="Nombre del contacto" required/>
                 </div>
                 <div>
                   <Label htmlFor="contact-role">Cargo del contacto</Label>
@@ -258,7 +287,7 @@ export default function InstitutionNotificationsPage() {
                 </div>
                 <div>
                   <Label htmlFor="contact-email">Correo electrónico</Label>
-                  <Input id="contact-email" type="email" value={editableContactEmail} onChange={(e) => setEditableContactEmail(e.target.value)} placeholder="correo@ejemplo.com"/>
+                  <Input id="contact-email" type="email" value={editableContactEmail} onChange={(e) => setEditableContactEmail(e.target.value)} placeholder="correo@ejemplo.com" required/>
                 </div>
               </div>
             )}
@@ -268,13 +297,13 @@ export default function InstitutionNotificationsPage() {
         {selectedInstitution && (
           <Card>
             <CardHeader>
-                <CardTitle>Lista de estudiantes seleccionados</CardTitle>
-                <CardDescription>Seleccione los estudiantes de {selectedInstitution.name} para incluir en esta notificación.</CardDescription>
+                <CardTitle>Lista de estudiantes seleccionados para {selectedInstitution.name}</CardTitle>
+                <CardDescription>Seleccione los estudiantes (previamente confirmados y asignados a esta ubicación) para incluir en esta notificación.</CardDescription>
             </CardHeader>
             <CardContent>
                 <ScrollArea className="h-48 rounded-md border p-2">
-                  {studentsForInstitution.length > 0 ? (
-                    studentsForInstitution.map(student => (
+                  {studentsForInstitutionCheckboxes.length > 0 ? (
+                    studentsForInstitutionCheckboxes.map(student => (
                       <div key={student.id} className="flex items-center space-x-2 p-1.5">
                         <Checkbox
                           id={`student-${student.id}`}
@@ -291,7 +320,7 @@ export default function InstitutionNotificationsPage() {
                     ))
                   ) : (
                     <p className="text-sm text-muted-foreground p-2">
-                      No hay estudiantes asignados actualmente a {selectedInstitution.name} o que coincidan con los filtros.
+                      No hay estudiantes confirmados de la etapa anterior asignados a la ubicación de {selectedInstitution.name}, o no se han cargado los datos.
                     </p>
                   )}
                 </ScrollArea>
@@ -320,7 +349,7 @@ export default function InstitutionNotificationsPage() {
                         <Label htmlFor="email-body">Cuerpo del correo</Label>
                         <Textarea
                         id="email-body"
-                        rows={15}
+                        rows={20}
                         value={emailBody}
                         onChange={(e) => setEmailBody(e.target.value)}
                         required
