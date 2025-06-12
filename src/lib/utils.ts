@@ -1,3 +1,4 @@
+
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 
@@ -12,66 +13,72 @@ export function escapeRegExp(string: string): string {
 
 export const textToHtmlWithPlaceholders = (
   plainTextTemplate: string,
-  htmlPlaceholders: Record<string, string>,
-  textPlaceholders: Record<string, string>
+  htmlPlaceholders: Record<string, string>, // e.g., {"{{studentTableHTML}}": "<table>..."}
+  textPlaceholders: Record<string, string>  // e.g., {"{{directivo.nombre}}": "Juan Perez"}
 ): string => {
   let processedText = plainTextTemplate;
 
+  // 1. Temporarily replace HTML block placeholders (like {{studentTableHTML}}) with unique IDs
+  //    to protect them from general text processing.
   const tempHtmlPlaceholderMap: Record<string, string> = {};
   let placeholderIndex = 0;
-
-  // Temporarily replace HTML block placeholders with unique IDs
   for (const key in htmlPlaceholders) {
-    const tempId = `__HTML_PLACEHOLDER_${placeholderIndex++}__`;
-    tempHtmlPlaceholderMap[tempId] = htmlPlaceholders[key];
-    // Ensure the key is properly escaped for RegExp
-    processedText = processedText.replace(new RegExp(escapeRegExp(key), 'g'), tempId);
+    if (Object.prototype.hasOwnProperty.call(htmlPlaceholders, key)) {
+      const tempId = `__HTML_BLOCK_PLACEHOLDER_${placeholderIndex++}__`;
+      tempHtmlPlaceholderMap[tempId] = htmlPlaceholders[key];
+      processedText = processedText.replace(new RegExp(escapeRegExp(key), 'g'), tempId);
+    }
+  }
+
+  // 2. Process the template, converting plain text parts to HTML
+  //    while preserving already identified HTML blocks and pre-formatted HTML.
+  const blocks = processedText.split(/(\n\s*\n+)/); // Split by one or more blank lines, keeping delimiters
+  let htmlResult = "";
+
+  for (let i = 0; i < blocks.length; i++) {
+    let block = blocks[i];
+
+    // Skip over delimiter blocks (captured blank lines)
+    if (i % 2 === 1) {
+      // htmlResult += block; // If we wanted to preserve multiple newlines as is in source, but <p> handles paragraph spacing
+      continue;
+    }
+
+    const trimmedBlock = block.trim();
+
+    if (tempHtmlPlaceholderMap[trimmedBlock]) {
+      // This block is one of the special HTML placeholders (e.g., {{studentTableHTML}})
+      htmlResult += tempHtmlPlaceholderMap[trimmedBlock];
+    } else if (trimmedBlock.startsWith('<') && trimmedBlock.endsWith('>')) {
+      // Assume this block is already formatted HTML (e.g., an embedded table)
+      // We need to be careful here: internal newlines in this pre-formatted HTML block
+      // should NOT be converted to <br />.
+      // And it should NOT be wrapped in <p> tags.
+      htmlResult += block; // Add the block as is (preserving original newlines within it for source readability)
+    } else if (trimmedBlock) {
+      // This is a plain text block
+      // Convert internal newlines to <br /> and wrap in <p>
+      htmlResult += `<p>${block.replace(/\n/g, "<br />")}</p>\n`;
+    }
   }
   
-  let htmlResult = processedText
-    .split(/\n\s*\n/) // Split by one or more empty lines (paragraph breaks)
-    .map(paragraph => {
-      if (paragraph.trim() === "") return ""; 
-      
-      let currentBlock = paragraph.trim(); // Trim paragraph here for checks
-      let isEntirelyHtmlBlock = false;
-
-      // Check if this paragraph (after trimming) corresponds *exactly* to one of the temp IDs
-      for (const tempId in tempHtmlPlaceholderMap) {
-        if (currentBlock === tempId) {
-          currentBlock = tempHtmlPlaceholderMap[tempId]; // Replace with actual HTML content
-          isEntirelyHtmlBlock = true;
-          break; 
-        }
-      }
-      
-      if (isEntirelyHtmlBlock) {
-        return currentBlock; // This is one of the pre-defined HTML blocks, return as-is
-      }
-
-      // If not an entire HTML block, this paragraph is user text.
-      // We still need to replace any tempIDs that might be *within* user text
-      // if they weren't caught above (e.g., if user typed __HTML_PLACEHOLDER_0__ by mistake or complex case).
-      // This is less likely given the current placeholder format but good for robustness.
-      let userTextParagraph = paragraph; // Use original paragraph with its leading/trailing spaces for this step.
-      for (const tempId in tempHtmlPlaceholderMap) {
-         if (userTextParagraph.includes(tempId)) {
-            userTextParagraph = userTextParagraph.replace(new RegExp(escapeRegExp(tempId), 'g'), tempHtmlPlaceholderMap[tempId]);
-         }
-      }
-      
-      // Convert newlines within the user text paragraph to <br /> and wrap in <p>
-      // Note: If paragraph was only whitespace, it was handled by the trim() === "" check earlier.
-      // Leading/trailing whitespace on non-empty paragraphs will be preserved inside the <p> tag.
-      return `<p>${userTextParagraph.replace(/\n/g, "<br />")}</p>`;
-    })
-    .join("\n"); // Join paragraphs with newlines, which is fine for HTML source
-
-  // Replace simple text placeholders in the final HTML
+  // 3. Replace simple text placeholders (like {{directivo.nombre}}) in the entire HTML accumulated so far.
   for (const key in textPlaceholders) {
-    // Ensure the key is properly escaped for RegExp
-    htmlResult = htmlResult.replace(new RegExp(escapeRegExp(key), 'g'), textPlaceholders[key]);
+    if (Object.prototype.hasOwnProperty.call(textPlaceholders, key)) {
+      htmlResult = htmlResult.replace(new RegExp(escapeRegExp(key), 'g'), textPlaceholders[key]);
+    }
   }
 
-  return htmlResult;
+  // 4. Clean up: Remove any <p><br /></p> that might result from empty lines or multiple <br> sequences.
+  // and ensure that paragraphs containing only an HTML block placeholder are not wrapped in <p> tags again.
+  // This part can be tricky and might need more sophisticated parsing if issues arise.
+  // A simpler approach for now: if an HTML block placeholder was the only content of what would be a <p>,
+  // the logic above (tempHtmlPlaceholderMap[trimmedBlock]) should handle it.
+  // The main concern is not double-wrapping or misinterpreting newlines within pre-formatted HTML.
+
+  // The current logic of adding `block` directly for pre-formatted HTML
+  // and `tempHtmlPlaceholderMap[trimmedBlock]` for placeholders
+  // should prevent them from being wrapped in <p> or having internal newlines converted.
+
+  return htmlResult.replace(/<p>\s*<\/p>/g, ''); // Remove empty paragraphs
 };
