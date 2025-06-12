@@ -6,7 +6,8 @@ import { PageHeader } from "@/components/page-header";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TemplateEditor } from "./components/template-editor";
 
-const institutionPlaceholders = [
+// Export this for use in institution-notifications/page.tsx
+export const institutionPlaceholders = [
   { key: "{{directivo.nombre}}", description: "Nombre del directivo/contacto en la institución." },
   { key: "{{directivo.cargo}}", description: "Cargo del directivo/contacto en la institución." },
   { key: "{{directivo.email}}", description: "Correo electrónico del directivo/contacto." },
@@ -22,16 +23,21 @@ const institutionPlaceholders = [
   { key: "{{documentationListHTML}}", description: "Lista HTML de la documentación requerida." },
 ];
 
-const studentPlaceholders = [
-  { key: "[Nombre del Estudiante]", description: "Nombre completo del estudiante (ej: Ana Pérez García)." },
-  { key: "[Nombre Institucion]", description: "Nombre del establecimiento asignado." },
-  { key: "[Nivel de Practica]", description: "Nivel de práctica del estudiante." },
-  { key: "[Fecha Inicio Practica]", description: "Fecha de inicio de la práctica (ej: 'semana del dd de MMMM')." },
-  { key: "[Fecha Termino Practica]", description: "Fecha de término de la práctica (ej: 'semana del dd de MMMM yyyy')." },
-  { key: "[Nombre Directivo]", description: "Nombre del directivo/contacto en la institución." },
-  { key: "[Cargo Directivo]", description: "Cargo del directivo/contacto en la institución." },
-  { key: "[Correo Electronico Directivo]", description: "Correo electrónico del directivo/contacto en la institución." },
+// Corrected student placeholders based on the OCR and user feedback
+export const studentPlaceholders = [
+  { key: "{{estudiante.nombre}}", description: "Nombre del estudiante." },
+  { key: "{{estudiante.ap_paterno}}", description: "Apellido paterno del estudiante." },
+  { key: "{{estudiante.ap_materno}}", description: "Apellido materno del estudiante." },
+  { key: "{{nombre_establecimiento}}", description: "Nombre del establecimiento asignado." },
+  { key: "{{nivel_practica}}", description: "Nivel de práctica del estudiante." },
+  { key: "{{practicumStartDate}}", description: "Fecha de inicio de la práctica (ej: 'semana del dd de MMMM')." },
+  { key: "{{practicumEndDate}}", description: "Fecha de término de la práctica (ej: 'semana del dd de MMMM yyyy')." },
+  { key: "{{directivo.nombre}}", description: "Nombre del directivo/contacto en la institución." },
+  { key: "{{directivo.cargo}}", description: "Cargo del directivo/contacto en la institución." },
+  { key: "{{directivo.email}}", description: "Correo electrónico del directivo/contacto en la institución." },
+  // URLs are now directly in the template, no longer placeholders
 ];
+
 
 export const DEFAULT_INSTITUTION_EMAIL_SUBJECT = "Información Estudiantes de Práctica";
 export const DEFAULT_INSTITUTION_EMAIL_BODY_TEXT = `Estimado/a {{directivo.nombre}},
@@ -61,16 +67,18 @@ Fono +56 412345859
 www.ucsc.cl
 `.trim();
 
+// Updated DEFAULT_STUDENT_EMAIL_BODY_TEXT to use {{...}} placeholders
 export const DEFAULT_STUDENT_EMAIL_SUBJECT = "Confirmación de Práctica Pedagógica UCSC";
-export const DEFAULT_STUDENT_EMAIL_BODY_TEXT = `Estimado/a estudiante [Nombre del Estudiante]
+export const DEFAULT_STUDENT_EMAIL_BODY_TEXT = `Estimado/a estudiante
+{{estudiante.nombre}} {{estudiante.ap_paterno}} {{estudiante.ap_materno}}
 
-Junto con saludar, se informa que, desde la coordinación de gestión de centros de Práctica de la UPP, ha sido adscrito/a a [Nombre Institucion], para desarrollar su [Nivel de Practica], que inicia la [Fecha Inicio Practica] hasta la [Fecha Termino Practica].
+Junto con saludar, se informa que, desde la coordinación de gestión de centros de Práctica de la UPP, ha sido adscrito/a a {{nombre_establecimiento}}, para desarrollar su {{nivel_practica}}, que inicia la {{practicumStartDate}} hasta la {{practicumEndDate}}.
 
 Los datos de contacto del establecimiento son:
 
-Nombre directivo: [Nombre Directivo]
-Cargo: [Cargo Directivo]
-Correo electrónico: [Correo Electronico Directivo]
+Nombre directivo: {{directivo.nombre}}
+Cargo: {{directivo.cargo}}
+Correo electrónico: {{directivo.email}}
 
 Posterior a este correo, deberá coordinar el inicio de su pasantía de acuerdo al calendario de prácticas UCSC y hacer entrega de su carpeta de práctica y documentación personal, que incluye:
 

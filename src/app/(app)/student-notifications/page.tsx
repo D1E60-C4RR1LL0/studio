@@ -21,6 +21,7 @@ import type { Student, AcademicLevel } from "@/lib/definitions";
 import { useToast } from "@/hooks/use-toast";
 import { usePracticumProgress, STAGES } from '@/hooks/usePracticumProgress';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { DEFAULT_STUDENT_EMAIL_SUBJECT, DEFAULT_STUDENT_EMAIL_BODY_TEXT } from "@/app/(app)/admin/templates/page";
 // RichTextEditor no se usa aquí para preview
 
 const CONFIRMED_STUDENT_IDS_KEY = 'confirmedPracticumStudentIds';
@@ -36,33 +37,6 @@ const STUDENT_NOTIFICATION_LEVEL_PROGRAMMING_KEY = 'studentNotificationLevelProg
 
 const TEMPLATE_STUDENT_SUBJECT_KEY = "TEMPLATE_STUDENT_SUBJECT";
 const TEMPLATE_STUDENT_BODY_HTML_KEY = "TEMPLATE_STUDENT_BODY_HTML"; // Stores plain text
-
-const DEFAULT_STUDENT_SUBJECT = "Confirmación de Práctica Pedagógica UCSC";
-const DEFAULT_STUDENT_BODY_TEXT = `Estimado/a estudiante [Nombre del Estudiante]
-
-Junto con saludar, se informa que, desde la coordinación de gestión de centros de Práctica de la UPP, ha sido adscrito/a a [Nombre Institucion], para desarrollar su [Nivel de Practica], que inicia la [Fecha Inicio Practica] hasta la [Fecha Termino Practica].
-
-Los datos de contacto del establecimiento son:
-
-Nombre directivo: [Nombre Directivo]
-Cargo: [Cargo Directivo]
-Correo electrónico: [Correo Electronico Directivo]
-
-Posterior a este correo, deberá coordinar el inicio de su pasantía de acuerdo al calendario de prácticas UCSC y hacer entrega de su carpeta de práctica y documentación personal, que incluye:
-
-Certificado de Antecedentes (https://www.chileatiende.gob.cl/fichas/3442-certificado-de-antecedentes)
-Certificado de Inhabilidades para trabajar con menores de edad (https://inhabilidades.srcei.cl/ConsInhab/consultaInhabilidad.do)
-Certificado de Inhabilidades por maltrato relevante (https://inhabilidades.srcei.cl/InhabilidadesRelevante/#/inicio)
-Horario universitario
-Otra documentación
-
-Se informa, además, que el equipo directivo del establecimiento está en conocimiento de su adscripción y por tanto es importante que asista presencialmente al centro educativo.
-
-Favor no responder a este correo. Para dudas y/o consultas, favor escribir a sus respectivas coordinadoras de prácticas.
-
-Saludos cordiales,
-Unidad de Prácticas Pedagógicas UCSC
-`.trim();
 
 
 interface LevelProgramming {
@@ -91,7 +65,11 @@ const renderStudentEmail = (
   practicumOtherEndDate?: Date
 ): { subject: string; body: string } => {
 
+  let startDateKeyToUse = "{{practicumStartDate}}";
+  let endDateKeyToUse = "{{practicumEndDate}}";
   let startDate, endDate;
+
+  // Determine which dates to use based on practicum level
   if (student.practicumLevel.toLowerCase().includes('profesional') || student.practicumLevel.toLowerCase().includes('pasantía')) { 
     startDate = practicumProfStartDate;
     endDate = practicumProfEndDate;
@@ -100,17 +78,17 @@ const renderStudentEmail = (
     endDate = practicumOtherEndDate;
   }
   
-  const studentFullName = `${student.firstName} ${student.lastNamePaternal} ${student.lastNameMaternal}`;
-
   const textPlaceholders: Record<string, string> = {
-    "[Nombre del Estudiante]": studentFullName,
-    "[Nombre Institucion]": notifiedInstitutionName,
-    "[Nivel de Practica]": student.practicumLevel,
-    "[Fecha Inicio Practica]": formatDateForStudentEmail(startDate, 'start'),
-    "[Fecha Termino Practica]": formatDateForStudentEmail(endDate, 'end'),
-    "[Nombre Directivo]": institutionContactName,
-    "[Cargo Directivo]": institutionContactRole,
-    "[Correo Electronico Directivo]": institutionContactEmail,
+    "{{estudiante.nombre}}": student.firstName,
+    "{{estudiante.ap_paterno}}": student.lastNamePaternal,
+    "{{estudiante.ap_materno}}": student.lastNameMaternal,
+    "{{nombre_establecimiento}}": notifiedInstitutionName,
+    "{{nivel_practica}}": student.practicumLevel,
+    [startDateKeyToUse]: formatDateForStudentEmail(startDate, 'start'),
+    [endDateKeyToUse]: formatDateForStudentEmail(endDate, 'end'),
+    "{{directivo.nombre}}": institutionContactName,
+    "{{directivo.cargo}}": institutionContactRole,
+    "{{directivo.email}}": institutionContactEmail,
   };
   
   const htmlPlaceholders = {}; 
@@ -153,8 +131,8 @@ export default function StudentNotificationsPage() {
 
   const [programmingByLevel, setProgrammingByLevel] = React.useState<Record<string, LevelProgramming>>({});
 
-  const [studentEmailSubjectTemplate, setStudentEmailSubjectTemplate] = React.useState(DEFAULT_STUDENT_SUBJECT);
-  const [studentEmailBodyPlainTextTemplate, setStudentEmailBodyPlainTextTemplate] = React.useState(DEFAULT_STUDENT_BODY_TEXT);
+  const [studentEmailSubjectTemplate, setStudentEmailSubjectTemplate] = React.useState(DEFAULT_STUDENT_EMAIL_SUBJECT);
+  const [studentEmailBodyPlainTextTemplate, setStudentEmailBodyPlainTextTemplate] = React.useState(DEFAULT_STUDENT_EMAIL_BODY_TEXT);
 
   const [previewSubject, setPreviewSubject] = React.useState("");
   const [previewBodyHtml, setPreviewBodyHtml] = React.useState("");
@@ -174,12 +152,10 @@ export default function StudentNotificationsPage() {
   React.useEffect(() => {
     if (typeof window !== 'undefined') {
       const storedSubject = localStorage.getItem(TEMPLATE_STUDENT_SUBJECT_KEY);
-      if (storedSubject) setStudentEmailSubjectTemplate(storedSubject);
-      else setStudentEmailSubjectTemplate(DEFAULT_STUDENT_SUBJECT);
+      setStudentEmailSubjectTemplate(storedSubject || DEFAULT_STUDENT_EMAIL_SUBJECT);
 
       const storedBody = localStorage.getItem(TEMPLATE_STUDENT_BODY_HTML_KEY); 
-      if (storedBody) setStudentEmailBodyPlainTextTemplate(storedBody);
-      else setStudentEmailBodyPlainTextTemplate(DEFAULT_STUDENT_BODY_TEXT);
+      setStudentEmailBodyPlainTextTemplate(storedBody || DEFAULT_STUDENT_EMAIL_BODY_TEXT);
     }
 
     async function loadData() {
@@ -318,7 +294,7 @@ export default function StudentNotificationsPage() {
        const { subject, body } = renderStudentEmail(
         studentEmailSubjectTemplate,
         studentEmailBodyPlainTextTemplate,
-        {...genericStudent, firstName: "[Nombre", lastNamePaternal: "Estudiante]", lastNameMaternal: "" }, 
+        {...genericStudent, firstName: "{{estudiante.nombre}}", lastNamePaternal: "{{estudiante.ap_paterno}}", lastNameMaternal: "{{estudiante.ap_materno}}" }, 
         notifiedInstitutionName,
         institutionContactName,
         institutionContactRole,
@@ -329,12 +305,16 @@ export default function StudentNotificationsPage() {
         practicumOtherEndDate
       );
       setPreviewSubject(subject);
-      setPreviewBodyHtml(body.replace(/\[Nombre Estudiante\]/g, "(Seleccione un alumno para vista previa detallada)"));
+      setPreviewBodyHtml(body);
     }
      else {
       const tempStudentForGenericPreview : Student = { 
-        id: 'generic', rut: '0', firstName: '(No hay alumnos en este nivel para previsualizar)', lastNamePaternal: '', lastNameMaternal: '', email: '', career: '', 
-        practicumLevel: displayableAcademicLevels.find(l=>l.id === selectedLevelId)?.name || "(Nivel no seleccionado)"
+        id: 'generic', rut: '0', 
+        firstName: '{{estudiante.nombre}}', 
+        lastNamePaternal: '{{estudiante.ap_paterno}}', 
+        lastNameMaternal: '{{estudiante.ap_materno}}', 
+        email: '', career: '', 
+        practicumLevel: displayableAcademicLevels.find(l=>l.id === selectedLevelId)?.name || "{{nivel_practica}}"
       };
       const {subject, body} = renderStudentEmail(
         studentEmailSubjectTemplate,
