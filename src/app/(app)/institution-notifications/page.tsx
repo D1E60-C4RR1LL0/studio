@@ -21,7 +21,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { format, parse } from "date-fns";
 import { es } from "date-fns/locale";
 import { cn } from "@/lib/utils";
-import RichTextEditor from "@/components/rich-text-editor";
+// RichTextEditor is not used here for preview, direct HTML rendering instead
 
 const CONFIRMED_STUDENT_IDS_KEY = 'confirmedPracticumStudentIds';
 const LAST_NOTIFIED_INSTITUTION_ID_KEY = 'lastNotifiedInstitutionId';
@@ -37,36 +37,87 @@ const PRACTICUM_OTHER_START_DATE_KEY = 'practicumOtherStartDate';
 const PRACTICUM_OTHER_END_DATE_KEY = 'practicumOtherEndDate';
 const PRACTICUM_OTHER_WEEKS_KEY = 'practicumOtherWeeks';
 
-// Template Keys for localStorage
 const TEMPLATE_INSTITUTION_SUBJECT_KEY = "TEMPLATE_INSTITUTION_SUBJECT";
-const TEMPLATE_INSTITUTION_BODY_HTML_KEY = "TEMPLATE_INSTITUTION_BODY_HTML";
+const TEMPLATE_INSTITUTION_BODY_HTML_KEY = "TEMPLATE_INSTITUTION_BODY_HTML"; // Stores plain text
 
-// Default template content (with placeholders) - These are now sourced from admin/templates/page.tsx at runtime effectively
-const DEFAULT_INSTITUTION_SUBJECT = "Información Estudiantes de Práctica"; // This will be overridden by localStorage if set
-const DEFAULT_INSTITUTION_BODY_HTML = `
-<p>Estimado/a {{contactName}},</p>
-<p>Reciba un cordial saludo en nombre de la Unidad de Práctica Pedagógica (UPP) de la Facultad de Educación de la Universidad Católica de la Santísima Concepción.</p>
-<p>Nos ponemos en contacto con usted referente a su rol como {{contactRole}} en la institución {{institutionName}}.</p>
-<p>A continuación, presentamos el calendario de prácticas UCSC para el primer semestre:</p>
+const DEFAULT_INSTITUTION_SUBJECT = "Información Estudiantes de Práctica";
+const DEFAULT_INSTITUTION_BODY_TEXT = `Estimado/a {{contactName}},
+
+Reciba un cordial saludo en nombre de la Unidad de Práctica Pedagógica (UPP) de la Facultad de Educación de la Universidad Católica de la Santísima Concepción.
+Nos ponemos en contacto con usted referente a su rol como {{contactRole}} en la institución {{institutionName}}.
+
+A continuación, presentamos el calendario de prácticas UCSC para el primer semestre:
 {{practiceCalendarHTML}}
-<p>Adjuntamos la lista de estudiantes propuestos para realizar su práctica en su establecimiento:</p>
-{{studentTableHTML}}
-<p>Es importante que cada estudiante, al iniciar su pasantía, entregue su carpeta de práctica que incluye la siguiente documentación esencial:</p>
-{{documentationListHTML}}
-<p>Agradecemos sinceramente el valioso espacio formativo que su comunidad educativa proporciona a nuestros futuros profesionales.</p>
-<p>Atentamente,<br />
-Equipo Unidad de Prácticas Pedagógicas UCSC</p>
-`.trim();
 
+Adjuntamos la lista de estudiantes propuestos para realizar su práctica en su establecimiento:
+{{studentTableHTML}}
+
+Es importante que cada estudiante, al iniciar su pasantía, entregue su carpeta de práctica que incluye la siguiente documentación esencial:
+{{documentationListHTML}}
+
+Agradecemos sinceramente el valioso espacio formativo que su comunidad educativa proporciona a nuestros futuros profesionales.
+
+Atentamente,
+Equipo Unidad de Prácticas Pedagógicas UCSC
+`.trim();
 
 const formatDateForEmail = (date: Date | undefined, type: 'inicio' | 'termino'): string => {
   if (!date) return `Semana [Fecha ${type === 'inicio' ? 'Inicio' : 'Término'}]`;
   return `Semana ${format(date, "dd 'de' MMMM", { locale: es })}`;
 };
 
-// This function now renders the email body using a template and provided data.
+const textToHtmlWithPlaceholders = (
+  plainTextTemplate: string,
+  htmlPlaceholders: Record<string, string>,
+  textPlaceholders: Record<string, string>
+): string => {
+  let processedText = plainTextTemplate;
+
+  // 1. Replace HTML placeholders first to protect them from p-tag wrapping
+  const tempHtmlPlaceholderMap: Record<string, string> = {};
+  let placeholderIndex = 0;
+
+  for (const key in htmlPlaceholders) {
+    const tempId = `__HTML_PLACEHOLDER_${placeholderIndex++}__`;
+    tempHtmlPlaceholderMap[tempId] = htmlPlaceholders[key];
+    processedText = processedText.replace(new RegExp(key.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'g'), tempId);
+  }
+  
+  // 2. Convert text to HTML (paragraphs and line breaks)
+  let htmlResult = processedText
+    .split(/\n\s*\n/) // Split by one or more empty lines (paragraph breaks)
+    .map(paragraph => {
+      if (paragraph.trim() === "") return ""; // Handle empty paragraphs
+      if (Object.keys(tempHtmlPlaceholderMap).some(tempId => paragraph.includes(tempId))) {
+        // If the paragraph is just one of our temp HTML placeholders, return it directly
+        let currentBlock = paragraph;
+        for (const tempId in tempHtmlPlaceholderMap) {
+            currentBlock = currentBlock.replace(new RegExp(tempId, 'g'), tempHtmlPlaceholderMap[tempId]);
+        }
+        return currentBlock;
+      }
+      // Otherwise, wrap in <p> and convert \n to <br />
+      return `<p>${paragraph.replace(/\n/g, "<br />")}</p>`;
+    })
+    .join("\n"); // Join paragraphs with newlines for readability of generated HTML
+
+  // 3. Substitute back the original HTML placeholders if they were part of a larger text paragraph (less likely with current structure)
+  // This step might be redundant if HTML placeholders are always on their own "lines" in the template
+  for (const tempId in tempHtmlPlaceholderMap) {
+    htmlResult = htmlResult.replace(new RegExp(tempId, 'g'), tempHtmlPlaceholderMap[tempId]);
+  }
+
+  // 4. Replace simple text placeholders
+  for (const key in textPlaceholders) {
+    htmlResult = htmlResult.replace(new RegExp(key.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'g'), textPlaceholders[key]);
+  }
+
+  return htmlResult;
+};
+
+
 const renderEmailBody = (
-  templateBodyHtml: string,
+  templateBodyPlainText: string,
   contactName: string,
   contactRole: string,
   institutionName: string,
@@ -78,6 +129,8 @@ const renderEmailBody = (
   otherEndDate?: Date,
   otherWeeks?: string
 ): string => {
+
+  // Generate HTML for complex placeholders
   let studentTableRowsHTML = "";
   if (selectedStudentsForEmail.length > 0) {
     studentTableRowsHTML = selectedStudentsForEmail.map(student => {
@@ -89,7 +142,7 @@ const renderEmailBody = (
   }
   
   const studentTableHTML = `
-    <table border="1" cellpadding="5" cellspacing="0" style="border-collapse: collapse; width: 100%;">
+    <table border="1" cellpadding="5" cellspacing="0" style="border-collapse: collapse; width: 100%; margin-top: 10px; margin-bottom: 10px;">
       <thead>
         <tr>
           <th>NOMBRE COMPLETO</th>
@@ -111,7 +164,7 @@ const renderEmailBody = (
   const otherWeeksText = otherWeeks || "[Nº]";
 
   const practiceCalendarHTML = `
-    <table border="1" cellpadding="5" cellspacing="0" style="border-collapse: collapse; width: 100%; margin-bottom: 15px;">
+    <table border="1" cellpadding="5" cellspacing="0" style="border-collapse: collapse; width: 100%; margin-top: 10px; margin-bottom: 10px;">
       <thead>
         <tr>
           <th>NIVEL DE PRÁCTICA</th>
@@ -137,23 +190,27 @@ const renderEmailBody = (
     </table>`;
 
   const documentationListHTML = `
-    <ul>
+    <ul style="margin-top: 10px; margin-bottom: 10px; padding-left: 20px;">
       <li>Certificado de Antecedentes</li>
       <li>Certificado de Inhabilidades para trabajar con menores de edad</li>
       <li>Certificado de Inhabilidades por maltrato relevante</li>
       <li>Horario universitario</li>
       <li>Otra documentación</li>
     </ul>`;
+
+  const htmlPlaceholders = {
+    "{{studentTableHTML}}": studentTableHTML,
+    "{{practiceCalendarHTML}}": practiceCalendarHTML,
+    "{{documentationListHTML}}": documentationListHTML,
+  };
+
+  const textPlaceholders = {
+    "{{contactName}}": contactName || '[Nombre Contacto]',
+    "{{contactRole}}": contactRole || '',
+    "{{institutionName}}": institutionName || '[Nombre Institución]',
+  };
   
-  let renderedBody = templateBodyHtml;
-  renderedBody = renderedBody.replace(/\{\{contactName\}\}/g, contactName || '[Nombre Contacto]');
-  renderedBody = renderedBody.replace(/\{\{contactRole\}\}/g, contactRole || ''); // If role is empty, it will become an empty string.
-  renderedBody = renderedBody.replace(/\{\{institutionName\}\}/g, institutionName || '[Nombre Institución]');
-  renderedBody = renderedBody.replace(/\{\{studentTableHTML\}\}/g, studentTableHTML);
-  renderedBody = renderedBody.replace(/\{\{practiceCalendarHTML\}\}/g, practiceCalendarHTML);
-  renderedBody = renderedBody.replace(/\{\{documentationListHTML\}\}/g, documentationListHTML);
-  
-  return renderedBody;
+  return textToHtmlWithPlaceholders(templateBodyPlainText, htmlPlaceholders, textPlaceholders);
 };
 
 
@@ -186,7 +243,7 @@ export default function InstitutionNotificationsPage() {
   const [selectedStudentsMap, setSelectedStudentsMap] = React.useState<Record<string, boolean>>({});
   
   const [emailSubjectTemplate, setEmailSubjectTemplate] = React.useState(DEFAULT_INSTITUTION_SUBJECT);
-  const [emailBodyHtmlTemplate, setEmailBodyHtmlTemplate] = React.useState(DEFAULT_INSTITUTION_BODY_HTML);
+  const [emailBodyPlainTextTemplate, setEmailBodyPlainTextTemplate] = React.useState(DEFAULT_INSTITUTION_BODY_TEXT);
   const [currentRenderedEmailBody, setCurrentRenderedEmailBody] = React.useState("");
   
   const { toast } = useToast();
@@ -194,12 +251,11 @@ export default function InstitutionNotificationsPage() {
   const { advanceStage, maxAccessLevel, isLoadingProgress } = usePracticumProgress();
 
   React.useEffect(() => {
-    // Load templates from localStorage or use defaults
     if (typeof window !== 'undefined') {
       const storedSubject = localStorage.getItem(TEMPLATE_INSTITUTION_SUBJECT_KEY);
       setEmailSubjectTemplate(storedSubject || DEFAULT_INSTITUTION_SUBJECT);
-      const storedBody = localStorage.getItem(TEMPLATE_INSTITUTION_BODY_HTML_KEY);
-      setEmailBodyHtmlTemplate(storedBody || DEFAULT_INSTITUTION_BODY_HTML);
+      const storedBody = localStorage.getItem(TEMPLATE_INSTITUTION_BODY_HTML_KEY); // This key now stores plain text
+      setEmailBodyPlainTextTemplate(storedBody || DEFAULT_INSTITUTION_BODY_TEXT);
     }
 
     const currentYear = new Date().getFullYear();
@@ -338,7 +394,7 @@ export default function InstitutionNotificationsPage() {
   React.useEffect(() => {
     const currentSelectedStudentsForEmail = studentsForInstitutionCheckboxes.filter(s => selectedStudentsMap[s.id]);
     const body = renderEmailBody(
-      emailBodyHtmlTemplate,
+      emailBodyPlainTextTemplate, // Pass plain text template
       contactNameForDisplay,
       contactRoleForDisplay,
       selectedInstitution?.name || "",
@@ -363,7 +419,7 @@ export default function InstitutionNotificationsPage() {
       practiceStartDateOther,
       practiceEndDateOther,
       practiceWeeksOther,
-      emailBodyHtmlTemplate // Re-render if template changes
+      emailBodyPlainTextTemplate // Re-render if plain text template changes
     ]);
 
 
@@ -441,7 +497,7 @@ export default function InstitutionNotificationsPage() {
     console.log("Nombre Contacto:", contactNameForDisplay);
     console.log("Cargo Contacto:", contactRoleForDisplay);
     console.log("Institución:", selectedInstitution.name);
-    console.log("Asunto:", emailSubjectTemplate); // Use the template subject
+    console.log("Asunto:", emailSubjectTemplate); 
     console.log("Cuerpo del Correo (HTML Renderizado):", currentRenderedEmailBody); 
     console.log("Estudiantes seleccionados para este correo:", studentsActuallySelected.map(s => s.firstName));
     
@@ -658,14 +714,14 @@ export default function InstitutionNotificationsPage() {
             <Card>
                 <CardHeader>
                     <CardTitle>Previsualización del correo</CardTitle>
-                    <CardDescription>Revise el contenido del correo. Este se basa en la plantilla guardada (o la plantilla por defecto si no se ha personalizado).</CardDescription>
+                    <CardDescription>Revise el contenido del correo. Este se basa en la plantilla de texto plano guardada (o la plantilla por defecto si no se ha personalizado) y se convierte a HTML.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div>
                         <Label htmlFor="email-subject-preview">Asunto del correo (Vista Previa)</Label>
                         <Input 
                         id="email-subject-preview" 
-                        value={emailSubjectTemplate} // Display the template subject
+                        value={emailSubjectTemplate} 
                         readOnly
                         className="bg-muted/50"
                         />

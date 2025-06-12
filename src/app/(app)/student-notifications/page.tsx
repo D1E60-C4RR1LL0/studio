@@ -6,7 +6,7 @@ import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea"; // Keep for default template structure
+// Textarea no se usa para plantillas aquí, son globales
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -21,7 +21,7 @@ import type { Student, AcademicLevel } from "@/lib/definitions";
 import { useToast } from "@/hooks/use-toast";
 import { usePracticumProgress, STAGES } from '@/hooks/usePracticumProgress';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import RichTextEditor from "@/components/rich-text-editor"; // To display rendered HTML
+// RichTextEditor no se usa aquí para preview
 
 const CONFIRMED_STUDENT_IDS_KEY = 'confirmedPracticumStudentIds';
 const LAST_NOTIFIED_INSTITUTION_NAME_KEY = 'lastNotifiedInstitutionName';
@@ -34,39 +34,37 @@ const PRACTICUM_OTHER_START_DATE_KEY = 'practicumOtherStartDate';
 const PRACTICUM_OTHER_END_DATE_KEY = 'practicumOtherEndDate';
 const STUDENT_NOTIFICATION_LEVEL_PROGRAMMING_KEY = 'studentNotificationLevelProgramming';
 
-// Template Keys for localStorage
 const TEMPLATE_STUDENT_SUBJECT_KEY = "TEMPLATE_STUDENT_SUBJECT";
-const TEMPLATE_STUDENT_BODY_HTML_KEY = "TEMPLATE_STUDENT_BODY_HTML";
+const TEMPLATE_STUDENT_BODY_HTML_KEY = "TEMPLATE_STUDENT_BODY_HTML"; // Stores plain text
 
-// Default template content (with placeholders)
 const DEFAULT_STUDENT_SUBJECT = "Confirmación de Práctica Pedagógica";
-const DEFAULT_STUDENT_BODY_HTML = `
-<p>Estimado/a estudiante {{studentFullName}},</p>
-<p>Junto con saludar, se informa que, desde la coordinación de gestión de centros de Práctica de la UPP, ha sido adscrito/a a {{institutionName}}, para desarrollar su {{practicumLevel}}, que inicia la {{practicumStartDate}} hasta la {{practicumEndDate}}.</p>
-<p>Los datos de contacto del establecimiento son:</p>
-<ul>
-  <li>Nombre directivo: {{institutionContactName}}</li>
-  <li>Cargo: {{institutionContactRole}}</li>
-  <li>Correo electrónico: {{institutionContactEmail}}</li>
-</ul>
-<p>Posterior a este correo, deberá coordinar el inicio de su pasantía de acuerdo calendario de prácticas UCSC y hacer entrega de su carpeta de práctica y documentación personal, que incluye:</p>
-<ul>
-  <li>Certificado de Antecedentes (Link de descarga: https://www.chileatiende.gob.cl/fichas/3442-certificado-de-antecedentes)</li>
-  <li>Certificado de Inhabilidades para trabajar con menores de edad (Link de descarga: https://inhabilidades.srcei.cl/ConsInhab/consultaInhabilidad.do)</li>
-  <li>Certificado de Inhabilidades por maltrato relevante (Link de descarga: https://inhabilidades.srcei.cl/InhabilidadesRelevante/#/inicio)</li>
-  <li>Horario universitario</li>
-  <li>Otra documentación</li>
-</ul>
-<p>Se informa, además, que el equipo directivo del establecimiento está en conocimiento de su adscripción y por tanto es importante que asista presencialmente al centro educativo.</p>
-<p>Favor no responder a este correo. Para dudas y/o consulta favor escribir a sus respectivas coordinadoras de prácticas.</p>
-<p>Saludos cordiales,<br/>Unidad de Prácticas Pedagógicas UCSC</p>
+const DEFAULT_STUDENT_BODY_TEXT = `Estimado/a estudiante {{studentFullName}},
+
+Junto con saludar, se informa que, desde la coordinación de gestión de centros de Práctica de la UPP, ha sido adscrito/a a {{institutionName}}, para desarrollar su {{practicumLevel}}, que inicia la {{practicumStartDate}} hasta la {{practicumEndDate}}.
+
+Los datos de contacto del establecimiento son:
+- Nombre directivo: {{institutionContactName}}
+- Cargo: {{institutionContactRole}}
+- Correo electrónico: {{institutionContactEmail}}
+
+Posterior a este correo, deberá coordinar el inicio de su pasantía de acuerdo calendario de prácticas UCSC y hacer entrega de su carpeta de práctica y documentación personal, que incluye:
+- Certificado de Antecedentes (Link de descarga: https://www.chileatiende.gob.cl/fichas/3442-certificado-de-antecedentes)
+- Certificado de Inhabilidades para trabajar con menores de edad (Link de descarga: https://inhabilidades.srcei.cl/ConsInhab/consultaInhabilidad.do)
+- Certificado de Inhabilidades por maltrato relevante (Link de descarga: https://inhabilidades.srcei.cl/InhabilidadesRelevante/#/inicio)
+- Horario universitario
+- Otra documentación
+
+Se informa, además, que el equipo directivo del establecimiento está en conocimiento de su adscripción y por tanto es importante que asista presencialmente al centro educativo.
+
+Favor no responder a este correo. Para dudas y/o consulta favor escribir a sus respectivas coordinadoras de prácticas.
+
+Saludos cordiales,
+Unidad de Prácticas Pedagógicas UCSC
 `.trim();
 
-
 interface LevelProgramming {
-  scheduledDate?: Date | string; // Can be string from localStorage initially
+  scheduledDate?: Date | string;
   scheduledTime: string;
-  // emailSubject and emailMessageTemplate are now fetched globally or are defaults
 }
 
 const formatDateForStudentEmail = (date: Date | undefined, type: 'start' | 'end'): string => {
@@ -77,10 +75,62 @@ const formatDateForStudentEmail = (date: Date | undefined, type: 'start' | 'end'
   return format(date, "'semana del' dd 'de' MMMM yyyy", { locale: es });
 };
 
-// Function to render student email using templates
+// Updated textToHtmlWithPlaceholders function for general use
+const textToHtmlWithPlaceholders = (
+  plainTextTemplate: string,
+  htmlPlaceholders: Record<string, string>, // For placeholders that are already HTML (e.g., tables)
+  textPlaceholders: Record<string, string>  // For simple text replacements
+): string => {
+  let processedText = plainTextTemplate;
+
+  // 1. Temporarily mark HTML placeholders to protect them
+  const tempHtmlMap: Record<string, string> = {};
+  let placeholderIdx = 0;
+  for (const key in htmlPlaceholders) {
+    if (htmlPlaceholders.hasOwnProperty(key)) {
+      const tempKey = `__HTML_PLACEHOLDER_${placeholderIdx++}__`;
+      tempHtmlMap[tempKey] = htmlPlaceholders[key];
+      processedText = processedText.replace(new RegExp(key.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'g'), tempKey);
+    }
+  }
+
+  // 2. Convert plain text to HTML paragraphs and line breaks
+  let htmlResult = processedText
+    .split(/\n\s*\n/) // Split by one or more empty lines (paragraph breaks)
+    .map(paragraph => {
+      if (paragraph.trim() === "") return "";
+      
+      // Check if this paragraph *is* one of our temp HTML placeholders
+      if (tempHtmlMap[paragraph.trim()]) {
+        return tempHtmlMap[paragraph.trim()];
+      }
+      
+      // Otherwise, process as text: wrap in <p>, convert \n to <br />
+      // and also check if it *contains* any temp HTML placeholders
+      let currentParagraph = paragraph;
+      for (const tempKey in tempHtmlMap) {
+        if (tempHtmlMap.hasOwnProperty(tempKey)) {
+          currentParagraph = currentParagraph.replace(new RegExp(tempKey.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'g'), tempHtmlMap[tempKey]);
+        }
+      }
+      return `<p>${currentParagraph.replace(/\n/g, "<br />")}</p>`;
+    })
+    .join("\n");
+
+  // 3. Replace simple text placeholders in the final HTML
+  for (const key in textPlaceholders) {
+    if (textPlaceholders.hasOwnProperty(key)) {
+      htmlResult = htmlResult.replace(new RegExp(key.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'g'), textPlaceholders[key]);
+    }
+  }
+
+  return htmlResult;
+};
+
+
 const renderStudentEmail = (
   templateSubject: string,
-  templateBodyHtml: string,
+  templateBodyPlainText: string, // Now takes plain text
   student: Student,
   notifiedInstitutionName: string,
   institutionContactName: string,
@@ -101,17 +151,26 @@ const renderStudentEmail = (
     endDate = practicumOtherEndDate;
   }
 
-  let subject = templateSubject; // No placeholders in default student subject for now
-  let body = templateBodyHtml;
+  // Subject remains as is, typically no complex HTML
+  let subject = templateSubject; 
 
-  body = body.replace(/\{\{studentFullName\}\}/g, studentFullName);
-  body = body.replace(/\{\{institutionName\}\}/g, notifiedInstitutionName);
-  body = body.replace(/\{\{practicumLevel\}\}/g, student.practicumLevel);
-  body = body.replace(/\{\{practicumStartDate\}\}/g, formatDateForStudentEmail(startDate, 'start'));
-  body = body.replace(/\{\{practicumEndDate\}\}/g, formatDateForStudentEmail(endDate, 'end'));
-  body = body.replace(/\{\{institutionContactName\}\}/g, institutionContactName);
-  body = body.replace(/\{\{institutionContactRole\}\}/g, institutionContactRole);
-  body = body.replace(/\{\{institutionContactEmail\}\}/g, institutionContactEmail);
+  // Define text placeholders for this email
+  const textPlaceholders = {
+    "{{studentFullName}}": studentFullName,
+    "{{institutionName}}": notifiedInstitutionName,
+    "{{practicumLevel}}": student.practicumLevel,
+    "{{practicumStartDate}}": formatDateForStudentEmail(startDate, 'start'),
+    "{{practicumEndDate}}": formatDateForStudentEmail(endDate, 'end'),
+    "{{institutionContactName}}": institutionContactName,
+    "{{institutionContactRole}}": institutionContactRole,
+    "{{institutionContactEmail}}": institutionContactEmail,
+  };
+  
+  // Student email usually doesn't have complex HTML placeholders like tables
+  // So, the htmlPlaceholders map is empty for this specific renderer
+  const htmlPlaceholders = {};
+
+  const body = textToHtmlWithPlaceholders(templateBodyPlainText, htmlPlaceholders, textPlaceholders);
 
   return { subject, body };
 };
@@ -141,14 +200,12 @@ export default function StudentNotificationsPage() {
 
   const [programmingByLevel, setProgrammingByLevel] = React.useState<Record<string, LevelProgramming>>({});
 
-  // Global templates, loaded once
   const [studentEmailSubjectTemplate, setStudentEmailSubjectTemplate] = React.useState(DEFAULT_STUDENT_SUBJECT);
-  const [studentEmailBodyHtmlTemplate, setStudentEmailBodyHtmlTemplate] = React.useState(DEFAULT_STUDENT_BODY_HTML);
+  const [studentEmailBodyPlainTextTemplate, setStudentEmailBodyPlainTextTemplate] = React.useState(DEFAULT_STUDENT_BODY_TEXT);
 
   const [currentScheduledDate, setCurrentScheduledDate] = React.useState<Date | undefined>();
   const [currentScheduledTime, setCurrentScheduledTime] = React.useState<string>("09:00");
   
-  // For preview
   const [previewSubject, setPreviewSubject] = React.useState("");
   const [previewBodyHtml, setPreviewBodyHtml] = React.useState("");
 
@@ -162,12 +219,12 @@ export default function StudentNotificationsPage() {
 
 
   React.useEffect(() => {
-    // Load global templates
     if (typeof window !== 'undefined') {
       const storedSubject = localStorage.getItem(TEMPLATE_STUDENT_SUBJECT_KEY);
       if (storedSubject) setStudentEmailSubjectTemplate(storedSubject);
-      const storedBody = localStorage.getItem(TEMPLATE_STUDENT_BODY_HTML_KEY);
-      if (storedBody) setStudentEmailBodyHtmlTemplate(storedBody);
+      const storedBody = localStorage.getItem(TEMPLATE_STUDENT_BODY_HTML_KEY); // Key now stores plain text
+      if (storedBody) setStudentEmailBodyPlainTextTemplate(storedBody);
+      else setStudentEmailBodyPlainTextTemplate(DEFAULT_STUDENT_BODY_TEXT);
     }
 
     async function loadData() {
@@ -258,7 +315,6 @@ export default function StudentNotificationsPage() {
       const programming = programmingByLevel[selectedLevelId];
       setCurrentScheduledDate(programming?.scheduledDate ? (programming.scheduledDate instanceof Date ? programming.scheduledDate : parseISO(programming.scheduledDate as string)) : undefined);
       setCurrentScheduledTime(programming?.scheduledTime || "09:00");
-      // Subject and Body templates are now global, not per-level programming
 
       const level = displayableAcademicLevels.find(l => l.id === selectedLevelId);
       if (level) {
@@ -284,13 +340,12 @@ export default function StudentNotificationsPage() {
   }, [selectedLevelId, programmingByLevel, displayableAcademicLevels, studentsReadyForNotification, selectedStudentForPreviewId]); 
 
 
-  // Update email preview when selected student or templates change
   React.useEffect(() => {
     const studentToPreview = allStudentsData.find(s => s.id === selectedStudentForPreviewId);
     if (studentToPreview) {
       const { subject, body } = renderStudentEmail(
         studentEmailSubjectTemplate,
-        studentEmailBodyHtmlTemplate,
+        studentEmailBodyPlainTextTemplate, // Pass plain text template
         studentToPreview,
         notifiedInstitutionName,
         institutionContactName,
@@ -304,12 +359,11 @@ export default function StudentNotificationsPage() {
       setPreviewSubject(subject);
       setPreviewBodyHtml(body);
     } else if (selectedLevelId && studentsInSelectedLevelForPreview.length > 0) {
-      // Preview with generic data if a level is selected but no specific student
-      const genericStudent = studentsInSelectedLevelForPreview[0]; // Use first student of level for structure
+      const genericStudent = studentsInSelectedLevelForPreview[0]; 
        const { subject, body } = renderStudentEmail(
         studentEmailSubjectTemplate,
-        studentEmailBodyHtmlTemplate,
-        {...genericStudent, firstName: "[Nombre", lastNamePaternal: "Estudiante]", lastNameMaternal: "" }, // Generic name
+        studentEmailBodyPlainTextTemplate,
+        {...genericStudent, firstName: "[Nombre", lastNamePaternal: "Estudiante]", lastNameMaternal: "" }, 
         notifiedInstitutionName,
         institutionContactName,
         institutionContactRole,
@@ -323,24 +377,31 @@ export default function StudentNotificationsPage() {
       setPreviewBodyHtml(body.replace(/\[Nombre Estudiante\]/g, "(Seleccione un alumno para vista previa detallada)"));
     }
      else {
-      // Fallback or empty preview
-      setPreviewSubject(studentEmailSubjectTemplate); // Show default subject
-      setPreviewBodyHtml(studentEmailBodyHtmlTemplate
-        .replace(/\{\{studentFullName\}\}/g, "(No hay alumnos en este nivel para previsualizar)")
-        .replace(/\{\{institutionName\}\}/g, notifiedInstitutionName || "(Institución no especificada)")
-        .replace(/\{\{practicumLevel\}\}/g, displayableAcademicLevels.find(l=>l.id === selectedLevelId)?.name || "(Nivel no seleccionado)")
-        .replace(/\{\{practicumStartDate\}\}/g, formatDateForStudentEmail(practicumOtherStartDate, 'start')) // Generic example
-        .replace(/\{\{practicumEndDate\}\}/g, formatDateForStudentEmail(practicumOtherEndDate, 'end'))
-        .replace(/\{\{institutionContactName\}\}/g, institutionContactName || "(Nombre de directivo no disponible)")
-        .replace(/\{\{institutionContactRole\}\}/g, institutionContactRole || "(Cargo de directivo no disponible)")
-        .replace(/\{\{institutionContactEmail\}\}/g, institutionContactEmail || "(Email de directivo no disponible)")
+      const tempStudentForGenericPreview : Student = { 
+        id: 'generic', rut: '0', firstName: '(No hay alumnos en este nivel para previsualizar)', lastNamePaternal: '', lastNameMaternal: '', email: '', career: '', 
+        practicumLevel: displayableAcademicLevels.find(l=>l.id === selectedLevelId)?.name || "(Nivel no seleccionado)"
+      };
+      const {subject, body} = renderStudentEmail(
+        studentEmailSubjectTemplate,
+        studentEmailBodyPlainTextTemplate,
+        tempStudentForGenericPreview,
+        notifiedInstitutionName,
+        institutionContactName,
+        institutionContactRole,
+        institutionContactEmail,
+        practicumProfStartDate,
+        practicumProfEndDate,
+        practicumOtherStartDate,
+        practicumOtherEndDate
       );
+      setPreviewSubject(subject);
+      setPreviewBodyHtml(body);
     }
   }, [
     selectedStudentForPreviewId, 
     allStudentsData, 
     studentEmailSubjectTemplate, 
-    studentEmailBodyHtmlTemplate, 
+    studentEmailBodyPlainTextTemplate, 
     notifiedInstitutionName, 
     institutionContactName, 
     institutionContactRole, 
@@ -349,8 +410,8 @@ export default function StudentNotificationsPage() {
     practicumProfEndDate, 
     practicumOtherStartDate, 
     practicumOtherEndDate,
-    selectedLevelId, // to update generic preview when level changes
-    studentsInSelectedLevelForPreview, // to update generic preview
+    selectedLevelId, 
+    studentsInSelectedLevelForPreview,
     displayableAcademicLevels
   ]);
 
@@ -359,11 +420,10 @@ export default function StudentNotificationsPage() {
     if (!levelId) return; 
     setProgrammingByLevel(prev => {
       const updatedLevelProg = {
-        ...(prev[levelId] || { scheduledTime: "09:00" }), // Subject & template are global now
+        ...(prev[levelId] || { scheduledTime: "09:00" }), 
         ...newProgramming 
       };
       
-      // Ensure date is stored as ISO string for localStorage
       if (updatedLevelProg.scheduledDate && updatedLevelProg.scheduledDate instanceof Date) {
         // @ts-ignore
         updatedLevelProg.scheduledDate = updatedLevelProg.scheduledDate.toISOString();
@@ -392,10 +452,9 @@ export default function StudentNotificationsPage() {
       const programming = programmingByLevel[levelIdKey];
       if (
         programming.scheduledDate &&
-        programming.scheduledTime?.trim() 
-        // Subject and message template are global, so check if they exist
-        && studentEmailSubjectTemplate.trim()
-        && studentEmailBodyHtmlTemplate.trim()
+        programming.scheduledTime?.trim() &&
+        studentEmailSubjectTemplate.trim() &&
+        studentEmailBodyPlainTextTemplate.trim() // Check plain text template
       ) {
         const level = displayableAcademicLevels.find(l => l.id === levelIdKey);
         if (level) {
@@ -440,7 +499,7 @@ export default function StudentNotificationsPage() {
       students.forEach(student => {
         const { subject: finalSubject, body: finalBody } = renderStudentEmail(
           studentEmailSubjectTemplate,
-          studentEmailBodyHtmlTemplate,
+          studentEmailBodyPlainTextTemplate, // Use plain text template
           student,
           notifiedInstitutionName,
           institutionContactName,
@@ -454,7 +513,7 @@ export default function StudentNotificationsPage() {
 
         console.log(`   Para ${student.email} (Estudiante: ${student.firstName} ${student.lastNamePaternal})`);
         console.log(`   Asunto: ${finalSubject}`);
-        // console.log(`   Cuerpo: ${finalBody}`); // For brevity, can be logged if needed
+        // console.log(`   Cuerpo (HTML Renderizado): ${finalBody}`); 
         totalStudentsNotifiedCount++;
       });
     });
@@ -607,7 +666,7 @@ export default function StudentNotificationsPage() {
                 <Card>
                     <CardHeader>
                         <CardTitle className="text-lg">Vista Previa del Correo para {selectedStudentForPreviewId ? studentsReadyForNotification.find(s=>s.id === selectedStudentForPreviewId)?.firstName : "Alumno Seleccionado"}</CardTitle>
-                        <CardDescription>Así se verá el correo para el alumno seleccionado arriba, usando las plantillas guardadas.</CardDescription>
+                        <CardDescription>Así se verá el correo para el alumno seleccionado arriba, usando las plantillas de texto plano guardadas y convirtiéndolas a HTML.</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <div>
@@ -618,7 +677,7 @@ export default function StudentNotificationsPage() {
                             <Label>Cuerpo del Correo (Vista Previa Renderizada)</Label>
                             <div
                               className="mt-1 p-3 border rounded-md bg-muted min-h-[200px] text-sm overflow-auto"
-                              dangerouslySetInnerHTML={{ __html: previewBodyHtml }} // Preview rendered HTML
+                              dangerouslySetInnerHTML={{ __html: previewBodyHtml }} 
                             />
                         </div>
                     </CardContent>
@@ -629,7 +688,7 @@ export default function StudentNotificationsPage() {
               <Button
                   type="submit"
                   className="w-full md:w-auto"
-                  disabled={fullyConfiguredLevelsCount === 0 || isLoadingProgress || !studentEmailSubjectTemplate.trim() || !studentEmailBodyHtmlTemplate.trim()}
+                  disabled={fullyConfiguredLevelsCount === 0 || isLoadingProgress || !studentEmailSubjectTemplate.trim() || !studentEmailBodyPlainTextTemplate.trim()}
               >
                 <SendHorizonal className="mr-2 h-4 w-4" /> Programar Todas las Notificaciones
               </Button>
@@ -639,7 +698,7 @@ export default function StudentNotificationsPage() {
                   Por favor, seleccione un nivel y complete su programación.
                 </p>
               )}
-               {(!studentEmailSubjectTemplate.trim() || !studentEmailBodyHtmlTemplate.trim()) && (
+               {(!studentEmailSubjectTemplate.trim() || !studentEmailBodyPlainTextTemplate.trim()) && (
                     <p className="text-sm text-destructive mt-2">
                       Advertencia: La plantilla de asunto o cuerpo del correo para estudiantes está vacía. Por favor, configúrela en la sección 'Plantillas'.
                     </p>
