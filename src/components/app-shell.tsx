@@ -2,7 +2,7 @@
 "use client";
 
 import Link from "next/link";
-import { GraduationCap, Settings, LogOut, Home, MapPin, Landmark, NotebookText, Contact2, UserCog, UserCircle, LayoutDashboard, Users, DatabaseZap, FileText } from "lucide-react";
+import { GraduationCap, Settings, LogOut, Home, MapPin, Landmark, NotebookText, Contact2, UserCog, UserCircle, LayoutDashboard, Users, DatabaseZap, FileText, Route } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -35,7 +35,7 @@ function AppSidebarMenuButton({ href, tooltip, children, icon: Icon }: { href: s
   const pathname = usePathname();
   // More specific active check: exact match or prefix match if not a base student/bulk path.
   let isActive = pathname === href;
-  if (href !== "/" && href !== "/students" && href !== "/admin/bulk-upload" && href !== "/admin/templates" && pathname.startsWith(href)) {
+  if (href !== "/" && !href.startsWith("/students") && href !== "/admin/bulk-upload" && href !== "/admin/templates" && href !== "/admin/students-management" && pathname.startsWith(href)) {
     isActive = true;
   }
 
@@ -44,8 +44,11 @@ function AppSidebarMenuButton({ href, tooltip, children, icon: Icon }: { href: s
 
   // Special case for /students to avoid matching /student-notifications
   let finalIsActive = isActive;
-  if (href === "/students") {
-    finalIsActive = pathname === "/students";
+  if (href === "/students") { // This is for the coordination flow
+    finalIsActive = pathname.startsWith("/students") || pathname.startsWith("/institution-notifications") || pathname.startsWith("/student-notifications");
+  }
+  if (href === "/admin/students-management") { // This is for the CRUD
+    finalIsActive = pathname === "/admin/students-management";
   }
   if (href === "/admin/bulk-upload") {
     finalIsActive = pathname === "/admin/bulk-upload";
@@ -89,8 +92,11 @@ export function AppShell({ children }: { children: ReactNode }) {
         </SidebarHeader>
         <SidebarContent className="p-2">
           <SidebarMenu>
-            <AppSidebarMenuButton href="/students" tooltip="Alumnos" icon={Users}>
-              Alumnos
+            <AppSidebarMenuButton href="/students" tooltip="Coordinación de Prácticas" icon={Route}>
+              Coordinación Prácticas
+            </AppSidebarMenuButton>
+             <AppSidebarMenuButton href="/admin/students-management" tooltip="Gestión de Alumnos" icon={Users}>
+              Gestión de Alumnos
             </AppSidebarMenuButton>
             <AppSidebarMenuButton href="/admin/institutions" tooltip="Establecimientos" icon={Landmark}>
               Establecimientos

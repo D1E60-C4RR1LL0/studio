@@ -13,6 +13,12 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   let activeIndex: typeof STAGES[keyof typeof STAGES] = STAGES.STUDENT_SELECTION; // Default
   let showCoordinationHeader = false;
 
+  const coordinationPaths = [
+    STAGE_PATHS[STAGES.STUDENT_SELECTION],
+    STAGE_PATHS[STAGES.INSTITUTION_NOTIFICATION],
+    STAGE_PATHS[STAGES.STUDENT_NOTIFICATION],
+  ];
+
   // Determine if the current path is one of the student workflow stages
   if (pathname.startsWith(STAGE_PATHS[STAGES.STUDENT_SELECTION])) {
     activeIndex = STAGES.STUDENT_SELECTION;
@@ -24,7 +30,19 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     activeIndex = STAGES.STUDENT_NOTIFICATION;
     showCoordinationHeader = true;
   }
-  // For any other path, including /admin/* paths, showCoordinationHeader will remain false.
+  
+  // Ensure /students exactly matches, not /students-management
+  if (pathname === STAGE_PATHS[STAGES.STUDENT_SELECTION]) {
+    activeIndex = STAGES.STUDENT_SELECTION;
+    showCoordinationHeader = true;
+  } else if (!coordinationPaths.some(p => pathname.startsWith(p) && p !== STAGE_PATHS[STAGES.STUDENT_SELECTION])) {
+    // If it's not starting with other coordination paths (excluding /students itself if it's a more specific path like /students-management)
+    // and it's not exactly /students, then don't show the header
+    if (pathname !== STAGE_PATHS[STAGES.STUDENT_SELECTION]) {
+        showCoordinationHeader = false;
+    }
+  }
+
 
   return (
     <AppShell>

@@ -3,20 +3,17 @@
 
 import * as React from "react";
 import type { Student } from "@/lib/definitions";
-import { getStudents, saveStudent } from "@/lib/data";
+import { getStudents } from "@/lib/data"; // saveStudent no longer needed here
 import { StudentTable } from "./components/student-table";
-import { AddStudentForm } from "./components/add-student-form";
-import { EditStudentForm } from "./components/edit-student-form";
-// BulkStudentUploadForm is no longer imported here
+// AddStudentForm and EditStudentForm are no longer used on this page
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/page-header";
-import { Search, Edit3, Check, UserPlus, List } from "lucide-react"; // Removed UploadCloud
+import { Search, Check } from "lucide-react"; 
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from 'next/navigation';
 import { usePracticumProgress, STAGES, STAGE_PATHS } from '@/hooks/usePracticumProgress';
 
-type ViewMode = "table" | "addForm" | "editForm"; // Removed "bulkUploadForm"
 const CONFIRMED_STUDENT_IDS_KEY = 'confirmedPracticumStudentIds';
 
 // Helper function to normalize RUTs by removing dots, hyphens, and converting to uppercase.
@@ -25,7 +22,7 @@ const normalizeRut = (rut: string | undefined): string => {
   return rut.replace(/\./g, "").replace(/-/g, "").toUpperCase();
 };
 
-export default function StudentManagementPage() {
+export default function StudentSelectionPage() { // Renamed component for clarity
   const [students, setStudents] = React.useState<Student[]>([]);
   const [filteredStudents, setFilteredStudents] = React.useState<Student[]>([]);
   const [currentSearchInput, setCurrentSearchInput] = React.useState(""); 
@@ -33,7 +30,6 @@ export default function StudentManagementPage() {
   const [isLoading, setIsLoading] = React.useState(true);
   
   const [selectedStudentsForConfirmation, setSelectedStudentsForConfirmation] = React.useState<Set<string>>(new Set());
-  const [viewMode, setViewMode] = React.useState<ViewMode>("table");
 
   const { toast } = useToast();
   const router = useRouter();
@@ -44,6 +40,11 @@ export default function StudentManagementPage() {
       setIsLoading(true);
       const data = await getStudents();
       setStudents(data);
+      // Initially, if no search term, show all students (or none if 'searchTerm' controls this strictly)
+      // For this page, we want to encourage search before selection
+      if (!searchTerm.trim()) {
+        setFilteredStudents([]); // Show no students until a search is made or clear search to show all
+      }
     } catch (error) {
       toast({
         title: "Error al obtener estudiantes",
@@ -53,7 +54,7 @@ export default function StudentManagementPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [toast]);
+  }, [toast, searchTerm]); // Added searchTerm to dependencies
 
   React.useEffect(() => {
     loadStudentData();
@@ -83,31 +84,6 @@ export default function StudentManagementPage() {
     setFilteredStudents(filteredData);
   }, [searchTerm, students]);
   
-  const handleSaveStudent = async (studentToSave: Student | Omit<Student, 'id'>) => {
-    try {
-      const studentWithPossibleId = studentToSave as Partial<Student> & Omit<Student, 'id'>;
-      const studentPayload: Student = studentWithPossibleId.id 
-        ? studentWithPossibleId as Student
-        : { ...studentWithPossibleId, id: `new-${Date.now()}-${Math.random().toString(36).substring(7)}` } as Student;
-
-      const savedStudent = await saveStudent(studentPayload);
-      
-      await loadStudentData(); 
-      
-      toast({
-        title: "Estudiante Guardado",
-        description: `${savedStudent.firstName} ${savedStudent.lastNamePaternal} ha sido guardado exitosamente.`,
-      });
-      setViewMode('table'); 
-      setSelectedStudentsForConfirmation(new Set());
-    } catch (error) {
-       toast({
-        title: "Error al guardar",
-        description: "No se pudo guardar el estudiante.",
-        variant: "destructive",
-      });
-    }
-  };
 
   const handleTableSelectionChange = (studentId: string, isSelected: boolean) => {
     setSelectedStudentsForConfirmation(prevSelected => {
@@ -150,6 +126,13 @@ export default function StudentManagementPage() {
 
   const handleSearchAction = () => {
     setSearchTerm(currentSearchInput);
+    if (!currentSearchInput.trim()) {
+        toast({
+            title: "Búsqueda Vacía",
+            description: "Mostrando todos los alumnos. Para filtrar, ingrese un término de búsqueda.",
+            variant: "default"
+        })
+    }
   };
 
   const handleInputKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
@@ -158,21 +141,10 @@ export default function StudentManagementPage() {
     }
   };
   
-  const pageTitles: Record<ViewMode, string> = {
-    table: "Selección de Estudiantes",
-    addForm: "Agregar Nuevo Estudiante",
-    editForm: "Editar Información del Estudiante",
-  };
-  const pageDescriptions: Record<ViewMode, string> = {
-    table: "Busca y selecciona los alumnos que podrían realizar su práctica.",
-    addForm: "Complete el formulario para agregar un nuevo estudiante a la base de datos.",
-    editForm: "Busque por RUT y modifique los datos del estudiante.",
-  }
-
   if (isLoadingPracticumProgress || isLoading) {
     return (
         <div className="flex justify-center items-center h-64">
-            <p>Cargando gestión de estudiantes...</p>
+            <p>Cargando selección de estudiantes...</p>
         </div>
     );
   }
@@ -180,95 +152,55 @@ export default function StudentManagementPage() {
   return (
     <>
       <PageHeader 
-        title={pageTitles[viewMode]}
-        description={pageDescriptions[viewMode]}
+        title="Paso 1: Selección de Estudiantes para Práctica"
+        description="Busque y seleccione los alumnos que participarán en el proceso de asignación de prácticas. Los datos de los alumnos se gestionan en 'Gestión de Alumnos'."
       />
 
-      <div className="flex flex-wrap items-center gap-2 mb-6">
-        <Button 
-            variant={viewMode === 'table' ? 'default' : 'outline'} 
-            onClick={() => {
-              setViewMode('table');
-            }}
-            className={viewMode === 'table' ? 'bg-primary hover:bg-primary/90' : ''}
-        >
-            <List className="mr-2 h-4 w-4" />
-            Estudiantes existentes
+      {/* ViewMode buttons and CRUD forms are removed from this page */}
+      
+      <div className="mb-4 flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+        <div className="relative flex-grow">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            type="search"
+            placeholder="Buscar alumno por nombre, RUT o carrera para iniciar la selección"
+            className="pl-8 w-full"
+            value={currentSearchInput}
+            onChange={(e) => setCurrentSearchInput(e.target.value)}
+            onKeyDown={handleInputKeyDown}
+          />
+        </div>
+        <Button onClick={handleSearchAction} className="sm:w-auto w-full">
+          <Search className="mr-2 h-4 w-4" />
+          Buscar
         </Button>
-        <Button 
-            variant={viewMode === 'addForm' ? 'default' : 'outline'} 
-            onClick={() => setViewMode('addForm')}
-            className={viewMode === 'addForm' ? 'bg-primary hover:bg-primary/90' : ''}
-        >
-            <UserPlus className="mr-2 h-4 w-4" />
-            Agregar nuevo estudiante
-        </Button>
-        <Button 
-            variant={viewMode === 'editForm' ? 'default' : 'outline'} 
-            onClick={() => setViewMode('editForm')}
-            className={viewMode === 'editForm' ? 'bg-primary hover:bg-primary/90' : ''}
-        >
-            <Edit3 className="mr-2 h-4 w-4" />
-            Editar estudiante
-        </Button>
-        {/* "Carga Masiva" button removed from here */}
       </div>
 
-      {viewMode === 'table' && (
-        <>
-          <div className="mb-4 flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-            <div className="relative flex-grow">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="search"
-                placeholder="Buscar alumno por nombre, RUT o carrera"
-                className="pl-8 w-full"
-                value={currentSearchInput}
-                onChange={(e) => setCurrentSearchInput(e.target.value)}
-                onKeyDown={handleInputKeyDown}
-              />
-            </div>
-            <Button onClick={handleSearchAction} className="sm:w-auto w-full">
-              <Search className="mr-2 h-4 w-4" />
-              Buscar
-            </Button>
-          </div>
+      <StudentTable
+        students={filteredStudents} // Show only filtered (searched) students
+        isLoading={isLoading}
+        selectedStudents={selectedStudentsForConfirmation}
+        onSelectionChange={handleTableSelectionChange}
+      />
 
-          <StudentTable
-            students={filteredStudents}
-            isLoading={isLoading}
-            selectedStudents={selectedStudentsForConfirmation}
-            onSelectionChange={handleTableSelectionChange}
-          />
-
-          <div className="mt-6 flex justify-start">
+      {filteredStudents.length > 0 && (
+        <div className="mt-6 flex justify-start">
             <Button 
                 onClick={handleConfirmSelection} 
                 size="lg" 
                 className="bg-green-500 hover:bg-green-600 text-white" 
-                disabled={selectedStudentsForConfirmation.size === 0 || isLoadingPracticumProgress || filteredStudents.length === 0}
+                disabled={selectedStudentsForConfirmation.size === 0 || isLoadingPracticumProgress}
             >
-              <Check className="mr-2 h-5 w-5" /> Confirmar selección
+            <Check className="mr-2 h-5 w-5" /> Confirmar selección ({selectedStudentsForConfirmation.size}) y pasar a Notificar Establecimiento
             </Button>
-          </div>
-        </>
+        </div>
       )}
-
-      {viewMode === 'addForm' && (
-        <AddStudentForm 
-          onSave={handleSaveStudent} 
-          onCancel={() => setViewMode('table')} 
-        />
+      {searchTerm && filteredStudents.length === 0 && !isLoading && (
+        <p className="mt-4 text-muted-foreground">No se encontraron estudiantes con el término "{searchTerm}". Intente con otra búsqueda.</p>
       )}
-      
-      {viewMode === 'editForm' && (
-        <EditStudentForm
-          onSave={handleSaveStudent}
-          onCancel={() => setViewMode('table')}
-        />
+       {!searchTerm && filteredStudents.length === 0 && !isLoading && (
+        <p className="mt-4 text-muted-foreground">Ingrese un término de búsqueda para encontrar estudiantes y comenzar la selección.</p>
       )}
-
-      {/* BulkStudentUploadForm rendering removed from here */}
     </>
   );
 }
