@@ -1,7 +1,8 @@
 
 "use client";
 
-import * as React from "react";
+import type { MouseEvent } from "react";
+import React from "react";
 import Link from "next/link";
 import { Users, Building2, User as UserIcon, CheckCircle, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -18,7 +19,7 @@ interface StepProps {
   isVisuallyCompletedForIcon?: boolean;
   isLocked?: boolean;
   href: string;
-  onClick?: (e: React.MouseEvent) => void;
+  onClick?: (e: MouseEvent) => void;
 }
 
 function Step({ icon: Icon, title, description, isActive, isVisuallyCompletedForIcon, isLocked, href, onClick }: StepProps) {
@@ -34,8 +35,8 @@ function Step({ icon: Icon, title, description, isActive, isVisuallyCompletedFor
         {isLocked ? <Lock className="w-6 h-6" /> : 
          (isVisuallyCompletedForIcon ? <CheckCircle className="w-6 h-6" /> : <Icon className="w-6 h-6" />)}
       </div>
-      <h3 className={cn("font-semibold text-sm md:text-base", isLocked && "text-muted-foreground")}>{title}</h3>
-      <p className={cn("text-xs md:text-sm", isLocked && "text-muted-foreground")}>{description}</p>
+      <h3 className={cn("font-semibold text-sm md:text-base", isActive && !isLocked ? "text-primary" : isLocked ? "text-muted-foreground" : "")}>{title}</h3>
+      <p className={cn("text-xs md:text-sm", isLocked ? "text-muted-foreground" : "text-muted-foreground group-hover:text-foreground/80")}>{description}</p>
     </>
   );
 
@@ -57,9 +58,7 @@ function Step({ icon: Icon, title, description, isActive, isVisuallyCompletedFor
     <Link href={href} className={cn(
       "flex flex-col items-center text-center md:flex-1 md:items-start md:text-left relative group",
       "focus:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-md p-2 -m-2",
-      isActive ? "text-primary" : 
-      isVisuallyCompletedForIcon ? "text-primary" : // Completed text also primary
-      "text-muted-foreground hover:text-foreground/80"
+       (isActive || isVisuallyCompletedForIcon) && !isLocked ? "text-primary" : "text-foreground"
     )} onClick={onClick}>
       {content}
     </Link>
@@ -79,6 +78,7 @@ const stepsData = [
 export function CoordinationHeader({ activeIndex }: CoordinationHeaderProps) {
   const { maxAccessLevel, isLoadingProgress } = usePracticumProgress();
   const { toast } = useToast();
+  const numSteps = stepsData.length;
 
   if (isLoadingProgress) {
     return (
@@ -96,8 +96,8 @@ export function CoordinationHeader({ activeIndex }: CoordinationHeaderProps) {
               </div>
                {index < stepsData.length - 1 && (
                 <>
-                  <div className="hidden md:block h-px w-full bg-border absolute top-6 left-[calc(33.33%_*_(${index}_+_0.5))] z-[-1]" style={{ transform: 'translateX(-50%)' }}></div>
-                  <div className="md:hidden w-px h-8 bg-border my-2 self-center"></div>
+                  <div className="hidden md:block h-[2px] w-[calc((100%_/_3)_-_3rem)] bg-border absolute top-6 left-[calc((0.5_/_${numSteps})_*_100%)] z-[-1]" style={{ transform: `translateX(calc(-50% + (${index} * 100% / ${numSteps})))` }}></div>
+                  <div className="md:hidden w-px h-10 bg-border my-1 self-center"></div>
                 </>
               )}
             </React.Fragment>
@@ -113,18 +113,25 @@ export function CoordinationHeader({ activeIndex }: CoordinationHeaderProps) {
         Coordinación de Prácticas Pedagógicas
       </h1>
       <div className="flex flex-col md:flex-row items-start justify-between gap-6 md:gap-8 relative">
-        {stepsData.map((step, index) => {
-          const stepIsActive = step.stage === activeIndex;
-          const stepIsVisuallyCompletedForIcon = step.stage < maxAccessLevel;
-          const isLocked = step.stage > maxAccessLevel;
+        {stepsData.map((currentStep, index) => {
+          const stepIsActive = currentStep.stage === activeIndex;
+          const stepIsVisuallyCompletedForIcon = currentStep.stage < maxAccessLevel;
+          const isLocked = currentStep.stage > maxAccessLevel;
+          
+          let lineShouldBeActive = false;
+          if (index < numSteps - 1) {
+            const isCurrentStepDoneOrActive = currentStep.stage < maxAccessLevel || currentStep.stage === activeIndex;
+            const isNextStepAccessible = stepsData[index+1].stage <= maxAccessLevel;
+            lineShouldBeActive = isCurrentStepDoneOrActive && isNextStepAccessible;
+          }
           
           return (
-            <React.Fragment key={step.href}>
+            <React.Fragment key={currentStep.href}>
               <Step
-                href={step.href}
-                icon={step.icon}
-                title={step.title}
-                description={step.description}
+                href={currentStep.href}
+                icon={currentStep.icon}
+                title={currentStep.title}
+                description={currentStep.description}
                 isActive={stepIsActive}
                 isVisuallyCompletedForIcon={stepIsVisuallyCompletedForIcon}
                 isLocked={isLocked}
@@ -139,10 +146,26 @@ export function CoordinationHeader({ activeIndex }: CoordinationHeaderProps) {
                   }
                 }}
               />
-              {index < stepsData.length - 1 && (
+              {index < numSteps - 1 && (
                  <>
-                  <div className="hidden md:block h-px w-full bg-border absolute top-6 left-[calc(33.33%_*_(${index}_+_0.5))] z-[-1]" style={{ transform: 'translateX(-50%)' }}></div>
-                  <div className="md:hidden w-px h-8 bg-border my-2 self-center"></div>
+                  {/* Desktop line */}
+                  <div
+                    className={cn(
+                      "hidden md:block h-[2px] absolute top-6 z-[-1]",
+                      lineShouldBeActive ? "bg-primary" : "bg-border"
+                    )}
+                    style={{
+                      left: `calc((${index} + 0.5) * (100% / ${numSteps}))`,
+                      width: `calc((100% / ${numSteps}) - 3rem)`, 
+                      transform: 'translateX(1.5rem)', // Adjust by half of icon width (1.5rem for w-12 icon)
+                    }}
+                  />
+                  {/* Mobile line */}
+                  <div className={cn(
+                      "md:hidden w-px h-10 my-1 self-center",
+                      lineShouldBeActive ? "bg-primary" : "bg-border"
+                    )}>
+                  </div>
                  </>
               )}
             </React.Fragment>
