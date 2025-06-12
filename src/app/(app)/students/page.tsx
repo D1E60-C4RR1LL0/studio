@@ -58,6 +58,11 @@ export default function StudentManagementPage() {
   }, [fetchData]);
 
   React.useEffect(() => {
+    if (!searchTerm.trim()) {
+      setFilteredStudents([]); // If search term is empty, show no students
+      return;
+    }
+
     const lowercasedSearchTerm = searchTerm.toLowerCase();
     const normalizedRutSearchTerm = normalizeRut(searchTerm); 
 
@@ -147,7 +152,7 @@ export default function StudentManagementPage() {
     editForm: "Editar Información del Estudiante"
   };
   const pageDescriptions = {
-    table: "Selecciona los alumnos que podrían realizar su práctica en esta institución.",
+    table: "Busca y selecciona los alumnos que podrían realizar su práctica.",
     addForm: "Complete el formulario para agregar un nuevo estudiante a la base de datos.",
     editForm: "Busque por RUT y modifique los datos del estudiante."
   }
