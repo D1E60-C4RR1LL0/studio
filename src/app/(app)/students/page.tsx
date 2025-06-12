@@ -7,15 +7,16 @@ import { getStudents, saveStudent } from "@/lib/data";
 import { StudentTable } from "./components/student-table";
 import { AddStudentForm } from "./components/add-student-form";
 import { EditStudentForm } from "./components/edit-student-form";
+import { BulkStudentUploadForm } from "./components/bulk-student-upload-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/page-header";
-import { Search, Edit3, Check, UserPlus, List } from "lucide-react";
+import { Search, Edit3, Check, UserPlus, List, UploadCloud } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from 'next/navigation';
 import { usePracticumProgress, STAGES, STAGE_PATHS } from '@/hooks/usePracticumProgress';
 
-type ViewMode = "table" | "addForm" | "editForm";
+type ViewMode = "table" | "addForm" | "editForm" | "bulkUploadForm";
 const CONFIRMED_STUDENT_IDS_KEY = 'confirmedPracticumStudentIds';
 
 // Helper function to normalize RUTs by removing dots, hyphens, and converting to uppercase.
@@ -107,6 +108,15 @@ export default function StudentManagementPage() {
     }
   };
 
+  const handleBulkUploadComplete = async () => {
+    await fetchData();
+    toast({
+      title: "Carga Masiva Procesada",
+      description: "Los estudiantes del archivo CSV han sido procesados.",
+    });
+    setViewMode('table');
+  }
+
   const handleTableSelectionChange = (studentId: string, isSelected: boolean) => {
     setSelectedStudentsForConfirmation(prevSelected => {
       const newSelected = new Set(prevSelected);
@@ -146,15 +156,17 @@ export default function StudentManagementPage() {
     router.push(STAGE_PATHS[STAGES.INSTITUTION_NOTIFICATION]);
   }
   
-  const pageTitles = {
+  const pageTitles: Record<ViewMode, string> = {
     table: "Selección de Estudiantes",
     addForm: "Agregar Nuevo Estudiante",
-    editForm: "Editar Información del Estudiante"
+    editForm: "Editar Información del Estudiante",
+    bulkUploadForm: "Carga Masiva de Estudiantes"
   };
-  const pageDescriptions = {
+  const pageDescriptions: Record<ViewMode, string> = {
     table: "Busca y selecciona los alumnos que podrían realizar su práctica.",
     addForm: "Complete el formulario para agregar un nuevo estudiante a la base de datos.",
-    editForm: "Busque por RUT y modifique los datos del estudiante."
+    editForm: "Busque por RUT y modifique los datos del estudiante.",
+    bulkUploadForm: "Seleccione un archivo CSV para cargar múltiples estudiantes a la vez."
   }
 
   if (isLoadingPracticumProgress || isLoading) {
@@ -172,7 +184,7 @@ export default function StudentManagementPage() {
         description={pageDescriptions[viewMode]}
       />
 
-      <div className="flex items-center gap-2 mb-6">
+      <div className="flex flex-wrap items-center gap-2 mb-6">
         <Button 
             variant={viewMode === 'table' ? 'default' : 'outline'} 
             onClick={() => setViewMode('table')}
@@ -196,6 +208,14 @@ export default function StudentManagementPage() {
         >
             <Edit3 className="mr-2 h-4 w-4" />
             Editar estudiante
+        </Button>
+        <Button 
+            variant={viewMode === 'bulkUploadForm' ? 'default' : 'outline'} 
+            onClick={() => setViewMode('bulkUploadForm')}
+            className={viewMode === 'bulkUploadForm' ? 'bg-primary hover:bg-primary/90' : ''}
+        >
+            <UploadCloud className="mr-2 h-4 w-4" />
+            Carga masiva de estudiantes
         </Button>
       </div>
 
@@ -244,6 +264,13 @@ export default function StudentManagementPage() {
       {viewMode === 'editForm' && (
         <EditStudentForm
           onSave={handleSaveStudent}
+          onCancel={() => setViewMode('table')}
+        />
+      )}
+
+      {viewMode === 'bulkUploadForm' && (
+        <BulkStudentUploadForm
+          onUploadComplete={handleBulkUploadComplete}
           onCancel={() => setViewMode('table')}
         />
       )}
