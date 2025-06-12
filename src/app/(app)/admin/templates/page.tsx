@@ -33,8 +33,8 @@ const studentPlaceholders = [
   { key: "[Correo Electronico Directivo]", description: "Correo electrónico del directivo/contacto en la institución." },
 ];
 
-const DEFAULT_INSTITUTION_EMAIL_SUBJECT = "Información Estudiantes de Práctica";
-const DEFAULT_INSTITUTION_EMAIL_BODY_TEXT = `Estimado/a {{directivo.nombre}},
+export const DEFAULT_INSTITUTION_EMAIL_SUBJECT = "Información Estudiantes de Práctica";
+export const DEFAULT_INSTITUTION_EMAIL_BODY_TEXT = `Estimado/a {{directivo.nombre}},
 
 Reciba un cordial saludo en nombre de la Unidad de Práctica Pedagógica (UPP) de la Facultad de Educación de la Universidad Católica de la Santísima Concepción.
 Nos ponemos en contacto con usted referente a su rol como {{directivo.cargo}} en la institución {{nombre_establecimiento}}.
@@ -61,8 +61,8 @@ Fono +56 412345859
 www.ucsc.cl
 `.trim();
 
-const DEFAULT_STUDENT_EMAIL_SUBJECT = "Confirmación de Práctica Pedagógica UCSC";
-const DEFAULT_STUDENT_EMAIL_BODY_TEXT = `Estimado/a estudiante [Nombre del Estudiante]
+export const DEFAULT_STUDENT_EMAIL_SUBJECT = "Confirmación de Práctica Pedagógica UCSC";
+export const DEFAULT_STUDENT_EMAIL_BODY_TEXT = `Estimado/a estudiante [Nombre del Estudiante]
 
 Junto con saludar, se informa que, desde la coordinación de gestión de centros de Práctica de la UPP, ha sido adscrito/a a [Nombre Institucion], para desarrollar su [Nivel de Practica], que inicia la [Fecha Inicio Practica] hasta la [Fecha Termino Practica].
 
@@ -105,9 +105,9 @@ export default function TemplatesPage() {
           <TemplateEditor
             templateTypeTitle="Plantilla para Establecimientos"
             templateKeySubject="TEMPLATE_INSTITUTION_SUBJECT"
-            templateKeyBodyHtml="TEMPLATE_INSTITUTION_BODY_HTML" // Stores plain text
+            templateKeyBodyHtml="TEMPLATE_INSTITUTION_BODY_HTML"
             defaultSubject={DEFAULT_INSTITUTION_EMAIL_SUBJECT}
-            defaultBodyHtml={DEFAULT_INSTITUTION_EMAIL_BODY_TEXT} // Default body as plain text
+            defaultBodyHtml={DEFAULT_INSTITUTION_EMAIL_BODY_TEXT}
             placeholders={institutionPlaceholders}
           />
         </TabsContent>
@@ -115,9 +115,9 @@ export default function TemplatesPage() {
           <TemplateEditor
             templateTypeTitle="Plantilla para Alumnos"
             templateKeySubject="TEMPLATE_STUDENT_SUBJECT"
-            templateKeyBodyHtml="TEMPLATE_STUDENT_BODY_HTML" // Stores plain text
+            templateKeyBodyHtml="TEMPLATE_STUDENT_BODY_HTML"
             defaultSubject={DEFAULT_STUDENT_EMAIL_SUBJECT}
-            defaultBodyHtml={DEFAULT_STUDENT_EMAIL_BODY_TEXT} // Default body as plain text
+            defaultBodyHtml={DEFAULT_STUDENT_EMAIL_BODY_TEXT}
             placeholders={studentPlaceholders}
           />
         </TabsContent>
@@ -125,5 +125,3 @@ export default function TemplatesPage() {
     </div>
   );
 }
-
-    

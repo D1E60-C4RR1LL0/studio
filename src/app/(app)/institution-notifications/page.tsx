@@ -21,6 +21,8 @@ import { Calendar } from "@/components/ui/calendar";
 import { format, parse } from "date-fns";
 import { es } from "date-fns/locale";
 import { cn, textToHtmlWithPlaceholders } from "@/lib/utils";
+import { DEFAULT_INSTITUTION_EMAIL_SUBJECT, DEFAULT_INSTITUTION_EMAIL_BODY_TEXT } from "@/app/(app)/admin/templates/page";
+
 
 const CONFIRMED_STUDENT_IDS_KEY = 'confirmedPracticumStudentIds';
 const LAST_NOTIFIED_INSTITUTION_ID_KEY = 'lastNotifiedInstitutionId';
@@ -37,11 +39,8 @@ const PRACTICUM_OTHER_END_DATE_KEY = 'practicumOtherEndDate';
 const PRACTICUM_OTHER_WEEKS_KEY = 'practicumOtherWeeks';
 
 const TEMPLATE_INSTITUTION_SUBJECT_KEY = "TEMPLATE_INSTITUTION_SUBJECT";
-const TEMPLATE_INSTITUTION_BODY_HTML_KEY = "TEMPLATE_INSTITUTION_BODY_HTML"; 
+const TEMPLATE_INSTITUTION_BODY_HTML_KEY = "TEMPLATE_INSTITUTION_BODY_HTML";
 
-const DEFAULT_INSTITUTION_SUBJECT = "Información Estudiantes de Práctica";
-// DEFAULT_INSTITUTION_EMAIL_BODY_TEXT is now loaded from templates page default,
-// which uses {{practiceCalendarHTML}} placeholder
 
 const formatDateForEmail = (date: Date | undefined, type: 'inicio' | 'termino'): string => {
   if (!date) return `[Fecha ${type === 'inicio' ? 'Inicio' : 'Término'} Indefinida]`;
@@ -74,7 +73,7 @@ const renderEmailBody = (
   } else {
     studentTableRowsHTML = `<tr><td colspan="4" style="text-align: center;">(No hay estudiantes seleccionados para esta notificación)</td></tr>`;
   }
-  
+
   const studentTableHTML = `
     <table border="1" cellpadding="5" cellspacing="0" style="border-collapse: collapse; width: 100%; margin-top: 10px; margin-bottom: 10px;">
       <thead>
@@ -99,7 +98,7 @@ const renderEmailBody = (
       <li>Otra documentación</li>
     </ul>`;
 
-  const practiceCalendarHTML = `
+  const practiceCalendarTableHTML = `
     <table border="1" cellpadding="5" cellspacing="0" style="border-collapse: collapse; width: 100%; margin-top: 10px; margin-bottom: 10px;">
       <thead>
         <tr>
@@ -112,21 +111,21 @@ const renderEmailBody = (
       <tbody>
         <tr>
           <td>P. PROFESIONAL</td>
-          <td>{{semana_inicio_profesional}}</td>
-          <td>{{semana_termino_profesional}}</td>
-          <td>{{numero_semanas_profesional}}</td>
+          <td>${formatDateForEmail(profStartDate, 'inicio')}</td>
+          <td>${formatDateForEmail(profEndDate, 'termino')}</td>
+          <td>${profWeeks || '[Nº]'}</td>
         </tr>
         <tr>
           <td>PPV - PPIV - PPIII - PPII - PPI</td>
-          <td>{{semana_inicio_pp}}</td>
-          <td>{{semana_termino_pp}}</td>
-          <td>{{numero_semanas_pp}}</td>
+          <td>${formatDateForEmail(otherStartDate, 'inicio')}</td>
+          <td>${formatDateForEmail(otherEndDate, 'termino')}</td>
+          <td>${otherWeeks || '[Nº]'}</td>
         </tr>
       </tbody>
     </table>`;
 
   const htmlPlaceholders = {
-    "{{practiceCalendarHTML}}": practiceCalendarHTML,
+    "{{practiceCalendarHTML}}": practiceCalendarTableHTML,
     "{{studentTableHTML}}": studentTableHTML,
     "{{documentationListHTML}}": documentationListHTML,
   };
@@ -143,7 +142,7 @@ const renderEmailBody = (
     "{{semana_termino_pp}}": formatDateForEmail(otherEndDate, 'termino'),
     "{{numero_semanas_pp}}": otherWeeks || '[Nº]',
   };
-  
+
   return textToHtmlWithPlaceholders(templateBodyPlainText, htmlPlaceholders, textPlaceholders);
 };
 
@@ -151,18 +150,18 @@ const renderEmailBody = (
 export default function InstitutionNotificationsPage() {
   const [allInstitutions, setAllInstitutions] = React.useState<Institution[]>([]);
   const [filteredInstitutions, setFilteredInstitutions] = React.useState<Institution[]>([]);
-  
+
   const [allStudents, setAllStudents] = React.useState<Student[]>([]);
   const [confirmedStage1StudentIds, setConfirmedStage1StudentIds] = React.useState<string[]>([]);
   const [studentsAvailableFromStage1, setStudentsAvailableFromStage1] = React.useState<Student[]>([]);
   const [studentsForInstitutionCheckboxes, setStudentsForInstitutionCheckboxes] = React.useState<Student[]>([]);
-  
+
   const [communes, setCommunes] = React.useState<Commune[]>([]);
-  
+
   const [selectedCommuneId, setSelectedCommuneId] = React.useState<string>("");
   const [selectedInstitutionId, setSelectedInstitutionId] = React.useState<string>("");
   const [selectedContactId, setSelectedContactId] = React.useState<string>("");
-  
+
   const [contactNameForDisplay, setContactNameForDisplay] = React.useState("");
   const [contactRoleForDisplay, setContactRoleForDisplay] = React.useState("");
   const [contactEmailForDisplay, setContactEmailForDisplay] = React.useState("");
@@ -175,11 +174,11 @@ export default function InstitutionNotificationsPage() {
   const [practiceWeeksOther, setPracticeWeeksOther] = React.useState<string>("14");
 
   const [selectedStudentsMap, setSelectedStudentsMap] = React.useState<Record<string, boolean>>({});
-  
-  const [emailSubjectTemplate, setEmailSubjectTemplate] = React.useState(DEFAULT_INSTITUTION_SUBJECT);
-  const [emailBodyPlainTextTemplate, setEmailBodyPlainTextTemplate] = React.useState(""); // Will be loaded from localStorage or a default
+
+  const [emailSubjectTemplate, setEmailSubjectTemplate] = React.useState(DEFAULT_INSTITUTION_EMAIL_SUBJECT);
+  const [emailBodyPlainTextTemplate, setEmailBodyPlainTextTemplate] = React.useState("");
   const [currentRenderedEmailBody, setCurrentRenderedEmailBody] = React.useState("");
-  
+
   const { toast } = useToast();
   const router = useRouter();
   const { advanceStage, maxAccessLevel, isLoadingProgress } = usePracticumProgress();
@@ -187,12 +186,10 @@ export default function InstitutionNotificationsPage() {
   React.useEffect(() => {
     if (typeof window !== 'undefined') {
       const storedSubject = localStorage.getItem(TEMPLATE_INSTITUTION_SUBJECT_KEY);
-      setEmailSubjectTemplate(storedSubject || DEFAULT_INSTITUTION_SUBJECT);
-      
+      setEmailSubjectTemplate(storedSubject || DEFAULT_INSTITUTION_EMAIL_SUBJECT);
+
       const storedBody = localStorage.getItem(TEMPLATE_INSTITUTION_BODY_HTML_KEY);
-      // A minimal default if nothing is in local storage or from templates page.
-      const fallbackDefaultBody = `Estimado/a {{directivo.nombre}},\n\nConsulte los detalles:\n{{practiceCalendarHTML}}\n{{studentTableHTML}}\n{{documentationListHTML}}\n\nSaludos.`.trim();
-      setEmailBodyPlainTextTemplate(storedBody || fallbackDefaultBody);
+      setEmailBodyPlainTextTemplate(storedBody || DEFAULT_INSTITUTION_EMAIL_BODY_TEXT);
     }
 
     const currentYear = new Date().getFullYear();
@@ -231,7 +228,7 @@ export default function InstitutionNotificationsPage() {
     }
 
     if (!isLoadingProgress && maxAccessLevel >= STAGES.INSTITUTION_NOTIFICATION) {
-      loadInitialData(); 
+      loadInitialData();
       if (typeof window !== 'undefined') {
         try {
           const storedIds = localStorage.getItem(CONFIRMED_STUDENT_IDS_KEY);
@@ -240,10 +237,10 @@ export default function InstitutionNotificationsPage() {
              if (Array.isArray(parsedIds)) {
               setConfirmedStage1StudentIds(parsedIds);
             } else {
-              setConfirmedStage1StudentIds([]); 
+              setConfirmedStage1StudentIds([]);
             }
           } else {
-             setConfirmedStage1StudentIds([]); 
+             setConfirmedStage1StudentIds([]);
           }
         } catch (error) {
           toast({
@@ -251,7 +248,7 @@ export default function InstitutionNotificationsPage() {
             description: "No se pudieron cargar los estudiantes seleccionados de la etapa anterior.",
             variant: "destructive",
           });
-          setConfirmedStage1StudentIds([]); 
+          setConfirmedStage1StudentIds([]);
         }
       }
     }
@@ -271,7 +268,7 @@ export default function InstitutionNotificationsPage() {
     if (selectedCommuneId) {
       const commune = communes.find(c => c.id === selectedCommuneId);
       setFilteredInstitutions(allInstitutions.filter(inst => inst.location === commune?.name));
-      setSelectedInstitutionId(""); 
+      setSelectedInstitutionId("");
       setSelectedContactId("");
     } else {
       setFilteredInstitutions([]);
@@ -306,7 +303,7 @@ export default function InstitutionNotificationsPage() {
       setStudentsForInstitutionCheckboxes([]);
       setSelectedStudentsMap({});
     }
-  }, [selectedInstitution, studentsAvailableFromStage1]); 
+  }, [selectedInstitution, studentsAvailableFromStage1]);
 
   React.useEffect(() => {
     if (selectedInstitution && selectedContactId) {
@@ -331,7 +328,7 @@ export default function InstitutionNotificationsPage() {
   React.useEffect(() => {
     const currentSelectedStudentsForEmail = studentsForInstitutionCheckboxes.filter(s => selectedStudentsMap[s.id]);
     const body = renderEmailBody(
-      emailBodyPlainTextTemplate, 
+      emailBodyPlainTextTemplate,
       contactNameForDisplay,
       contactRoleForDisplay,
       contactEmailForDisplay,
@@ -346,11 +343,11 @@ export default function InstitutionNotificationsPage() {
     );
     setCurrentRenderedEmailBody(body);
   }, [
-      selectedInstitution, 
-      contactNameForDisplay, 
+      selectedInstitution,
+      contactNameForDisplay,
       contactRoleForDisplay,
-      contactEmailForDisplay, 
-      selectedStudentsMap, 
+      contactEmailForDisplay,
+      selectedStudentsMap,
       studentsForInstitutionCheckboxes,
       practiceStartDateProf,
       practiceEndDateProf,
@@ -436,15 +433,15 @@ export default function InstitutionNotificationsPage() {
     console.log("Nombre Contacto:", contactNameForDisplay);
     console.log("Cargo Contacto:", contactRoleForDisplay);
     console.log("Institución:", selectedInstitution.name);
-    console.log("Asunto:", emailSubjectTemplate); 
-    console.log("Cuerpo del Correo (HTML Renderizado):", currentRenderedEmailBody); 
+    console.log("Asunto:", emailSubjectTemplate);
+    console.log("Cuerpo del Correo (HTML Renderizado):", currentRenderedEmailBody);
     console.log("Estudiantes seleccionados para este correo:", studentsActuallySelected.map(s => s.firstName));
-    
+
     toast({
       title: "Notificación Enviada (Simulado)",
       description: `Correo preparado para ${selectedInstitution.name}. Avanzando al siguiente paso.`,
     });
-    
+
     advanceStage(STAGES.STUDENT_NOTIFICATION);
     router.push(STAGE_PATHS[STAGES.STUDENT_NOTIFICATION]);
   };
@@ -453,20 +450,20 @@ export default function InstitutionNotificationsPage() {
     return <div className="flex justify-center items-center h-64"><p>Cargando notificaciones a instituciones...</p></div>;
   }
 
-  const isSubmitDisabled = !selectedInstitution || 
-                           Object.values(selectedStudentsMap).filter(Boolean).length === 0 || 
-                           !emailSubjectTemplate.trim() || 
-                           !currentRenderedEmailBody.trim() || 
-                           isLoadingProgress || 
+  const isSubmitDisabled = !selectedInstitution ||
+                           Object.values(selectedStudentsMap).filter(Boolean).length === 0 ||
+                           !emailSubjectTemplate.trim() ||
+                           !currentRenderedEmailBody.trim() ||
+                           isLoadingProgress ||
                            !selectedContactId ||
-                           !contactEmailForDisplay.trim() || 
+                           !contactEmailForDisplay.trim() ||
                            !contactNameForDisplay.trim() ||
                            !practiceStartDateProf || !practiceEndDateProf || !practiceWeeksProf.trim() ||
                            !practiceStartDateOther || !practiceEndDateOther || !practiceWeeksOther.trim();
 
 
   return (
-    <div className="p-4 md:p-6"> 
+    <div className="p-4 md:p-6">
       <PageHeader
         title="Notificación al centro de práctica"
         description="Envía un correo electrónico a las instituciones educativas con la lista de estudiantes seleccionados."
@@ -510,9 +507,9 @@ export default function InstitutionNotificationsPage() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4">
                 <div>
                   <Label htmlFor="contact-select">Contacto</Label>
-                  <Select 
-                    onValueChange={setSelectedContactId} 
-                    value={selectedContactId} 
+                  <Select
+                    onValueChange={setSelectedContactId}
+                    value={selectedContactId}
                     disabled={!selectedInstitution || !selectedInstitution.directorContacts || selectedInstitution.directorContacts.length === 0}
                   >
                     <SelectTrigger id="contact-select">
@@ -612,7 +609,7 @@ export default function InstitutionNotificationsPage() {
             </div>
           </CardContent>
         </Card>
-        
+
         {selectedInstitution && (
           <Card>
             <CardHeader>
@@ -658,9 +655,9 @@ export default function InstitutionNotificationsPage() {
                 <CardContent className="space-y-4">
                     <div>
                         <Label htmlFor="email-subject-preview">Asunto del correo (Vista Previa)</Label>
-                        <Input 
-                        id="email-subject-preview" 
-                        value={emailSubjectTemplate} 
+                        <Input
+                        id="email-subject-preview"
+                        value={emailSubjectTemplate}
                         readOnly
                         className="bg-muted/50"
                         />
@@ -677,9 +674,9 @@ export default function InstitutionNotificationsPage() {
             </Card>
         )}
 
-        <Button 
-            type="submit" 
-            className="w-full md:w-auto" 
+        <Button
+            type="submit"
+            className="w-full md:w-auto"
             disabled={isSubmitDisabled}
         >
           <Send className="mr-2 h-4 w-4" /> Enviar correo al centro y pasar a notificar estudiantes
@@ -688,4 +685,3 @@ export default function InstitutionNotificationsPage() {
     </div>
   );
 }
-
