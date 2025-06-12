@@ -1,79 +1,32 @@
 
 "use client";
 
-import React, { useMemo } from 'react';
-import type { ReactQuillProps } from 'react-quill';
-// Import Quill styles. Make sure react-quill is installed.
-import 'react-quill/dist/quill.snow.css';
-import dynamic from 'next/dynamic';
+import React from 'react';
 import { cn } from '@/lib/utils';
 
-// Dynamically import ReactQuill using next/dynamic
-// Ensure we get the default export correctly, whether it's CJS or ESM style.
-const QuillNoSSR = dynamic(
-  () => import('react-quill').then(mod => mod.default || mod),
-  {
-    ssr: false, // Ensure it's not rendered on the server
-    loading: () => ( // Optional: component to show while ReactQuill is loading
-      <textarea
-        rows={15}
-        className={cn("w-full p-2 border rounded bg-card text-card-foreground")}
-        placeholder="Cargando editor de texto enriquecido..."
-        disabled
-      />
-    ),
-  }
-);
-
-interface RichTextEditorProps extends ReactQuillProps {
+// Props para un textarea simple que puede aceptar HTML
+interface RichTextEditorProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
   value: string;
-  onChange: (value: string) => void;
+  onChange: (value: string) => void; // onChange ahora recibe un string directamente del evento del textarea
   className?: string;
 }
 
 const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange, className, ...props }) => {
-  const modules = useMemo(() => ({
-    toolbar: [
-      [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
-      ['bold', 'italic', 'underline', 'strike'],        // toggled buttons
-      ['blockquote', 'code-block'],
-
-      [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-      [{ 'script': 'sub'}, { 'script': 'super' }],      // superscript/subscript
-      [{ 'indent': '-1'}, { 'indent': '+1' }],          // outdent/indent
-      [{ 'direction': 'rtl' }],                         // text direction
-
-      [{ 'color': [] }, { 'background': [] }],          // dropdown with defaults from theme
-      [{ 'font': [] }],
-      [{ 'align': [] }],
-
-      ['link', 'image', 'video'],
-      // The 'table' button is not standard in Quill's core toolbar options without plugins.
-      // Users can still paste or edit HTML tables if the underlying HTML is supported by Quill.
-
-      ['clean']                                         // remove formatting button
-    ],
-  }), []);
-
-  const formats = [
-    'header', 'font', 'size',
-    'bold', 'italic', 'underline', 'strike', 'blockquote', 'code-block',
-    'list', 'bullet', 'indent',
-    'link', 'image', 'video', 'color', 'background', 'align',
-    // 'table' // Add if a table module/plugin is actively used and configured
-  ];
+  const handleChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
+    onChange(event.target.value);
+  };
 
   return (
-    <div className={cn("bg-card text-card-foreground", className)}>
-      <QuillNoSSR
-        theme="snow"
-        value={value}
-        onChange={onChange}
-        modules={modules}
-        formats={formats}
-        {...props}
-      />
-    </div>
+    <textarea
+      value={value}
+      onChange={handleChange}
+      className={cn(
+        "w-full p-2 border rounded bg-card text-card-foreground min-h-[300px] font-mono text-sm", // Added font-mono and text-sm for HTML
+        className
+      )}
+      placeholder="Ingrese el contenido HTML del correo aquí..."
+      {...props} // Pasa otras props de textarea como rows, cols, etc.
+    />
   );
 };
 
