@@ -28,7 +28,8 @@ const normalizeRut = (rut: string | undefined): string => {
 export default function StudentManagementPage() {
   const [students, setStudents] = React.useState<Student[]>([]);
   const [filteredStudents, setFilteredStudents] = React.useState<Student[]>([]);
-  const [searchTerm, setSearchTerm] = React.useState("");
+  const [currentSearchInput, setCurrentSearchInput] = React.useState(""); // For live input
+  const [searchTerm, setSearchTerm] = React.useState(""); // For triggered search
   const [isLoading, setIsLoading] = React.useState(true);
   
   const [selectedStudentsForConfirmation, setSelectedStudentsForConfirmation] = React.useState<Set<string>>(new Set());
@@ -38,31 +39,11 @@ export default function StudentManagementPage() {
   const router = useRouter();
   const { advanceStage, isLoadingProgress: isLoadingPracticumProgress } = usePracticumProgress();
 
-  const fetchData = React.useCallback(async () => {
+  const loadStudentData = React.useCallback(async () => {
     try {
       setIsLoading(true);
       const data = await getStudents();
       setStudents(data);
-      // If search term is empty when data is fetched, ensure filteredStudents is also empty
-      if (!searchTerm.trim()) {
-        setFilteredStudents([]);
-      } else {
-        // Re-apply filter if searchTerm exists (e.g., after bulk upload)
-        const lowercasedSearchTerm = searchTerm.toLowerCase();
-        const normalizedRutSearchTerm = normalizeRut(searchTerm);
-        const filteredData = data.filter(item => {
-            const fullName = `${item.firstName} ${item.lastNamePaternal} ${item.lastNameMaternal}`.toLowerCase();
-            const itemRutNormalized = normalizeRut(item.rut);
-            return (
-                fullName.includes(lowercasedSearchTerm) ||
-                item.rut.toLowerCase().includes(lowercasedSearchTerm) ||
-                (normalizedRutSearchTerm.length > 0 && itemRutNormalized.includes(normalizedRutSearchTerm)) ||
-                item.career.toLowerCase().includes(lowercasedSearchTerm) ||
-                item.practicumLevel.toLowerCase().includes(lowercasedSearchTerm)
-            );
-        });
-        setFilteredStudents(filteredData);
-      }
     } catch (error) {
       toast({
         title: "Error al obtener estudiantes",
@@ -72,15 +53,16 @@ export default function StudentManagementPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [toast, searchTerm]); 
+  }, [toast]);
 
   React.useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    loadStudentData();
+  }, [loadStudentData]);
 
+  // Effect for filtering students when searchTerm or the base students list changes
   React.useEffect(() => {
     if (!searchTerm.trim()) {
-      setFilteredStudents([]); 
+      setFilteredStudents([]); // Keep table empty if no search term or search term is cleared
       return;
     }
 
@@ -111,14 +93,17 @@ export default function StudentManagementPage() {
 
       const savedStudent = await saveStudent(studentPayload);
       
-      await fetchData(); 
+      await loadStudentData(); 
       
       toast({
         title: "Estudiante Guardado",
         description: `${savedStudent.firstName} ${savedStudent.lastNamePaternal} ha sido guardado exitosamente.`,
       });
       setViewMode('table'); 
-      setSelectedStudentsForConfirmation(new Set()); 
+      setSelectedStudentsForConfirmation(new Set());
+      // Optionally clear search after saving to show an empty table or re-apply search if needed
+      // setCurrentSearchInput(""); 
+      // setSearchTerm(""); 
     } catch (error) {
        toast({
         title: "Error al guardar",
@@ -129,16 +114,14 @@ export default function StudentManagementPage() {
   };
 
   const handleBulkFileProcessed = async () => {
-    await fetchData(); // Refresh student list
-    // Toast for file processing success/failure is handled within BulkStudentUploadForm
+    await loadStudentData(); 
     setViewMode('table');
   };
   
   const handleDatabaseEmptied = async () => {
-    await fetchData(); // Refresh student list, view remains 'bulkUploadForm'
-     // Toast for database emptied success/failure is handled within BulkStudentUploadForm
+    await loadStudentData(); 
+    // Stay in bulkUploadForm view
   };
-
 
   const handleTableSelectionChange = (studentId: string, isSelected: boolean) => {
     setSelectedStudentsForConfirmation(prevSelected => {
@@ -177,7 +160,17 @@ export default function StudentManagementPage() {
     
     advanceStage(STAGES.INSTITUTION_NOTIFICATION);
     router.push(STAGE_PATHS[STAGES.INSTITUTION_NOTIFICATION]);
-  }
+  };
+
+  const handleSearchAction = () => {
+    setSearchTerm(currentSearchInput);
+  };
+
+  const handleInputKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Enter') {
+      handleSearchAction();
+    }
+  };
   
   const pageTitles: Record<ViewMode, string> = {
     table: "Selección de Estudiantes",
@@ -210,7 +203,11 @@ export default function StudentManagementPage() {
       <div className="flex flex-wrap items-center gap-2 mb-6">
         <Button 
             variant={viewMode === 'table' ? 'default' : 'outline'} 
-            onClick={() => setViewMode('table')}
+            onClick={() => {
+              setViewMode('table');
+              // setCurrentSearchInput(""); // Optionally clear search input when switching to table view
+              // setSearchTerm(""); // Optionally clear search results
+            }}
             className={viewMode === 'table' ? 'bg-primary hover:bg-primary/90' : ''}
         >
             <List className="mr-2 h-4 w-4" />
@@ -244,17 +241,22 @@ export default function StudentManagementPage() {
 
       {viewMode === 'table' && (
         <>
-          <div className="mb-4 flex flex-col sm:flex-row items-center gap-4">
-            <div className="relative flex-1 w-full sm:w-auto">
+          <div className="mb-4 flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+            <div className="relative flex-grow">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
                 type="search"
                 placeholder="Buscar alumno por nombre, RUT o carrera"
                 className="pl-8 w-full"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                value={currentSearchInput}
+                onChange={(e) => setCurrentSearchInput(e.target.value)}
+                onKeyDown={handleInputKeyDown}
               />
             </div>
+            <Button onClick={handleSearchAction} className="sm:w-auto w-full">
+              <Search className="mr-2 h-4 w-4" />
+              Buscar
+            </Button>
           </div>
 
           <StudentTable
@@ -269,7 +271,7 @@ export default function StudentManagementPage() {
                 onClick={handleConfirmSelection} 
                 size="lg" 
                 className="bg-green-500 hover:bg-green-600 text-white" 
-                disabled={selectedStudentsForConfirmation.size === 0 || isLoadingPracticumProgress}
+                disabled={selectedStudentsForConfirmation.size === 0 || isLoadingPracticumProgress || filteredStudents.length === 0}
             >
               <Check className="mr-2 h-5 w-5" /> Confirmar selección
             </Button>
@@ -301,4 +303,3 @@ export default function StudentManagementPage() {
     </>
   );
 }
-
