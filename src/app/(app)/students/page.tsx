@@ -43,6 +43,26 @@ export default function StudentManagementPage() {
       setIsLoading(true);
       const data = await getStudents();
       setStudents(data);
+      // If search term is empty when data is fetched, ensure filteredStudents is also empty
+      if (!searchTerm.trim()) {
+        setFilteredStudents([]);
+      } else {
+        // Re-apply filter if searchTerm exists (e.g., after bulk upload)
+        const lowercasedSearchTerm = searchTerm.toLowerCase();
+        const normalizedRutSearchTerm = normalizeRut(searchTerm);
+        const filteredData = data.filter(item => {
+            const fullName = `${item.firstName} ${item.lastNamePaternal} ${item.lastNameMaternal}`.toLowerCase();
+            const itemRutNormalized = normalizeRut(item.rut);
+            return (
+                fullName.includes(lowercasedSearchTerm) ||
+                item.rut.toLowerCase().includes(lowercasedSearchTerm) ||
+                (normalizedRutSearchTerm.length > 0 && itemRutNormalized.includes(normalizedRutSearchTerm)) ||
+                item.career.toLowerCase().includes(lowercasedSearchTerm) ||
+                item.practicumLevel.toLowerCase().includes(lowercasedSearchTerm)
+            );
+        });
+        setFilteredStudents(filteredData);
+      }
     } catch (error) {
       toast({
         title: "Error al obtener estudiantes",
@@ -52,7 +72,7 @@ export default function StudentManagementPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [toast]);
+  }, [toast, searchTerm]); // Added searchTerm as a dependency
 
   React.useEffect(() => {
     fetchData();
@@ -60,7 +80,7 @@ export default function StudentManagementPage() {
 
   React.useEffect(() => {
     if (!searchTerm.trim()) {
-      setFilteredStudents([]); // If search term is empty, show no students
+      setFilteredStudents([]); 
       return;
     }
 
@@ -109,10 +129,10 @@ export default function StudentManagementPage() {
   };
 
   const handleBulkUploadComplete = async () => {
-    await fetchData();
+    await fetchData(); // This will refresh the student list, including the search if a term is present
     toast({
       title: "Carga Masiva Procesada",
-      description: "Los estudiantes del archivo CSV han sido procesados.",
+      description: "Los estudiantes del archivo han sido procesados.",
     });
     setViewMode('table');
   }
@@ -160,13 +180,13 @@ export default function StudentManagementPage() {
     table: "Selección de Estudiantes",
     addForm: "Agregar Nuevo Estudiante",
     editForm: "Editar Información del Estudiante",
-    bulkUploadForm: "Carga Masiva de Estudiantes"
+    bulkUploadForm: "Carga Masiva de Estudiantes desde Excel"
   };
   const pageDescriptions: Record<ViewMode, string> = {
     table: "Busca y selecciona los alumnos que podrían realizar su práctica.",
     addForm: "Complete el formulario para agregar un nuevo estudiante a la base de datos.",
     editForm: "Busque por RUT y modifique los datos del estudiante.",
-    bulkUploadForm: "Seleccione un archivo CSV para cargar múltiples estudiantes a la vez."
+    bulkUploadForm: "Suba la plantilla Excel con la información de los estudiantes."
   }
 
   if (isLoadingPracticumProgress || isLoading) {
@@ -215,7 +235,7 @@ export default function StudentManagementPage() {
             className={viewMode === 'bulkUploadForm' ? 'bg-primary hover:bg-primary/90' : ''}
         >
             <UploadCloud className="mr-2 h-4 w-4" />
-            Carga masiva de estudiantes
+            Carga Masiva
         </Button>
       </div>
 

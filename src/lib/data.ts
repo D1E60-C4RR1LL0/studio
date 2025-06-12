@@ -18,7 +18,9 @@ function initializeStudents(): Student[] {
     const storedStudents = localStorage.getItem('practicumStudents');
     if (storedStudents) {
       try {
-        return JSON.parse(storedStudents);
+        const parsedStudents = JSON.parse(storedStudents);
+        // Ensure location is set for all students loaded from localStorage
+        return parsedStudents.map((s: Student) => ({ ...s, location: s.location || s.commune || 'Desconocida' }));
       } catch (e) {
         console.error("Error parsing students from localStorage", e);
       }
@@ -88,13 +90,15 @@ export const mockTutors: Tutor[] = [
 
 export async function getStudents(): Promise<Student[]> {
   await new Promise(resolve => setTimeout(resolve, 500));
+  // Ensure mockStudents is initialized if it became empty for some reason and localStorage is also empty
   if (mockStudents.length === 0 && typeof window !== 'undefined' && !localStorage.getItem('practicumStudents')) {
     mockStudents = [...mockStudentsData].map(s => ({ ...s, location: s.location || s.commune || 'Desconocida' }));
-    persistStudents();
+    persistStudents(); // Persist the initial mock data if localStorage was empty
   } else if (mockStudents.length === 0 && (typeof window === 'undefined' || !localStorage.getItem('practicumStudents'))) {
+    // For server-side or environments without localStorage, always start with mockStudentsData
     mockStudents = [...mockStudentsData].map(s => ({ ...s, location: s.location || s.commune || 'Desconocida' }));
   }
-  return [...mockStudents];
+  return [...mockStudents]; // Return a copy
 }
 
 export async function getStudentById(id: string): Promise<Student | undefined> {
@@ -102,25 +106,33 @@ export async function getStudentById(id: string): Promise<Student | undefined> {
   return mockStudents.find(s => s.id === id);
 }
 
-export async function saveStudent(studentToSave: Student): Promise<Student> {
+export async function saveStudent(studentToSave: Student | Omit<Student, 'id'>): Promise<Student> {
   await new Promise(resolve => setTimeout(resolve, 500));
-  const index = mockStudents.findIndex(s => s.id === studentToSave.id);
   
+  const studentDataWithId: Student = (studentToSave as Student).id && !(studentToSave as Student).id.startsWith('new-')
+    ? studentToSave as Student
+    : { ...studentToSave, id: `student-${Date.now()}-${Math.random().toString(36).substring(2, 9)}` } as Student;
+
   const studentWithLocation = {
-    ...studentToSave,
-    location: studentToSave.location || studentToSave.commune || 'Desconocida' 
+    ...studentDataWithId,
+    location: studentDataWithId.location || studentDataWithId.commune || 'Desconocida' 
   };
+
+  const index = mockStudents.findIndex(s => s.id === studentWithLocation.id);
 
   if (index !== -1) {
     mockStudents[index] = studentWithLocation;
   } else {
-    if (!studentWithLocation.id || studentWithLocation.id.startsWith('new-')) {
-      studentWithLocation.id = `student-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-    }
     mockStudents.push(studentWithLocation);
   }
   persistStudents();
   return studentWithLocation;
+}
+
+export async function deleteAllStudents(): Promise<void> {
+  await new Promise(resolve => setTimeout(resolve, 500));
+  mockStudents = []; // Clear the in-memory array
+  persistStudents(); // Persist the empty array to localStorage
 }
 
 
