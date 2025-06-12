@@ -9,9 +9,9 @@ import dynamic from 'next/dynamic';
 import { cn } from '@/lib/utils';
 
 // Dynamically import ReactQuill using next/dynamic
-// Explicitly take the default export from the module.
+// Ensure we get the default export correctly, whether it's CJS or ESM style.
 const QuillNoSSR = dynamic(
-  () => import('react-quill').then(mod => mod.default || mod), // Use mod.default, fallback to mod
+  () => import('react-quill').then(mod => mod.default || mod),
   {
     ssr: false, // Ensure it's not rendered on the server
     loading: () => ( // Optional: component to show while ReactQuill is loading
