@@ -582,7 +582,7 @@ export default function StudentNotificationsPage() {
                   className="w-full md:w-auto"
                   disabled={fullyConfiguredLevelsCount === 0 || isLoadingProgress}
               >
-                <SendHorizonal className="mr-2 h-4 w-4" /> Programar Todas las Notificaciones ({fullyConfiguredLevelsCount} nivel(es) configurado(s))
+                <SendHorizonal className="mr-2 h-4 w-4" /> Programar Todas las Notificaciones
               </Button>
               {fullyConfiguredLevelsCount === 0 && !isLoadingProgress && (
                 <p className="text-sm text-muted-foreground mt-2">
