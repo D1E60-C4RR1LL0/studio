@@ -11,21 +11,27 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
 
   let activeIndex: typeof STAGES[keyof typeof STAGES] = STAGES.STUDENT_SELECTION; // Default to first stage
+  let showCoordinationHeader = false;
 
   if (pathname.startsWith(STAGE_PATHS[STAGES.STUDENT_SELECTION])) {
     activeIndex = STAGES.STUDENT_SELECTION;
+    showCoordinationHeader = true;
   } else if (pathname.startsWith(STAGE_PATHS[STAGES.INSTITUTION_NOTIFICATION])) {
     activeIndex = STAGES.INSTITUTION_NOTIFICATION;
+    showCoordinationHeader = true;
   } else if (pathname.startsWith(STAGE_PATHS[STAGES.STUDENT_NOTIFICATION])) {
     activeIndex = STAGES.STUDENT_NOTIFICATION;
+    showCoordinationHeader = true;
   }
+  // For any other path, including admin paths like /admin/..., showCoordinationHeader will remain false.
 
   return (
     <AppShell>
       <div className="p-4 md:p-6">
-        <CoordinationHeader activeIndex={activeIndex} />
+        {showCoordinationHeader && <CoordinationHeader activeIndex={activeIndex} />}
         {children}
       </div>
     </AppShell>
   );
 }
+
