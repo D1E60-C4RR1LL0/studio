@@ -14,16 +14,21 @@ export type Student = {
   location?: string; // Usado para asignar estudiantes a la ubicación de una institución
 };
 
+export type DirectorContact = {
+  id: string; // Unique ID for the contact, can be generated on save
+  name: string;
+  email: string;
+  phone?: string;
+  role?: string;
+};
+
 export type Institution = {
   id: string;
   rbd: string; // Rol Base de Datos - Identificador único del establecimiento
   name: string;
   dependency: string; // Ej: Municipal, Particular Subvencionado, Particular Pagado
   location: string; // Comuna donde se ubica
-  contactName: string;
-  contactEmail: string;
-  contactPhone?: string;
-  contactRole?: string;
+  directorContacts: DirectorContact[]; // Replaces individual contact fields
   logo?: string; // URL del logo
 };
 

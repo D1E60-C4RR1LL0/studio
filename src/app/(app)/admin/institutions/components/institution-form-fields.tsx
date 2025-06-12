@@ -2,6 +2,7 @@
 "use client";
 
 import * as React from "react";
+import { useFormContext, useFieldArray, Controller } from "react-hook-form";
 import type { UseFormReturn } from "react-hook-form";
 import * as z from "zod";
 import {
@@ -19,21 +20,28 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { Commune } from "@/lib/definitions";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import type { Commune, DirectorContact } from "@/lib/definitions"; // DirectorContact imported
 import { getCommunes } from "@/lib/data";
 import { useToast } from "@/hooks/use-toast";
+import { PlusCircle, Trash2 } from "lucide-react";
+
+const directorContactSchema = z.object({
+  id: z.string().optional(), // ID can be present if editing, or generated on save
+  name: z.string().min(1, { message: "Nombre del directivo es requerido." }),
+  email: z.string().email({ message: "Correo electrónico del directivo inválido." }),
+  phone: z.string().optional(),
+  contactRole: z.string().optional(), // Renamed from 'role' to avoid conflict if 'role' is used elsewhere.
+});
 
 export const institutionFormSchema = z.object({
   rbd: z.string().min(1, { message: "RBD es requerido." })
     .regex(/^\d+$/, { message: "RBD debe contener solo números." }),
   name: z.string().min(3, { message: "Nombre es requerido (mínimo 3 caracteres)." }),
   dependency: z.string().min(1, { message: "Dependencia es requerida." }),
-  location: z.string().min(1, { message: "Comuna es requerida." }), // Corresponde a Comuna
-  contactName: z.string().min(1, { message: "Nombre de contacto es requerido." }),
-  contactEmail: z.string().email({ message: "Correo electrónico de contacto inválido." }),
-  contactPhone: z.string().optional(),
-  contactRole: z.string().optional(),
-  // logo: z.string().url({ message: "URL de logo inválida." }).optional(), // Omitido por ahora
+  location: z.string().min(1, { message: "Comuna es requerida." }),
+  directorContacts: z.array(directorContactSchema).min(1, { message: "Debe agregar al menos un directivo." }),
 });
 
 export type InstitutionFormData = z.infer<typeof institutionFormSchema>;
@@ -45,6 +53,11 @@ interface InstitutionFormFieldsProps {
 export function InstitutionFormFields({ form }: InstitutionFormFieldsProps) {
   const [communes, setCommunes] = React.useState<Commune[]>([]);
   const { toast } = useToast();
+
+  const { fields, append, remove } = useFieldArray({
+    control: form.control,
+    name: "directorContacts",
+  });
 
   React.useEffect(() => {
     async function loadSelectOptions() {
@@ -62,8 +75,16 @@ export function InstitutionFormFields({ form }: InstitutionFormFieldsProps) {
     loadSelectOptions();
   }, [toast]);
 
+  // Ensure at least one director contact field is present on initial render if array is empty
+  React.useEffect(() => {
+    if (fields.length === 0) {
+      append({ name: "", email: "", phone: "", contactRole: "" });
+    }
+  }, [fields, append]);
+
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <FormField
           control={form.control}
@@ -108,7 +129,7 @@ export function InstitutionFormFields({ form }: InstitutionFormFieldsProps) {
         />
         <FormField
           control={form.control}
-          name="location" // Este campo corresponde a 'Comuna'
+          name="location"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Comuna *</FormLabel>
@@ -129,60 +150,101 @@ export function InstitutionFormFields({ form }: InstitutionFormFieldsProps) {
           )}
         />
       </div>
-      <FormField
-        control={form.control}
-        name="contactName"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Nombre del Contacto *</FormLabel>
-            <FormControl>
-              <Input placeholder="Ej: Juan Pérez" {...field} />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
-      <FormField
-        control={form.control}
-        name="contactEmail"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Correo Electrónico del Contacto *</FormLabel>
-            <FormControl>
-              <Input type="email" placeholder="contacto@ejemplo.com" {...field} />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <FormField
-          control={form.control}
-          name="contactPhone"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Teléfono del Contacto</FormLabel>
-              <FormControl>
-                <Input placeholder="+56912345678" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="contactRole"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Cargo del Contacto</FormLabel>
-              <FormControl>
-                <Input placeholder="Ej: Director, Coordinador UTP" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-      </div>
+
+      <Card>
+        <CardHeader>
+          <div className="flex justify-between items-center">
+            <CardTitle className="text-lg">Directivos / Contactos *</CardTitle>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => append({ name: "", email: "", phone: "", contactRole: "" })}
+            >
+              <PlusCircle className="mr-2 h-4 w-4" /> Agregar Contacto
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {fields.map((item, index) => (
+            <div key={item.id} className="p-4 border rounded-md space-y-3 relative bg-muted/20">
+               {fields.length > 1 && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute top-2 right-2 text-destructive hover:text-destructive hover:bg-destructive/10"
+                  onClick={() => remove(index)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                  <span className="sr-only">Eliminar Contacto</span>
+                </Button>
+              )}
+              <FormField
+                control={form.control}
+                name={`directorContacts.${index}.name`}
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Nombre del Contacto {index + 1} *</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Ej: Juan Pérez" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name={`directorContacts.${index}.email`}
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Correo Electrónico {index + 1} *</FormLabel>
+                    <FormControl>
+                      <Input type="email" placeholder="contacto@ejemplo.com" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name={`directorContacts.${index}.phone`}
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Teléfono {index + 1}</FormLabel>
+                      <FormControl>
+                        <Input placeholder="+56912345678" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name={`directorContacts.${index}.contactRole`}
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Cargo {index + 1}</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Ej: Director, Coordinador UTP" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </div>
+          ))}
+           <FormField
+              control={form.control}
+              name="directorContacts"
+              render={() => (
+                 <FormMessage />
+              )}
+            />
+        </CardContent>
+      </Card>
     </div>
   );
 }

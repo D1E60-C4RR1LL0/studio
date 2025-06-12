@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Edit3, Trash2, Landmark } from "lucide-react";
+import { Edit3, Trash2, Landmark, Users } from "lucide-react"; // Added Users icon for contacts
 
 interface InstitutionsTableProps {
   institutions: Institution[];
@@ -33,7 +33,8 @@ export function InstitutionsTable({ institutions, isLoading, onEdit, onDelete }:
               <TableHead>Nombre</TableHead>
               <TableHead>Dependencia</TableHead>
               <TableHead>Comuna</TableHead>
-              <TableHead className="w-[120px]">Acciones</TableHead>
+              <TableHead className="text-center">Contactos</TableHead>
+              <TableHead className="w-[120px] text-right">Acciones</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -43,7 +44,8 @@ export function InstitutionsTable({ institutions, isLoading, onEdit, onDelete }:
                 <TableCell><Skeleton className="h-4 w-[250px]" /></TableCell>
                 <TableCell><Skeleton className="h-4 w-[150px]" /></TableCell>
                 <TableCell><Skeleton className="h-4 w-[120px]" /></TableCell>
-                <TableCell><Skeleton className="h-8 w-[100px]" /></TableCell>
+                <TableCell className="text-center"><Skeleton className="h-4 w-[30px] mx-auto" /></TableCell>
+                <TableCell><Skeleton className="h-8 w-[100px] ml-auto" /></TableCell>
               </TableRow>
             ))}
           </TableBody>
@@ -71,6 +73,7 @@ export function InstitutionsTable({ institutions, isLoading, onEdit, onDelete }:
             <TableHead>Nombre</TableHead>
             <TableHead>Dependencia</TableHead>
             <TableHead>Comuna</TableHead>
+            <TableHead className="text-center">Nº Contactos</TableHead>
             <TableHead className="text-right w-[150px]">Acciones</TableHead>
           </TableRow>
         </TableHeader>
@@ -81,6 +84,11 @@ export function InstitutionsTable({ institutions, isLoading, onEdit, onDelete }:
               <TableCell>{institution.name}</TableCell>
               <TableCell>{institution.dependency}</TableCell>
               <TableCell>{institution.location}</TableCell>
+              <TableCell className="text-center">
+                <div className="flex items-center justify-center">
+                   <Users className="h-4 w-4 mr-1 text-muted-foreground"/> {institution.directorContacts?.length || 0}
+                </div>
+              </TableCell>
               <TableCell className="text-right">
                 <Button variant="ghost" size="icon" onClick={() => onEdit(institution)} title="Editar">
                   <Edit3 className="h-4 w-4" />

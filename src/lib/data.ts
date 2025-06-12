@@ -1,5 +1,5 @@
 
-import type { Student, Institution, AcademicLevel, Career, Commune, Tutor } from './definitions';
+import type { Student, Institution, AcademicLevel, Career, Commune, Tutor, DirectorContact } from './definitions';
 
 // Initial mock data (immutable)
 export const mockStudentsData: Student[] = [
@@ -35,12 +35,39 @@ function persistStudents() {
 }
 
 export const mockInitialInstitutions: Institution[] = [
-  { id: 'inst1', rbd: '1001', name: 'Soluciones Tecnológicas Inc.', dependency: 'Particular Pagado', location: 'Santiago', contactName: 'Roberto Morales', contactEmail: 'roberto.morales@techsolutions.com', contactPhone: '+56912345678', contactRole: 'Gerente de Proyectos', logo: 'https://placehold.co/150x50.png' },
-  { id: 'inst2', rbd: '1002', name: 'Diseños Creativos LLC', dependency: 'Particular Pagado', location: 'Valparaíso', contactName: 'Sofia Castro', contactEmail: 'sofia.castro@creativedesigns.com', contactPhone: '+56987654321', contactRole: 'Directora de Arte', logo: 'https://placehold.co/150x50.png' },
-  { id: 'inst3', rbd: '16793', name: 'LICEO TÉCNICO PROFESIONAL LA ARAUCANA', dependency: 'PART. SUBV.', location: 'Concepción', contactName: 'Fernando López', contactEmail: 'fernando.lopez@globalcorp.com', contactRole: 'Jefe de Operaciones', logo: 'https://placehold.co/150x50.png' },
-  { id: 'inst4', rbd: '1004', name: 'Escuela Tres Palitos', dependency: 'Municipal', location: 'Concepción', contactName: 'Condorito Pérez', contactEmail: 'condor.rector@palitos.cl', contactPhone: '+56911223344', contactRole: 'Director Académico', logo: 'https://placehold.co/150x50.png' },
-  { id: 'inst5', rbd: '1005', name: 'Construcciones BuildWell', dependency: 'Particular Pagado', location: 'Antofagasta', contactName: 'Andrés Torres', contactEmail: 'andres.torres@buildwell.com', contactRole: 'Jefe de Obra', logo: 'https://placehold.co/150x50.png' },
-  { id: 'inst6', rbd: '1006', name: 'Colegio Los Robles', dependency: 'Particular Subvencionado', location: 'Concepción', contactName: 'Ana María Silva', contactEmail: 'amsilva@losrobles.cl', contactRole: 'Coordinadora Académica', logo: 'https://placehold.co/150x50.png'}
+  { 
+    id: 'inst1', rbd: '1001', name: 'Soluciones Tecnológicas Inc.', dependency: 'Particular Pagado', location: 'Santiago', 
+    directorContacts: [{ id: 'dc1-1', name: 'Roberto Morales', email: 'roberto.morales@techsolutions.com', phone: '+56912345678', role: 'Gerente de Proyectos' }],
+    logo: 'https://placehold.co/150x50.png' 
+  },
+  { 
+    id: 'inst2', rbd: '1002', name: 'Diseños Creativos LLC', dependency: 'Particular Pagado', location: 'Valparaíso', 
+    directorContacts: [{ id: 'dc2-1', name: 'Sofia Castro', email: 'sofia.castro@creativedesigns.com', phone: '+56987654321', role: 'Directora de Arte' }],
+    logo: 'https://placehold.co/150x50.png' 
+  },
+  { 
+    id: 'inst3', rbd: '16793', name: 'LICEO TÉCNICO PROFESIONAL LA ARAUCANA', dependency: 'PART. SUBV.', location: 'Concepción', 
+    directorContacts: [
+      { id: 'dc3-1', name: 'Fernando López', email: 'fernando.lopez@globalcorp.com', role: 'Jefe de Operaciones' },
+      { id: 'dc3-2', name: 'Laura Acuña', email: 'laura.acuna@globalcorp.com', role: 'Coordinadora UTP' }
+    ],
+    logo: 'https://placehold.co/150x50.png' 
+  },
+  { 
+    id: 'inst4', rbd: '1004', name: 'Escuela Tres Palitos', dependency: 'Municipal', location: 'Concepción', 
+    directorContacts: [{ id: 'dc4-1', name: 'Condorito Pérez', email: 'condor.rector@palitos.cl', phone: '+56911223344', role: 'Director Académico' }],
+    logo: 'https://placehold.co/150x50.png' 
+  },
+  { 
+    id: 'inst5', rbd: '1005', name: 'Construcciones BuildWell', dependency: 'Particular Pagado', location: 'Antofagasta', 
+    directorContacts: [{ id: 'dc5-1', name: 'Andrés Torres', email: 'andres.torres@buildwell.com', role: 'Jefe de Obra' }],
+    logo: 'https://placehold.co/150x50.png' 
+  },
+  { 
+    id: 'inst6', rbd: '1006', name: 'Colegio Los Robles', dependency: 'Particular Subvencionado', location: 'Concepción', 
+    directorContacts: [{ id: 'dc6-1', name: 'Ana María Silva', email: 'amsilva@losrobles.cl', role: 'Coordinadora Académica' }],
+    logo: 'https://placehold.co/150x50.png'
+  }
 ];
 
 function initializeInstitutions(): Institution[] {
@@ -170,22 +197,40 @@ export async function getInstitutionById(id: string): Promise<Institution | unde
   return mockInstitutions.find(i => i.id === id);
 }
 
-export async function saveInstitution(institutionToSave: Institution | Omit<Institution, 'id'>): Promise<Institution> {
+export async function saveInstitution(institutionToSave: Omit<Institution, 'id' | 'logo'> | Institution): Promise<Institution> {
   await new Promise(resolve => setTimeout(resolve, 500));
-  
-  const institutionDataWithId: Institution = (institutionToSave as Institution).id && !(institutionToSave as Institution).id.startsWith('new-')
-    ? institutionToSave as Institution
-    : { ...institutionToSave, id: `inst-${Date.now()}-${Math.random().toString(36).substring(2, 9)}` } as Institution;
 
-  const index = mockInstitutions.findIndex(i => i.id === institutionDataWithId.id);
+  let institutionWithId: Institution;
+
+  if ('id' in institutionToSave && !institutionToSave.id.startsWith('new-')) {
+    institutionWithId = institutionToSave as Institution;
+  } else {
+    institutionWithId = {
+      ...institutionToSave,
+      id: `inst-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+    } as Institution;
+  }
+  
+  // Ensure directorContacts have IDs
+  const processedDirectorContacts = (institutionWithId.directorContacts || []).map(contact => ({
+    ...contact,
+    id: contact.id && !contact.id.startsWith('new-contact-') ? contact.id : `dc-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
+  }));
+
+  const finalInstitutionData: Institution = {
+    ...institutionWithId,
+    directorContacts: processedDirectorContacts
+  };
+
+  const index = mockInstitutions.findIndex(i => i.id === finalInstitutionData.id);
 
   if (index !== -1) {
-    mockInstitutions[index] = institutionDataWithId;
+    mockInstitutions[index] = finalInstitutionData;
   } else {
-    mockInstitutions.push(institutionDataWithId);
+    mockInstitutions.push(finalInstitutionData);
   }
   persistInstitutions();
-  return institutionDataWithId;
+  return finalInstitutionData;
 }
 
 export async function deleteInstitution(institutionId: string): Promise<void> {

@@ -4,7 +4,7 @@
 import * as React from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import type { Institution } from "@/lib/definitions";
+import type { Institution, DirectorContact } from "@/lib/definitions";
 import { Button } from "@/components/ui/button";
 import { Form } from "@/components/ui/form";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -24,23 +24,25 @@ export function AddInstitutionForm({ onSave, onCancel }: AddInstitutionFormProps
       name: "",
       dependency: "",
       location: "", // Comuna
-      contactName: "",
-      contactEmail: "",
-      contactPhone: "",
-      contactRole: "",
+      directorContacts: [{ name: "", email: "", phone: "", contactRole: "" }], // Start with one contact
     },
   });
 
   const onSubmit = async (data: InstitutionFormData) => {
+    // Map form data contacts to DirectorContact, ensuring new IDs are not sent
+    const directorContactsToSave: Omit<DirectorContact, 'id'>[] = data.directorContacts.map(contact => ({
+        name: contact.name,
+        email: contact.email,
+        phone: contact.phone || undefined,
+        role: contact.contactRole || undefined,
+    }));
+
     const newInstitutionData: Omit<Institution, 'id' | 'logo'> = {
       rbd: data.rbd,
       name: data.name,
       dependency: data.dependency,
       location: data.location,
-      contactName: data.contactName,
-      contactEmail: data.contactEmail,
-      contactPhone: data.contactPhone || undefined,
-      contactRole: data.contactRole || undefined,
+      directorContacts: directorContactsToSave as any, // Cast as any because service will assign IDs
     };
     await onSave(newInstitutionData);
     form.reset();
