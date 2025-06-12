@@ -202,7 +202,7 @@ export async function saveInstitution(institutionToSave: Omit<Institution, 'id' 
 
   let institutionWithId: Institution;
 
-  if ('id' in institutionToSave && !institutionToSave.id.startsWith('new-')) {
+  if ('id' in institutionToSave && institutionToSave.id && !institutionToSave.id.startsWith('new-')) {
     institutionWithId = institutionToSave as Institution;
   } else {
     institutionWithId = {
@@ -211,10 +211,9 @@ export async function saveInstitution(institutionToSave: Omit<Institution, 'id' 
     } as Institution;
   }
   
-  // Ensure directorContacts have IDs
   const processedDirectorContacts = (institutionWithId.directorContacts || []).map(contact => ({
     ...contact,
-    id: contact.id && !contact.id.startsWith('new-contact-') ? contact.id : `dc-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
+    id: (contact.id && !contact.id.startsWith('new-contact-')) ? contact.id : `dc-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
   }));
 
   const finalInstitutionData: Institution = {
@@ -259,3 +258,6 @@ export async function getTutors(): Promise<Tutor[]> {
     await new Promise(resolve => setTimeout(resolve, 200));
     return mockTutors;
 }
+
+
+    

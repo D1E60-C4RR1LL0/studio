@@ -5,11 +5,10 @@ import * as React from "react";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-// import { Textarea } from "@/components/ui/textarea"; // No longer used for email body preview
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getInstitutions, getStudents, getCommunes } from "@/lib/data";
-import type { Institution, Student, Commune } from "@/lib/definitions";
+import type { Institution, Student, Commune, DirectorContact } from "@/lib/definitions";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
@@ -26,6 +25,7 @@ import { cn } from "@/lib/utils";
 const CONFIRMED_STUDENT_IDS_KEY = 'confirmedPracticumStudentIds';
 const LAST_NOTIFIED_INSTITUTION_ID_KEY = 'lastNotifiedInstitutionId';
 const LAST_NOTIFIED_INSTITUTION_NAME_KEY = 'lastNotifiedInstitutionName';
+const LAST_NOTIFIED_INSTITUTION_CONTACT_ID_KEY = 'lastNotifiedInstitutionContactId';
 const LAST_NOTIFIED_INSTITUTION_CONTACT_NAME_KEY = 'lastNotifiedInstitutionContactName';
 const LAST_NOTIFIED_INSTITUTION_CONTACT_ROLE_KEY = 'lastNotifiedInstitutionContactRole';
 const LAST_NOTIFIED_INSTITUTION_CONTACT_EMAIL_KEY = 'lastNotifiedInstitutionContactEmail';
@@ -157,10 +157,11 @@ export default function InstitutionNotificationsPage() {
   
   const [selectedCommuneId, setSelectedCommuneId] = React.useState<string>("");
   const [selectedInstitutionId, setSelectedInstitutionId] = React.useState<string>("");
+  const [selectedContactId, setSelectedContactId] = React.useState<string>("");
   
-  const [editableContactName, setEditableContactName] = React.useState("");
-  const [editableContactRole, setEditableContactRole] = React.useState("");
-  const [editableContactEmail, setEditableContactEmail] = React.useState("");
+  const [contactNameForDisplay, setContactNameForDisplay] = React.useState("");
+  const [contactRoleForDisplay, setContactRoleForDisplay] = React.useState("");
+  const [contactEmailForDisplay, setContactEmailForDisplay] = React.useState("");
 
   const [practiceStartDateProf, setPracticeStartDateProf] = React.useState<Date | undefined>();
   const [practiceEndDateProf, setPracticeEndDateProf] = React.useState<Date | undefined>();
@@ -223,14 +224,12 @@ export default function InstitutionNotificationsPage() {
              if (Array.isArray(parsedIds)) {
               setConfirmedStage1StudentIds(parsedIds);
             } else {
-              console.warn("Stored student IDs from localStorage is not an array:", parsedIds);
               setConfirmedStage1StudentIds([]); 
             }
           } else {
              setConfirmedStage1StudentIds([]); 
           }
         } catch (error) {
-          console.error("Error parsing student IDs from localStorage:", error);
           toast({
             title: "Error al leer selección previa",
             description: "No se pudieron cargar los estudiantes seleccionados de la etapa anterior.",
@@ -257,9 +256,11 @@ export default function InstitutionNotificationsPage() {
       const commune = communes.find(c => c.id === selectedCommuneId);
       setFilteredInstitutions(allInstitutions.filter(inst => inst.location === commune?.name));
       setSelectedInstitutionId(""); 
+      setSelectedContactId("");
     } else {
       setFilteredInstitutions([]);
       setSelectedInstitutionId("");
+      setSelectedContactId("");
     }
   }, [selectedCommuneId, allInstitutions, communes]);
 
@@ -269,28 +270,55 @@ export default function InstitutionNotificationsPage() {
 
   React.useEffect(() => {
     if (selectedInstitution) {
-      setEditableContactName(selectedInstitution.contactName || "");
-      setEditableContactRole(selectedInstitution.contactRole || "");
-      setEditableContactEmail(selectedInstitution.contactEmail || "");
-      
-      // Show all students available from stage 1, do not filter by student's location here.
-      // The user will select which of these students to assign to THIS selectedInstitution.
+      // If there are contacts, try to select the first one by default or based on localStorage
+      if (selectedInstitution.directorContacts && selectedInstitution.directorContacts.length > 0) {
+        const lastContactId = typeof window !== 'undefined' ? localStorage.getItem(LAST_NOTIFIED_INSTITUTION_CONTACT_ID_KEY) : null;
+        const defaultContact = selectedInstitution.directorContacts.find(c => c.id === lastContactId) || selectedInstitution.directorContacts[0];
+        setSelectedContactId(defaultContact.id);
+      } else {
+        setSelectedContactId("");
+        setContactNameForDisplay("");
+        setContactRoleForDisplay("");
+        setContactEmailForDisplay("");
+      }
       setStudentsForInstitutionCheckboxes(studentsAvailableFromStage1);
-      setSelectedStudentsMap({}); // Reset student selection for the new institution
+      setSelectedStudentsMap({});
     } else {
-      setEditableContactName("");
-      setEditableContactRole("");
-      setEditableContactEmail("");
+      setSelectedContactId("");
+      setContactNameForDisplay("");
+      setContactRoleForDisplay("");
+      setContactEmailForDisplay("");
       setStudentsForInstitutionCheckboxes([]);
       setSelectedStudentsMap({});
     }
   }, [selectedInstitution, studentsAvailableFromStage1]); 
 
   React.useEffect(() => {
+    if (selectedInstitution && selectedContactId) {
+        const contact = selectedInstitution.directorContacts?.find(c => c.id === selectedContactId);
+        if (contact) {
+            setContactNameForDisplay(contact.name);
+            setContactRoleForDisplay(contact.role || "");
+            setContactEmailForDisplay(contact.email);
+        } else {
+            // Contact ID might be stale if institution contacts changed, clear them
+            setContactNameForDisplay("");
+            setContactRoleForDisplay("");
+            setContactEmailForDisplay("");
+        }
+    } else if (!selectedContactId) {
+        setContactNameForDisplay("");
+        setContactRoleForDisplay("");
+        setContactEmailForDisplay("");
+    }
+  }, [selectedContactId, selectedInstitution]);
+
+
+  React.useEffect(() => {
     const currentSelectedStudentsForEmail = studentsForInstitutionCheckboxes.filter(s => selectedStudentsMap[s.id]);
     const body = generateEmailBodyTemplate(
-      editableContactName,
-      editableContactRole,
+      contactNameForDisplay,
+      contactRoleForDisplay,
       selectedInstitution?.name || "",
       currentSelectedStudentsForEmail,
       practiceStartDateProf,
@@ -303,8 +331,8 @@ export default function InstitutionNotificationsPage() {
     setEmailBody(body);
   }, [
       selectedInstitution, 
-      editableContactName, 
-      editableContactRole, 
+      contactNameForDisplay, 
+      contactRoleForDisplay, 
       selectedStudentsMap, 
       studentsForInstitutionCheckboxes,
       practiceStartDateProf,
@@ -323,6 +351,7 @@ export default function InstitutionNotificationsPage() {
   const handleSendNotification = (e: React.FormEvent) => {
     e.preventDefault();
     const numSelectedStudents = Object.values(selectedStudentsMap).filter(Boolean).length;
+    const selectedContact = selectedInstitution?.directorContacts?.find(c => c.id === selectedContactId);
 
     if (!selectedInstitution || numSelectedStudents === 0) {
       toast({
@@ -332,6 +361,14 @@ export default function InstitutionNotificationsPage() {
       });
       return;
     }
+    if (!selectedContact) {
+        toast({
+            title: "Contacto no seleccionado",
+            description: "Por favor, seleccione un contacto de la institución.",
+            variant: "destructive",
+        });
+        return;
+    }
     if (!emailSubject.trim() || !emailBody.trim()) {
       toast({
         title: "Correo incompleto",
@@ -340,10 +377,10 @@ export default function InstitutionNotificationsPage() {
       });
       return;
     }
-    if (!editableContactName.trim() || !editableContactEmail.trim()) {
+    if (!contactNameForDisplay.trim() || !contactEmailForDisplay.trim()) {
         toast({
             title: "Detalles de contacto incompletos",
-            description: "Por favor, complete el nombre y correo del contacto.",
+            description: "El contacto seleccionado no tiene nombre o correo electrónico.",
             variant: "destructive",
         });
         return;
@@ -365,9 +402,10 @@ export default function InstitutionNotificationsPage() {
         localStorage.setItem(CONFIRMED_STUDENT_IDS_KEY, JSON.stringify(studentIdsToPass));
         localStorage.setItem(LAST_NOTIFIED_INSTITUTION_ID_KEY, selectedInstitution.id);
         localStorage.setItem(LAST_NOTIFIED_INSTITUTION_NAME_KEY, selectedInstitution.name);
-        localStorage.setItem(LAST_NOTIFIED_INSTITUTION_CONTACT_NAME_KEY, editableContactName);
-        localStorage.setItem(LAST_NOTIFIED_INSTITUTION_CONTACT_ROLE_KEY, editableContactRole);
-        localStorage.setItem(LAST_NOTIFIED_INSTITUTION_CONTACT_EMAIL_KEY, editableContactEmail);
+        localStorage.setItem(LAST_NOTIFIED_INSTITUTION_CONTACT_ID_KEY, selectedContact.id);
+        localStorage.setItem(LAST_NOTIFIED_INSTITUTION_CONTACT_NAME_KEY, selectedContact.name);
+        localStorage.setItem(LAST_NOTIFIED_INSTITUTION_CONTACT_ROLE_KEY, selectedContact.role || "");
+        localStorage.setItem(LAST_NOTIFIED_INSTITUTION_CONTACT_EMAIL_KEY, selectedContact.email);
         if (practiceStartDateProf) localStorage.setItem(PRACTICUM_PROF_START_DATE_KEY, practiceStartDateProf.toISOString());
         if (practiceEndDateProf) localStorage.setItem(PRACTICUM_PROF_END_DATE_KEY, practiceEndDateProf.toISOString());
         if (practiceWeeksProf) localStorage.setItem(PRACTICUM_PROF_WEEKS_KEY, practiceWeeksProf);
@@ -377,9 +415,9 @@ export default function InstitutionNotificationsPage() {
     }
 
 
-    console.log("Enviando correo a:", editableContactEmail);
-    console.log("Nombre Contacto:", editableContactName);
-    console.log("Cargo Contacto:", editableContactRole);
+    console.log("Enviando correo a:", contactEmailForDisplay);
+    console.log("Nombre Contacto:", contactNameForDisplay);
+    console.log("Cargo Contacto:", contactRoleForDisplay);
     console.log("Institución:", selectedInstitution.name);
     console.log("Asunto:", emailSubject);
     console.log("Cuerpo del Correo (HTML):", emailBody); 
@@ -403,8 +441,9 @@ export default function InstitutionNotificationsPage() {
                            !emailSubject.trim() || 
                            !emailBody.trim() || 
                            isLoadingProgress || 
-                           !editableContactEmail.trim() || 
-                           !editableContactName.trim() ||
+                           !selectedContactId ||
+                           !contactEmailForDisplay.trim() || 
+                           !contactNameForDisplay.trim() ||
                            !practiceStartDateProf || !practiceEndDateProf || !practiceWeeksProf.trim() ||
                            !practiceStartDateOther || !practiceEndDateOther || !practiceWeeksOther.trim();
 
@@ -419,7 +458,7 @@ export default function InstitutionNotificationsPage() {
         <Card>
           <CardHeader>
             <CardTitle>Detalles de la Institución y Contacto</CardTitle>
-            <CardDescription>Seleccione la comuna y la institución. Puede editar los detalles del contacto si es necesario.</CardDescription>
+            <CardDescription>Seleccione la comuna, la institución y el contacto. El cargo y correo se autocompletarán.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -453,16 +492,29 @@ export default function InstitutionNotificationsPage() {
             {selectedInstitution && (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4">
                 <div>
-                  <Label htmlFor="contact-name">Contacto</Label>
-                  <Input id="contact-name" value={editableContactName} onChange={(e) => setEditableContactName(e.target.value)} placeholder="Nombre del contacto" required/>
+                  <Label htmlFor="contact-select">Contacto</Label>
+                  <Select 
+                    onValueChange={setSelectedContactId} 
+                    value={selectedContactId} 
+                    disabled={!selectedInstitution || !selectedInstitution.directorContacts || selectedInstitution.directorContacts.length === 0}
+                  >
+                    <SelectTrigger id="contact-select">
+                      <SelectValue placeholder={selectedInstitution.directorContacts?.length > 0 ? "Seleccione un contacto" : "No hay contactos"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {selectedInstitution.directorContacts?.map((contact: DirectorContact) => (
+                        <SelectItem key={contact.id} value={contact.id}>{contact.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div>
                   <Label htmlFor="contact-role">Cargo del contacto</Label>
-                  <Input id="contact-role" value={editableContactRole} onChange={(e) => setEditableContactRole(e.target.value)} placeholder="Ej: Director Académico"/>
+                  <Input id="contact-role" value={contactRoleForDisplay} placeholder="Cargo (autocompletado)" readOnly className="bg-muted/50"/>
                 </div>
                 <div>
                   <Label htmlFor="contact-email">Correo electrónico</Label>
-                  <Input id="contact-email" type="email" value={editableContactEmail} onChange={(e) => setEditableContactEmail(e.target.value)} placeholder="correo@ejemplo.com" required/>
+                  <Input id="contact-email" type="email" value={contactEmailForDisplay} placeholder="Correo (autocompletado)" readOnly className="bg-muted/50"/>
                 </div>
               </div>
             )}
@@ -580,7 +632,7 @@ export default function InstitutionNotificationsPage() {
           </Card>
         )}
 
-        {selectedInstitution && Object.values(selectedStudentsMap).filter(Boolean).length > 0 && (
+        {selectedInstitution && Object.values(selectedStudentsMap).filter(Boolean).length > 0 && selectedContactId && (
             <Card>
                 <CardHeader>
                     <CardTitle>Plantilla de correo editable</CardTitle>
@@ -620,3 +672,6 @@ export default function InstitutionNotificationsPage() {
     </>
   );
 }
+
+
+    
