@@ -11,15 +11,12 @@ export const mockStudentsData: Student[] = [
   { id: '6', firstName: 'Pedro Pascal', lastNamePaternal: 'Pérez', lastNameMaternal: 'Gómez', rut: '66.666.666-6', career: 'Pedagogía en Educación Parvularia', email: 'pedro.perez@example.com', practicumLevel: 'Práctica Pedagógica II', tutor: 'Prof. Andrea Campos', commune: 'Concepción', location: 'Concepción' },
 ];
 
-// Use a mutable copy for operations like add/update
-// Initialize from localStorage if available, otherwise use mock data
 function initializeStudents(): Student[] {
   if (typeof window !== 'undefined') {
     const storedStudents = localStorage.getItem('practicumStudents');
     if (storedStudents) {
       try {
         const parsedStudents = JSON.parse(storedStudents);
-        // Ensure location is set for all students loaded from localStorage
         return parsedStudents.map((s: Student) => ({ ...s, location: s.location || s.commune || 'Desconocida' }));
       } catch (e) {
         console.error("Error parsing students from localStorage", e);
@@ -37,15 +34,37 @@ function persistStudents() {
   }
 }
 
-
-export const mockInstitutions: Institution[] = [
-  { id: 'inst1', name: 'Soluciones Tecnológicas Inc.', location: 'Santiago', contactName: 'Roberto Morales', contactEmail: 'roberto.morales@techsolutions.com', contactPhone: '+56912345678', contactRole: 'Gerente de Proyectos', logo: 'https://placehold.co/150x50.png' },
-  { id: 'inst2', name: 'Diseños Creativos LLC', location: 'Valparaíso', contactName: 'Sofia Castro', contactEmail: 'sofia.castro@creativedesigns.com', contactPhone: '+56987654321', contactRole: 'Directora de Arte', logo: 'https://placehold.co/150x50.png' },
-  { id: 'inst3', name: 'Global Corp', location: 'Santiago', contactName: 'Fernando López', contactEmail: 'fernando.lopez@globalcorp.com', contactRole: 'Jefe de Operaciones', logo: 'https://placehold.co/150x50.png' },
-  { id: 'inst4', name: 'Escuela Tres Palitos', location: 'Concepción', contactName: 'Condorito Pérez', contactEmail: 'condor.rector@palitos.cl', contactPhone: '+56911223344', contactRole: 'Director Académico', logo: 'https://placehold.co/150x50.png' },
-  { id: 'inst5', name: 'Construcciones BuildWell', location: 'Antofagasta', contactName: 'Andrés Torres', contactEmail: 'andres.torres@buildwell.com', contactRole: 'Jefe de Obra', logo: 'https://placehold.co/150x50.png' },
-  { id: 'inst6', name: 'Colegio Los Robles', location: 'Concepción', contactName: 'Ana María Silva', contactEmail: 'amsilva@losrobles.cl', contactRole: 'Coordinadora Académica', logo: 'https://placehold.co/150x50.png'}
+export const mockInitialInstitutions: Institution[] = [
+  { id: 'inst1', rbd: '1001', name: 'Soluciones Tecnológicas Inc.', dependency: 'Particular Pagado', location: 'Santiago', contactName: 'Roberto Morales', contactEmail: 'roberto.morales@techsolutions.com', contactPhone: '+56912345678', contactRole: 'Gerente de Proyectos', logo: 'https://placehold.co/150x50.png' },
+  { id: 'inst2', rbd: '1002', name: 'Diseños Creativos LLC', dependency: 'Particular Pagado', location: 'Valparaíso', contactName: 'Sofia Castro', contactEmail: 'sofia.castro@creativedesigns.com', contactPhone: '+56987654321', contactRole: 'Directora de Arte', logo: 'https://placehold.co/150x50.png' },
+  { id: 'inst3', rbd: '16793', name: 'LICEO TÉCNICO PROFESIONAL LA ARAUCANA', dependency: 'PART. SUBV.', location: 'Concepción', contactName: 'Fernando López', contactEmail: 'fernando.lopez@globalcorp.com', contactRole: 'Jefe de Operaciones', logo: 'https://placehold.co/150x50.png' },
+  { id: 'inst4', rbd: '1004', name: 'Escuela Tres Palitos', dependency: 'Municipal', location: 'Concepción', contactName: 'Condorito Pérez', contactEmail: 'condor.rector@palitos.cl', contactPhone: '+56911223344', contactRole: 'Director Académico', logo: 'https://placehold.co/150x50.png' },
+  { id: 'inst5', rbd: '1005', name: 'Construcciones BuildWell', dependency: 'Particular Pagado', location: 'Antofagasta', contactName: 'Andrés Torres', contactEmail: 'andres.torres@buildwell.com', contactRole: 'Jefe de Obra', logo: 'https://placehold.co/150x50.png' },
+  { id: 'inst6', rbd: '1006', name: 'Colegio Los Robles', dependency: 'Particular Subvencionado', location: 'Concepción', contactName: 'Ana María Silva', contactEmail: 'amsilva@losrobles.cl', contactRole: 'Coordinadora Académica', logo: 'https://placehold.co/150x50.png'}
 ];
+
+function initializeInstitutions(): Institution[] {
+  if (typeof window !== 'undefined') {
+    const storedInstitutions = localStorage.getItem('practicumInstitutions');
+    if (storedInstitutions) {
+      try {
+        return JSON.parse(storedInstitutions);
+      } catch (e) {
+        console.error("Error parsing institutions from localStorage", e);
+      }
+    }
+  }
+  return [...mockInitialInstitutions];
+}
+
+let mockInstitutions: Institution[] = initializeInstitutions();
+
+function persistInstitutions() {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('practicumInstitutions', JSON.stringify(mockInstitutions));
+  }
+}
+
 
 export const mockAcademicLevels: AcademicLevel[] = [
   { id: 'level1', name: 'Práctica I' },
@@ -88,17 +107,16 @@ export const mockTutors: Tutor[] = [
     { id: 'tut6', name: 'Juan Pérez (juan.perez@ucsc.cl)'}
 ];
 
+// Student Data Functions
 export async function getStudents(): Promise<Student[]> {
   await new Promise(resolve => setTimeout(resolve, 500));
-  // Ensure mockStudents is initialized if it became empty for some reason and localStorage is also empty
   if (mockStudents.length === 0 && typeof window !== 'undefined' && !localStorage.getItem('practicumStudents')) {
     mockStudents = [...mockStudentsData].map(s => ({ ...s, location: s.location || s.commune || 'Desconocida' }));
-    persistStudents(); // Persist the initial mock data if localStorage was empty
+    persistStudents();
   } else if (mockStudents.length === 0 && (typeof window === 'undefined' || !localStorage.getItem('practicumStudents'))) {
-    // For server-side or environments without localStorage, always start with mockStudentsData
     mockStudents = [...mockStudentsData].map(s => ({ ...s, location: s.location || s.commune || 'Desconocida' }));
   }
-  return [...mockStudents]; // Return a copy
+  return [...mockStudents];
 }
 
 export async function getStudentById(id: string): Promise<Student | undefined> {
@@ -131,14 +149,20 @@ export async function saveStudent(studentToSave: Student | Omit<Student, 'id'>):
 
 export async function deleteAllStudents(): Promise<void> {
   await new Promise(resolve => setTimeout(resolve, 500));
-  mockStudents = []; // Clear the in-memory array
-  persistStudents(); // Persist the empty array to localStorage
+  mockStudents = [];
+  persistStudents();
 }
 
-
+// Institution Data Functions
 export async function getInstitutions(): Promise<Institution[]> {
   await new Promise(resolve => setTimeout(resolve, 500));
-  return mockInstitutions;
+   if (mockInstitutions.length === 0 && typeof window !== 'undefined' && !localStorage.getItem('practicumInstitutions')) {
+    mockInstitutions = [...mockInitialInstitutions];
+    persistInstitutions();
+  } else if (mockInstitutions.length === 0 && (typeof window === 'undefined' || !localStorage.getItem('practicumInstitutions'))) {
+    mockInstitutions = [...mockInitialInstitutions];
+  }
+  return [...mockInstitutions];
 }
 
 export async function getInstitutionById(id: string): Promise<Institution | undefined> {
@@ -146,16 +170,31 @@ export async function getInstitutionById(id: string): Promise<Institution | unde
   return mockInstitutions.find(i => i.id === id);
 }
 
-export async function updateInstitution(updatedInstitution: Institution): Promise<Institution> {
+export async function saveInstitution(institutionToSave: Institution | Omit<Institution, 'id'>): Promise<Institution> {
   await new Promise(resolve => setTimeout(resolve, 500));
-  const index = mockInstitutions.findIndex(i => i.id === updatedInstitution.id);
+  
+  const institutionDataWithId: Institution = (institutionToSave as Institution).id && !(institutionToSave as Institution).id.startsWith('new-')
+    ? institutionToSave as Institution
+    : { ...institutionToSave, id: `inst-${Date.now()}-${Math.random().toString(36).substring(2, 9)}` } as Institution;
+
+  const index = mockInstitutions.findIndex(i => i.id === institutionDataWithId.id);
+
   if (index !== -1) {
-    mockInstitutions[index] = updatedInstitution;
-    return updatedInstitution;
+    mockInstitutions[index] = institutionDataWithId;
+  } else {
+    mockInstitutions.push(institutionDataWithId);
   }
-  throw new Error('Institución no encontrada');
+  persistInstitutions();
+  return institutionDataWithId;
 }
 
+export async function deleteInstitution(institutionId: string): Promise<void> {
+  await new Promise(resolve => setTimeout(resolve, 500));
+  mockInstitutions = mockInstitutions.filter(i => i.id !== institutionId);
+  persistInstitutions();
+}
+
+// Other Data Functions
 export async function getAcademicLevels(): Promise<AcademicLevel[]> {
     await new Promise(resolve => setTimeout(resolve, 200));
     return mockAcademicLevels;

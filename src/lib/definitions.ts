@@ -16,13 +16,15 @@ export type Student = {
 
 export type Institution = {
   id: string;
+  rbd: string; // Rol Base de Datos - Identificador único del establecimiento
   name: string;
-  location: string; // Generalmente la comuna
+  dependency: string; // Ej: Municipal, Particular Subvencionado, Particular Pagado
+  location: string; // Comuna donde se ubica
   contactName: string;
   contactEmail: string;
   contactPhone?: string;
-  contactRole?: string; // Nuevo campo: Cargo del contacto
-  logo?: string;
+  contactRole?: string;
+  logo?: string; // URL del logo
 };
 
 export type AcademicLevel = {
