@@ -29,7 +29,7 @@ function Step({ icon: Icon, title, description, isActive, isVisuallyCompletedFor
         "flex items-center justify-center w-12 h-12 rounded-full mb-2 transition-colors",
         isActive ? "bg-primary text-primary-foreground" :
         isLocked ? "bg-muted text-muted-foreground" :
-        isVisuallyCompletedForIcon ? "bg-primary text-primary-foreground" : // Completed uses primary style
+        isVisuallyCompletedForIcon ? "bg-primary text-primary-foreground" :
         "bg-secondary text-secondary-foreground group-hover:bg-muted"
       )}>
         {isLocked ? <Lock className="w-6 h-6" /> : 
@@ -66,7 +66,7 @@ function Step({ icon: Icon, title, description, isActive, isVisuallyCompletedFor
 }
 
 interface CoordinationHeaderProps {
-  activeIndex: number; // This is StageValues from STAGES
+  activeIndex: number;
 }
 
 const stepsData = [
@@ -86,22 +86,24 @@ export function CoordinationHeader({ activeIndex }: CoordinationHeaderProps) {
         <h1 className="text-3xl font-bold text-center text-foreground mb-8">
           Coordinación de Prácticas Pedagógicas
         </h1>
-        <div className="flex flex-col md:flex-row items-start justify-between gap-6 md:gap-8 relative">
-          {stepsData.map((step, index) => (
-            <React.Fragment key={index}>
-              <div className="flex flex-col items-center text-center md:flex-1 md:items-start md:text-left p-2 -m-2">
-                <Skeleton className="w-12 h-12 rounded-full mb-2" />
-                <Skeleton className="h-5 w-3/4 mb-1" />
-                <Skeleton className="h-4 w-full md:w-5/6" />
-              </div>
-               {index < stepsData.length - 1 && (
-                <>
-                  <div className="hidden md:block h-[2px] w-[calc((100%_/_3)_-_3rem)] bg-border absolute top-6 left-[calc((0.5_/_${numSteps})_*_100%)] z-[-1]" style={{ transform: `translateX(calc(-50% + (${index} * 100% / ${numSteps})))` }}></div>
-                  <div className="md:hidden w-px h-10 bg-border my-1 self-center"></div>
-                </>
-              )}
-            </React.Fragment>
-          ))}
+        <div className="flex justify-center">
+          <div className="relative flex flex-col md:inline-flex md:flex-row items-stretch md:items-start gap-6 md:gap-8">
+            {stepsData.map((step, index) => (
+              <React.Fragment key={index}>
+                <div className="flex flex-col items-center text-center md:flex-1 md:items-start md:text-left p-2 -m-2">
+                  <Skeleton className="w-12 h-12 rounded-full mb-2" />
+                  <Skeleton className="h-5 w-3/4 mb-1" />
+                  <Skeleton className="h-4 w-full md:w-5/6" />
+                </div>
+                {index < stepsData.length - 1 && (
+                  <>
+                    <div className="hidden md:block h-[2px] w-full bg-border absolute top-6 left-0 z-[-1]" style={{ opacity: 0.3 }}></div> {/* Placeholder for line positioning in skeleton */}
+                    <div className="md:hidden w-px h-10 bg-border my-1 self-center"></div>
+                  </>
+                )}
+              </React.Fragment>
+            ))}
+          </div>
         </div>
       </div>
     );
@@ -112,65 +114,67 @@ export function CoordinationHeader({ activeIndex }: CoordinationHeaderProps) {
       <h1 className="text-3xl font-bold text-center text-foreground mb-8">
         Coordinación de Prácticas Pedagógicas
       </h1>
-      <div className="flex flex-col md:flex-row items-start justify-between gap-6 md:gap-8 relative">
-        {stepsData.map((currentStep, index) => {
-          const stepIsActive = currentStep.stage === activeIndex;
-          const stepIsVisuallyCompletedForIcon = currentStep.stage < maxAccessLevel;
-          const isLocked = currentStep.stage > maxAccessLevel;
-          
-          let lineShouldBeActive = false;
-          if (index < numSteps - 1) {
-            const isCurrentStepDoneOrActive = currentStep.stage < maxAccessLevel || currentStep.stage === activeIndex;
-            const isNextStepAccessible = stepsData[index+1].stage <= maxAccessLevel;
-            lineShouldBeActive = isCurrentStepDoneOrActive && isNextStepAccessible;
-          }
-          
-          return (
-            <React.Fragment key={currentStep.href}>
-              <Step
-                href={currentStep.href}
-                icon={currentStep.icon}
-                title={currentStep.title}
-                description={currentStep.description}
-                isActive={stepIsActive}
-                isVisuallyCompletedForIcon={stepIsVisuallyCompletedForIcon}
-                isLocked={isLocked}
-                onClick={(e) => {
-                  if (isLocked) {
-                    e.preventDefault();
-                    toast({ 
-                        title: "Paso Bloqueado", 
-                        description: "Debes completar los pasos anteriores para acceder a esta sección.",
-                        variant: "destructive"
-                    });
-                  }
-                }}
-              />
-              {index < numSteps - 1 && (
-                 <>
-                  {/* Desktop line */}
-                  <div
-                    className={cn(
-                      "hidden md:block h-[2px] absolute top-6 z-[-1]",
-                      lineShouldBeActive ? "bg-primary" : "bg-border"
-                    )}
-                    style={{
-                      left: `calc((${index} + 0.5) * (100% / ${numSteps}))`,
-                      width: `calc((100% / ${numSteps}) - 3rem)`, 
-                      transform: 'translateX(1.5rem)', // Adjust by half of icon width (1.5rem for w-12 icon)
-                    }}
-                  />
-                  {/* Mobile line */}
-                  <div className={cn(
-                      "md:hidden w-px h-10 my-1 self-center",
-                      lineShouldBeActive ? "bg-primary" : "bg-border"
-                    )}>
-                  </div>
-                 </>
-              )}
-            </React.Fragment>
-          );
-        })}
+      <div className="flex justify-center"> {/* Outer centering container */}
+        <div className="relative flex flex-col md:inline-flex md:flex-row items-stretch md:items-start gap-6 md:gap-8"> {/* Inner container for steps and lines */}
+          {stepsData.map((currentStep, index) => {
+            const stepIsActive = currentStep.stage === activeIndex;
+            const stepIsVisuallyCompletedForIcon = currentStep.stage < maxAccessLevel;
+            const isLocked = currentStep.stage > maxAccessLevel;
+            
+            let lineShouldBeActive = false;
+            if (index < numSteps - 1) {
+              const isCurrentStepDoneOrActive = currentStep.stage < maxAccessLevel || currentStep.stage === activeIndex;
+              const isNextStepAccessible = stepsData[index+1].stage <= maxAccessLevel;
+              lineShouldBeActive = isCurrentStepDoneOrActive && isNextStepAccessible;
+            }
+            
+            return (
+              <React.Fragment key={currentStep.href}>
+                <Step
+                  href={currentStep.href}
+                  icon={currentStep.icon}
+                  title={currentStep.title}
+                  description={currentStep.description}
+                  isActive={stepIsActive}
+                  isVisuallyCompletedForIcon={stepIsVisuallyCompletedForIcon}
+                  isLocked={isLocked}
+                  onClick={(e) => {
+                    if (isLocked) {
+                      e.preventDefault();
+                      toast({ 
+                          title: "Paso Bloqueado", 
+                          description: "Debes completar los pasos anteriores para acceder a esta sección.",
+                          variant: "destructive"
+                      });
+                    }
+                  }}
+                />
+                {index < numSteps - 1 && (
+                  <>
+                    {/* Desktop line */}
+                    <div
+                      className={cn(
+                        "hidden md:block h-[2px] absolute top-6 z-[-1]",
+                        lineShouldBeActive ? "bg-primary" : "bg-border"
+                      )}
+                      style={{
+                        left: `calc((${index} + 0.5) * (100% / ${numSteps}))`,
+                        width: `calc((100% / ${numSteps}) - 3rem)`, 
+                        transform: 'translateX(1.5rem)',
+                      }}
+                    />
+                    {/* Mobile line */}
+                    <div className={cn(
+                        "md:hidden w-px h-10 my-1 self-center",
+                        lineShouldBeActive ? "bg-primary" : "bg-border"
+                      )}>
+                    </div>
+                  </>
+                )}
+              </React.Fragment>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
