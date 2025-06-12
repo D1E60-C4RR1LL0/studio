@@ -15,7 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { CalendarIcon, SendHorizonal, Info, CheckCircle2 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
-import { cn } from "@/lib/utils";
+import { cn, textToHtmlWithPlaceholders } from "@/lib/utils";
 import { getStudents, getAcademicLevels } from "@/lib/data";
 import type { Student, AcademicLevel } from "@/lib/definitions";
 import { useToast } from "@/hooks/use-toast";
@@ -72,68 +72,14 @@ interface LevelProgramming {
 
 const formatDateForStudentEmail = (date: Date | undefined, type: 'start' | 'end'): string => {
   if (!date) return type === 'start' ? "[Fecha Inicio Practica indefinida]" : "[Fecha Termino Practica indefinida]";
-  // Example format: "semana del 17 de marzo" or "semana del 16 de junio yyyy"
   const yearFormat = type === 'end' ? " yyyy" : ""; 
   return format(date, `'semana del' dd 'de' MMMM${yearFormat}`, { locale: es });
-};
-
-// Updated textToHtmlWithPlaceholders function for general use
-const textToHtmlWithPlaceholders = (
-  plainTextTemplate: string,
-  htmlPlaceholders: Record<string, string>, // For placeholders that are already HTML (e.g., tables)
-  textPlaceholders: Record<string, string>  // For simple text replacements
-): string => {
-  let processedText = plainTextTemplate;
-
-  // 1. Temporarily mark HTML placeholders to protect them
-  const tempHtmlMap: Record<string, string> = {};
-  let placeholderIdx = 0;
-  for (const key in htmlPlaceholders) {
-    if (htmlPlaceholders.hasOwnProperty(key)) {
-      const tempKey = `__HTML_PLACEHOLDER_${placeholderIdx++}__`;
-      tempHtmlMap[tempKey] = htmlPlaceholders[key];
-      processedText = processedText.replace(new RegExp(key.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'g'), tempKey);
-    }
-  }
-
-  // 2. Convert plain text to HTML paragraphs and line breaks
-  let htmlResult = processedText
-    .split(/\n\s*\n/) // Split by one or more empty lines (paragraph breaks)
-    .map(paragraph => {
-      if (paragraph.trim() === "") return "";
-      
-      let currentParagraph = paragraph;
-      // Restore any HTML placeholders that were part of this paragraph block
-      for (const tempKey in tempHtmlMap) {
-        if (tempHtmlMap.hasOwnProperty(tempKey) && currentParagraph.includes(tempKey)) {
-          currentParagraph = currentParagraph.replace(new RegExp(tempKey.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'g'), tempHtmlMap[tempKey]);
-        }
-      }
-      
-      // If the entire paragraph was JUST a placeholder, don't wrap it in <p>
-      if (Object.values(tempHtmlMap).includes(paragraph.trim())) {
-        return paragraph.trim();
-      }
-      
-      // Otherwise, process as text: wrap in <p>, convert \n to <br />
-      return `<p>${currentParagraph.replace(/\n/g, "<br />")}</p>`;
-    })
-    .join("\n");
-
-  // 3. Replace simple text placeholders in the final HTML
-  for (const key in textPlaceholders) {
-    if (textPlaceholders.hasOwnProperty(key)) {
-      htmlResult = htmlResult.replace(new RegExp(key.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'g'), textPlaceholders[key]);
-    }
-  }
-
-  return htmlResult;
 };
 
 
 const renderStudentEmail = (
   templateSubject: string,
-  templateBodyPlainText: string, // Now takes plain text
+  templateBodyPlainText: string, 
   student: Student,
   notifiedInstitutionName: string,
   institutionContactName: string,
@@ -156,7 +102,6 @@ const renderStudentEmail = (
   
   const studentFullName = `${student.firstName} ${student.lastNamePaternal} ${student.lastNameMaternal}`;
 
-  // Define text placeholders for this email based on new format
   const textPlaceholders: Record<string, string> = {
     "[Nombre del Estudiante]": studentFullName,
     "[Nombre Institucion]": notifiedInstitutionName,
@@ -168,11 +113,10 @@ const renderStudentEmail = (
     "[Correo Electronico Directivo]": institutionContactEmail,
   };
   
-  const htmlPlaceholders = {}; // No complex HTML blocks to insert directly here for student email
+  const htmlPlaceholders = {}; 
 
   const body = textToHtmlWithPlaceholders(templateBodyPlainText, htmlPlaceholders, textPlaceholders);
 
-  // Replace placeholders in subject as well
   let subject = templateSubject;
   for (const key in textPlaceholders) {
     if (Object.prototype.hasOwnProperty.call(textPlaceholders, key)) {
@@ -215,7 +159,6 @@ export default function StudentNotificationsPage() {
   const [previewSubject, setPreviewSubject] = React.useState("");
   const [previewBodyHtml, setPreviewBodyHtml] = React.useState("");
 
-  // Declare the missing state variables
   const [currentScheduledDate, setCurrentScheduledDate] = React.useState<Date | undefined>();
   const [currentScheduledTime, setCurrentScheduledTime] = React.useState<string>("09:00");
 
@@ -234,7 +177,7 @@ export default function StudentNotificationsPage() {
       if (storedSubject) setStudentEmailSubjectTemplate(storedSubject);
       else setStudentEmailSubjectTemplate(DEFAULT_STUDENT_SUBJECT);
 
-      const storedBody = localStorage.getItem(TEMPLATE_STUDENT_BODY_HTML_KEY); // Key now stores plain text
+      const storedBody = localStorage.getItem(TEMPLATE_STUDENT_BODY_HTML_KEY); 
       if (storedBody) setStudentEmailBodyPlainTextTemplate(storedBody);
       else setStudentEmailBodyPlainTextTemplate(DEFAULT_STUDENT_BODY_TEXT);
     }
@@ -357,7 +300,7 @@ export default function StudentNotificationsPage() {
     if (studentToPreview) {
       const { subject, body } = renderStudentEmail(
         studentEmailSubjectTemplate,
-        studentEmailBodyPlainTextTemplate, // Pass plain text template
+        studentEmailBodyPlainTextTemplate, 
         studentToPreview,
         notifiedInstitutionName,
         institutionContactName,
@@ -446,7 +389,6 @@ export default function StudentNotificationsPage() {
       if (typeof window !== 'undefined') {
         localStorage.setItem(STUDENT_NOTIFICATION_LEVEL_PROGRAMMING_KEY, JSON.stringify(newState));
       }
-      // Convert back to Date objects for React state if needed, after stringifying for localStorage
       const reactState = { ...newState };
       if (reactState[levelId]?.scheduledDate && typeof reactState[levelId].scheduledDate === 'string') {
         // @ts-ignore
@@ -473,7 +415,7 @@ export default function StudentNotificationsPage() {
         programming.scheduledDate &&
         programming.scheduledTime?.trim() &&
         studentEmailSubjectTemplate.trim() &&
-        studentEmailBodyPlainTextTemplate.trim() // Check plain text template
+        studentEmailBodyPlainTextTemplate.trim() 
       ) {
         const level = displayableAcademicLevels.find(l => l.id === levelIdKey);
         if (level) {
@@ -518,7 +460,7 @@ export default function StudentNotificationsPage() {
       students.forEach(student => {
         const { subject: finalSubject, body: finalBody } = renderStudentEmail(
           studentEmailSubjectTemplate,
-          studentEmailBodyPlainTextTemplate, // Use plain text template
+          studentEmailBodyPlainTextTemplate, 
           student,
           notifiedInstitutionName,
           institutionContactName,
@@ -532,7 +474,6 @@ export default function StudentNotificationsPage() {
 
         console.log(`   Para ${student.email} (Estudiante: ${student.firstName} ${student.lastNamePaternal})`);
         console.log(`   Asunto: ${finalSubject}`);
-        // console.log(`   Cuerpo (HTML Renderizado): ${finalBody}`); 
         totalStudentsNotifiedCount++;
       });
     });

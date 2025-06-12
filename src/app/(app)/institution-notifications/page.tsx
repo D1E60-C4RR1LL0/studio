@@ -20,7 +20,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { format, parse } from "date-fns";
 import { es } from "date-fns/locale";
-import { cn } from "@/lib/utils";
+import { cn, textToHtmlWithPlaceholders } from "@/lib/utils";
 
 const CONFIRMED_STUDENT_IDS_KEY = 'confirmedPracticumStudentIds';
 const LAST_NOTIFIED_INSTITUTION_ID_KEY = 'lastNotifiedInstitutionId';
@@ -40,62 +40,60 @@ const TEMPLATE_INSTITUTION_SUBJECT_KEY = "TEMPLATE_INSTITUTION_SUBJECT";
 const TEMPLATE_INSTITUTION_BODY_HTML_KEY = "TEMPLATE_INSTITUTION_BODY_HTML"; 
 
 const DEFAULT_INSTITUTION_SUBJECT = "Información Estudiantes de Práctica";
-// Default body text is now sourced from admin/templates/page.tsx to ensure it's the single source of truth
-// We keep a minimal fallback here in case localStorage or templates page hasn't been visited.
 const MINIMAL_DEFAULT_INSTITUTION_BODY_TEXT = `Estimado/a {{directivo.nombre}},
 
-Por favor, revise la información de la práctica.
+Nos ponemos en contacto con usted referente a su rol como {{directivo.cargo}} en la institución {{nombre_establecimiento}}.
+
+A continuación, presentamos el calendario de prácticas UCSC para el primer semestre:
+<table border="1" cellpadding="5" cellspacing="0" style="border-collapse: collapse; width: 100%; margin-top: 10px; margin-bottom: 10px;">
+  <thead>
+    <tr>
+      <th>NIVEL DE PRÁCTICA</th>
+      <th>FECHA INICIO</th>
+      <th>FECHA TÉRMINO</th>
+      <th>Nº SEMANAS</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>P. PROFESIONAL</td>
+      <td>{{semana_inicio_profesional}}</td>
+      <td>{{semana_termino_profesional}}</td>
+      <td>{{numero_semanas_profesional}}</td>
+    </tr>
+    <tr>
+      <td>PPV - PPIV - PPIII - PPII - PPI</td>
+      <td>{{semana_inicio_pp}}</td>
+      <td>{{semana_termino_pp}}</td>
+      <td>{{numero_semanas_pp}}</td>
+    </tr>
+  </tbody>
+</table>
+
+Adjuntamos la lista de estudiantes propuestos para realizar su práctica en su establecimiento:
+{{studentTableHTML}}
+
+Es importante que cada estudiante, al iniciar su pasantía, entregue su carpeta de práctica que incluye la siguiente documentación esencial:
+{{documentationListHTML}}
+
+Agradecemos sinceramente el valioso espacio formativo que su comunidad educativa proporciona a nuestros futuros profesionales.
 
 Atentamente,
-Equipo UPP UCSC`.trim();
+Equipo Unidad de Prácticas Pedagógicas UCSC
+Coordinación de Gestión de Centros de Práctica Pedagógica
+Unidad de Práctica Pedagógica
+Facultad de Educación
+Universidad Católica de la Santísima Concepción
+Alonso de Ribera 2850 - Concepción - Chile
+Fono +56 412345859
+www.ucsc.cl
+`.trim();
 
 
 const formatDateForEmail = (date: Date | undefined, type: 'inicio' | 'termino'): string => {
   if (!date) return `[Fecha ${type === 'inicio' ? 'Inicio' : 'Término'} Indefinida]`;
   const yearFormat = type === 'termino' ? " yyyy" : "";
   return `semana del ${format(date, `dd 'de' MMMM${yearFormat}`, { locale: es })}`;
-};
-
-const textToHtmlWithPlaceholders = (
-  plainTextTemplate: string,
-  htmlPlaceholders: Record<string, string>,
-  textPlaceholders: Record<string, string>
-): string => {
-  let processedText = plainTextTemplate;
-
-  const tempHtmlPlaceholderMap: Record<string, string> = {};
-  let placeholderIndex = 0;
-
-  for (const key in htmlPlaceholders) {
-    const tempId = `__HTML_PLACEHOLDER_${placeholderIndex++}__`;
-    tempHtmlPlaceholderMap[tempId] = htmlPlaceholders[key];
-    processedText = processedText.replace(new RegExp(key.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'g'), tempId);
-  }
-  
-  let htmlResult = processedText
-    .split(/\n\s*\n/) 
-    .map(paragraph => {
-      if (paragraph.trim() === "") return ""; 
-      if (Object.keys(tempHtmlPlaceholderMap).some(tempId => paragraph.includes(tempId))) {
-        let currentBlock = paragraph;
-        for (const tempId in tempHtmlPlaceholderMap) {
-            currentBlock = currentBlock.replace(new RegExp(tempId, 'g'), tempHtmlPlaceholderMap[tempId]);
-        }
-        return currentBlock;
-      }
-      return `<p>${paragraph.replace(/\n/g, "<br />")}</p>`;
-    })
-    .join("\n"); 
-
-  for (const tempId in tempHtmlPlaceholderMap) {
-    htmlResult = htmlResult.replace(new RegExp(tempId, 'g'), tempHtmlPlaceholderMap[tempId]);
-  }
-
-  for (const key in textPlaceholders) {
-    htmlResult = htmlResult.replace(new RegExp(key.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'g'), textPlaceholders[key]);
-  }
-
-  return htmlResult;
 };
 
 
@@ -148,15 +146,11 @@ const renderEmailBody = (
       <li>Otra documentación</li>
     </ul>`;
 
-  // Placeholders for direct HTML insertion
   const htmlPlaceholders = {
     "{{studentTableHTML}}": studentTableHTML,
     "{{documentationListHTML}}": documentationListHTML,
-    // {{practiceCalendarHTML}} is no longer an HTML placeholder here, 
-    // as its structure is now part of the main template text using individual date/week placeholders
   };
 
-  // Placeholders for text replacement
   const textPlaceholders = {
     "{{directivo.nombre}}": contactName || '[Nombre Contacto]',
     "{{directivo.cargo}}": contactRole || '[Cargo Contacto]',
@@ -215,9 +209,9 @@ export default function InstitutionNotificationsPage() {
       const storedSubject = localStorage.getItem(TEMPLATE_INSTITUTION_SUBJECT_KEY);
       setEmailSubjectTemplate(storedSubject || DEFAULT_INSTITUTION_SUBJECT);
       
-      // Load the full default template from admin/templates/page.tsx or localStorage
       const storedBody = localStorage.getItem(TEMPLATE_INSTITUTION_BODY_HTML_KEY);
-      const defaultBodyFromTemplatesPage = (await import('@/app/(app)/admin/templates/page'))?.DEFAULT_INSTITUTION_EMAIL_BODY_TEXT || MINIMAL_DEFAULT_INSTITUTION_BODY_TEXT;
+      // Ensure this import is correct if DEFAULT_INSTITUTION_EMAIL_BODY_TEXT is exported from there
+      const defaultBodyFromTemplatesPage = MINIMAL_DEFAULT_INSTITUTION_BODY_TEXT; // Fallback, ideally load from templates/page.tsx default export
       setEmailBodyPlainTextTemplate(storedBody || defaultBodyFromTemplatesPage);
     }
 
@@ -492,7 +486,7 @@ export default function InstitutionNotificationsPage() {
 
 
   return (
-    <div className="p-4 md:p-6"> {/* Added padding to match other pages */}
+    <div className="p-4 md:p-6"> 
       <PageHeader
         title="Notificación al centro de práctica"
         description="Envía un correo electrónico a las instituciones educativas con la lista de estudiantes seleccionados."
@@ -714,5 +708,3 @@ export default function InstitutionNotificationsPage() {
     </div>
   );
 }
-
-    
