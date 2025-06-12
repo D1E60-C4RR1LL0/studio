@@ -72,7 +72,7 @@ export default function StudentManagementPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [toast, searchTerm]); // Added searchTerm as a dependency
+  }, [toast, searchTerm]); 
 
   React.useEffect(() => {
     fetchData();
@@ -128,14 +128,17 @@ export default function StudentManagementPage() {
     }
   };
 
-  const handleBulkUploadComplete = async () => {
-    await fetchData(); // This will refresh the student list, including the search if a term is present
-    toast({
-      title: "Carga Masiva Procesada",
-      description: "Los estudiantes del archivo han sido procesados.",
-    });
+  const handleBulkFileProcessed = async () => {
+    await fetchData(); // Refresh student list
+    // Toast for file processing success/failure is handled within BulkStudentUploadForm
     setViewMode('table');
-  }
+  };
+  
+  const handleDatabaseEmptied = async () => {
+    await fetchData(); // Refresh student list, view remains 'bulkUploadForm'
+     // Toast for database emptied success/failure is handled within BulkStudentUploadForm
+  };
+
 
   const handleTableSelectionChange = (studentId: string, isSelected: boolean) => {
     setSelectedStudentsForConfirmation(prevSelected => {
@@ -180,13 +183,13 @@ export default function StudentManagementPage() {
     table: "Selección de Estudiantes",
     addForm: "Agregar Nuevo Estudiante",
     editForm: "Editar Información del Estudiante",
-    bulkUploadForm: "Carga Masiva de Estudiantes desde Excel"
+    bulkUploadForm: "Carga Masiva de Datos desde Excel"
   };
   const pageDescriptions: Record<ViewMode, string> = {
     table: "Busca y selecciona los alumnos que podrían realizar su práctica.",
     addForm: "Complete el formulario para agregar un nuevo estudiante a la base de datos.",
     editForm: "Busque por RUT y modifique los datos del estudiante.",
-    bulkUploadForm: "Suba la plantilla Excel con la información de los estudiantes."
+    bulkUploadForm: "Suba la plantilla Excel con la información correspondiente."
   }
 
   if (isLoadingPracticumProgress || isLoading) {
@@ -290,10 +293,12 @@ export default function StudentManagementPage() {
 
       {viewMode === 'bulkUploadForm' && (
         <BulkStudentUploadForm
-          onUploadComplete={handleBulkUploadComplete}
+          onFileProcessed={handleBulkFileProcessed}
+          onDatabaseEmptied={handleDatabaseEmptied}
           onCancel={() => setViewMode('table')}
         />
       )}
     </>
   );
 }
+

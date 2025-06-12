@@ -8,8 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { UploadCloud, XCircle, Loader2, Trash2, AlertTriangle } from "lucide-react";
-import type { Student } from "@/lib/definitions";
-import { saveStudent, deleteAllStudents } from "@/lib/data"; 
+// import type { Student } from "@/lib/definitions"; // No longer needed for direct saveStudent
+import { deleteAllStudents } from "@/lib/data"; 
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,7 +23,8 @@ import {
 
 
 interface BulkStudentUploadFormProps {
-  onUploadComplete: () => Promise<void>;
+  onFileProcessed: () => Promise<void>;
+  onDatabaseEmptied: () => Promise<void>;
   onCancel: () => void;
 }
 
@@ -59,7 +60,7 @@ function parseExcelFileContents(fileText: string): Record<string, string>[] {
 }
 
 
-export function BulkStudentUploadForm({ onUploadComplete, onCancel }: BulkStudentUploadFormProps) {
+export function BulkStudentUploadForm({ onFileProcessed, onDatabaseEmptied, onCancel }: BulkStudentUploadFormProps) {
   const [selectedFile, setSelectedFile] = React.useState<File | null>(null);
   const [isProcessing, setIsProcessing] = React.useState(false);
   const [fileName, setFileName] = React.useState<string>("");
@@ -123,7 +124,7 @@ export function BulkStudentUploadForm({ onUploadComplete, onCancel }: BulkStuden
 
     toast({
       title: "Procesamiento de Excel Completado (Simulado)",
-      description: `${successCount} estudiantes procesados desde el archivo (simulación).`,
+      description: `${successCount} registros procesados desde el archivo (simulación).`,
       variant: "default",
     });
     // --- END SIMULATED PROCESSING ---
@@ -142,7 +143,7 @@ export function BulkStudentUploadForm({ onUploadComplete, onCancel }: BulkStuden
     }
     */
 
-    await onUploadComplete(); // This will refresh the student list
+    await onFileProcessed(); 
     setIsProcessing(false);
     setSelectedFile(null);
     setFileName("");
@@ -160,10 +161,10 @@ export function BulkStudentUploadForm({ onUploadComplete, onCancel }: BulkStuden
       await deleteAllStudents();
       toast({
         title: "Base de Datos Vaciada",
-        description: "Todos los estudiantes han sido eliminados exitosamente.",
+        description: "Todos los datos de estudiantes han sido eliminados exitosamente.",
         variant: "default",
       });
-      await onUploadComplete(); // Refresh student list
+      await onDatabaseEmptied(); // Refresh data in parent, view remains the same
     } catch (error) {
       console.error("Error vaciando la base de datos:", error);
       toast({
@@ -182,13 +183,13 @@ export function BulkStudentUploadForm({ onUploadComplete, onCancel }: BulkStuden
     <>
       <Card className="shadow-lg">
         <CardHeader>
-          <CardTitle>Cargar Estudiantes desde Excel</CardTitle>
+          <CardTitle>Cargar Datos desde Excel</CardTitle>
           <CardDescription>
-            Seleccione la plantilla de carga masiva (archivo Excel) con la información de los estudiantes.
+            Seleccione la plantilla de carga masiva (archivo Excel) con la información correspondiente.
             <br />
             Asegúrese de que el archivo tenga la estructura y columnas definidas en la plantilla oficial proporcionada.
             <br />
-            <strong>Nota:</strong> La funcionalidad de vaciar la base de datos eliminará TODOS los estudiantes existentes. Úsela con precaución.
+            <strong>Nota:</strong> La funcionalidad de vaciar la base de datos eliminará TODOS los datos de estudiantes existentes. Úsela con precaución.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -244,7 +245,7 @@ export function BulkStudentUploadForm({ onUploadComplete, onCancel }: BulkStuden
               Esta acción es irreversible y eliminará permanentemente TODOS los datos de los estudiantes de la base de datos.
               No podrá deshacer esta acción. 
               <br /><br />
-              <strong>¿Desea continuar y vaciar la base de datos?</strong>
+              <strong>¿Desea continuar y vaciar la base de datos de estudiantes?</strong>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -262,3 +263,4 @@ export function BulkStudentUploadForm({ onUploadComplete, onCancel }: BulkStuden
     </>
   );
 }
+
