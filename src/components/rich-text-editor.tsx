@@ -4,14 +4,14 @@
 import React, { useMemo } from 'react';
 import type { ReactQuillProps } from 'react-quill';
 // Import Quill styles. Make sure react-quill is installed.
-import 'react-quill/dist/quill.snow.css'; 
+import 'react-quill/dist/quill.snow.css';
 import dynamic from 'next/dynamic';
 import { cn } from '@/lib/utils';
 
 // Dynamically import ReactQuill using next/dynamic
-// This is the preferred way in Next.js for client-side only components.
+// Explicitly take the default export from the module.
 const QuillNoSSR = dynamic(
-  () => import('react-quill'), // react-quill exports its class as the default CJS export
+  () => import('react-quill').then(mod => mod.default || mod), // Use mod.default, fallback to mod
   {
     ssr: false, // Ensure it's not rendered on the server
     loading: () => ( // Optional: component to show while ReactQuill is loading
@@ -46,8 +46,8 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange, classN
       [{ 'color': [] }, { 'background': [] }],          // dropdown with defaults from theme
       [{ 'font': [] }],
       [{ 'align': [] }],
-      
-      ['link', 'image', 'video'], 
+
+      ['link', 'image', 'video'],
       // The 'table' button is not standard in Quill's core toolbar options without plugins.
       // Users can still paste or edit HTML tables if the underlying HTML is supported by Quill.
 
