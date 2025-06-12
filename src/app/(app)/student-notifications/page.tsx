@@ -6,7 +6,7 @@ import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import { Textarea } from "@/components/ui/textarea"; // Keep for default template structure
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -21,6 +21,7 @@ import type { Student, AcademicLevel } from "@/lib/definitions";
 import { useToast } from "@/hooks/use-toast";
 import { usePracticumProgress, STAGES } from '@/hooks/usePracticumProgress';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import RichTextEditor from "@/components/rich-text-editor"; // To display rendered HTML
 
 const CONFIRMED_STUDENT_IDS_KEY = 'confirmedPracticumStudentIds';
 const LAST_NOTIFIED_INSTITUTION_NAME_KEY = 'lastNotifiedInstitutionName';
@@ -33,39 +34,40 @@ const PRACTICUM_OTHER_START_DATE_KEY = 'practicumOtherStartDate';
 const PRACTICUM_OTHER_END_DATE_KEY = 'practicumOtherEndDate';
 const STUDENT_NOTIFICATION_LEVEL_PROGRAMMING_KEY = 'studentNotificationLevelProgramming';
 
-interface LevelProgramming {
-  scheduledDate?: Date | string;
-  scheduledTime: string;
-  emailSubject: string;
-  emailMessageTemplate: string;
-}
+// Template Keys for localStorage
+const TEMPLATE_STUDENT_SUBJECT_KEY = "TEMPLATE_STUDENT_SUBJECT";
+const TEMPLATE_STUDENT_BODY_HTML_KEY = "TEMPLATE_STUDENT_BODY_HTML";
 
-const DEFAULT_EMAIL_SUBJECT = "Confirmación de Práctica Pedagógica";
-
-const DEFAULT_EMAIL_MESSAGE_TEMPLATE = `Estimado/a estudiante [Nombre del Estudiante]
-
-Junto con saludar, se informa que, desde la coordinación de gestión de centros de Práctica de la UPP, ha sido adscrito/a a [Nombre Institucion], para desarrollar su [Nivel de Practica], que inicia la [Fecha Inicio Practica] hasta la [Fecha Termino Practica].
-
-Los datos de contacto del establecimiento son:
-- Nombre directivo: [Nombre Directivo]
-- Cargo: [Cargo Directivo]
-- Correo electrónico: [Correo Electronico Directivo]
-
-Posterior a este correo, deberá coordinar el inicio de su pasantía de acuerdo calendario de prácticas UCSC y hacer entrega de su carpeta de práctica y documentación personal, que incluye:
-- Certificado de Antecedentes (Link de descarga: https://www.chileatiende.gob.cl/fichas/3442-certificado-de-antecedentes)
-- Certificado de Inhabilidades para trabajar con menores de edad (Link de descarga: https://inhabilidades.srcei.cl/ConsInhab/consultaInhabilidad.do)
-- Certificado de Inhabilidades por maltrato relevante (Link de descarga: https://inhabilidades.srcei.cl/InhabilidadesRelevante/#/inicio)
-- Horario universitario
-- Otra documentación
-
-Se informa, además, que el equipo directivo del establecimiento está en conocimiento de su adscripción y por tanto es importante que asista presencialmente al centro educativo.
-
-Favor no responder a este correo. Para dudas y/o consulta favor escribir a sus respectivas coordinadoras de prácticas.
-
-Saludos cordiales,
-Unidad de Prácticas Pedagógicas UCSC
+// Default template content (with placeholders)
+const DEFAULT_STUDENT_SUBJECT = "Confirmación de Práctica Pedagógica";
+const DEFAULT_STUDENT_BODY_HTML = `
+<p>Estimado/a estudiante {{studentFullName}},</p>
+<p>Junto con saludar, se informa que, desde la coordinación de gestión de centros de Práctica de la UPP, ha sido adscrito/a a {{institutionName}}, para desarrollar su {{practicumLevel}}, que inicia la {{practicumStartDate}} hasta la {{practicumEndDate}}.</p>
+<p>Los datos de contacto del establecimiento son:</p>
+<ul>
+  <li>Nombre directivo: {{institutionContactName}}</li>
+  <li>Cargo: {{institutionContactRole}}</li>
+  <li>Correo electrónico: {{institutionContactEmail}}</li>
+</ul>
+<p>Posterior a este correo, deberá coordinar el inicio de su pasantía de acuerdo calendario de prácticas UCSC y hacer entrega de su carpeta de práctica y documentación personal, que incluye:</p>
+<ul>
+  <li>Certificado de Antecedentes (Link de descarga: https://www.chileatiende.gob.cl/fichas/3442-certificado-de-antecedentes)</li>
+  <li>Certificado de Inhabilidades para trabajar con menores de edad (Link de descarga: https://inhabilidades.srcei.cl/ConsInhab/consultaInhabilidad.do)</li>
+  <li>Certificado de Inhabilidades por maltrato relevante (Link de descarga: https://inhabilidades.srcei.cl/InhabilidadesRelevante/#/inicio)</li>
+  <li>Horario universitario</li>
+  <li>Otra documentación</li>
+</ul>
+<p>Se informa, además, que el equipo directivo del establecimiento está en conocimiento de su adscripción y por tanto es importante que asista presencialmente al centro educativo.</p>
+<p>Favor no responder a este correo. Para dudas y/o consulta favor escribir a sus respectivas coordinadoras de prácticas.</p>
+<p>Saludos cordiales,<br/>Unidad de Prácticas Pedagógicas UCSC</p>
 `.trim();
 
+
+interface LevelProgramming {
+  scheduledDate?: Date | string; // Can be string from localStorage initially
+  scheduledTime: string;
+  // emailSubject and emailMessageTemplate are now fetched globally or are defaults
+}
 
 const formatDateForStudentEmail = (date: Date | undefined, type: 'start' | 'end'): string => {
   if (!date) return type === 'start' ? "[Fecha Inicio Practica indefinida]" : "[Fecha Termino Practica indefinida]";
@@ -73,6 +75,45 @@ const formatDateForStudentEmail = (date: Date | undefined, type: 'start' | 'end'
     return format(date, "'semana del' dd 'de' MMMM", { locale: es });
   }
   return format(date, "'semana del' dd 'de' MMMM yyyy", { locale: es });
+};
+
+// Function to render student email using templates
+const renderStudentEmail = (
+  templateSubject: string,
+  templateBodyHtml: string,
+  student: Student,
+  notifiedInstitutionName: string,
+  institutionContactName: string,
+  institutionContactRole: string,
+  institutionContactEmail: string,
+  practicumProfStartDate?: Date,
+  practicumProfEndDate?: Date,
+  practicumOtherStartDate?: Date,
+  practicumOtherEndDate?: Date
+): { subject: string; body: string } => {
+  const studentFullName = `${student.firstName} ${student.lastNamePaternal} ${student.lastNameMaternal}`;
+  let startDate, endDate;
+  if (student.practicumLevel.toLowerCase().includes('profesional')) {
+    startDate = practicumProfStartDate;
+    endDate = practicumProfEndDate;
+  } else {
+    startDate = practicumOtherStartDate;
+    endDate = practicumOtherEndDate;
+  }
+
+  let subject = templateSubject; // No placeholders in default student subject for now
+  let body = templateBodyHtml;
+
+  body = body.replace(/\{\{studentFullName\}\}/g, studentFullName);
+  body = body.replace(/\{\{institutionName\}\}/g, notifiedInstitutionName);
+  body = body.replace(/\{\{practicumLevel\}\}/g, student.practicumLevel);
+  body = body.replace(/\{\{practicumStartDate\}\}/g, formatDateForStudentEmail(startDate, 'start'));
+  body = body.replace(/\{\{practicumEndDate\}\}/g, formatDateForStudentEmail(endDate, 'end'));
+  body = body.replace(/\{\{institutionContactName\}\}/g, institutionContactName);
+  body = body.replace(/\{\{institutionContactRole\}\}/g, institutionContactRole);
+  body = body.replace(/\{\{institutionContactEmail\}\}/g, institutionContactEmail);
+
+  return { subject, body };
 };
 
 
@@ -100,10 +141,17 @@ export default function StudentNotificationsPage() {
 
   const [programmingByLevel, setProgrammingByLevel] = React.useState<Record<string, LevelProgramming>>({});
 
+  // Global templates, loaded once
+  const [studentEmailSubjectTemplate, setStudentEmailSubjectTemplate] = React.useState(DEFAULT_STUDENT_SUBJECT);
+  const [studentEmailBodyHtmlTemplate, setStudentEmailBodyHtmlTemplate] = React.useState(DEFAULT_STUDENT_BODY_HTML);
+
   const [currentScheduledDate, setCurrentScheduledDate] = React.useState<Date | undefined>();
   const [currentScheduledTime, setCurrentScheduledTime] = React.useState<string>("09:00");
-  const [currentEmailSubject, setCurrentEmailSubject] = React.useState<string>(DEFAULT_EMAIL_SUBJECT);
-  const [currentEmailMessageTemplate, setCurrentEmailMessageTemplate] = React.useState<string>(DEFAULT_EMAIL_MESSAGE_TEMPLATE);
+  
+  // For preview
+  const [previewSubject, setPreviewSubject] = React.useState("");
+  const [previewBodyHtml, setPreviewBodyHtml] = React.useState("");
+
 
   const { toast } = useToast();
   const { maxAccessLevel, isLoadingProgress } = usePracticumProgress();
@@ -114,6 +162,14 @@ export default function StudentNotificationsPage() {
 
 
   React.useEffect(() => {
+    // Load global templates
+    if (typeof window !== 'undefined') {
+      const storedSubject = localStorage.getItem(TEMPLATE_STUDENT_SUBJECT_KEY);
+      if (storedSubject) setStudentEmailSubjectTemplate(storedSubject);
+      const storedBody = localStorage.getItem(TEMPLATE_STUDENT_BODY_HTML_KEY);
+      if (storedBody) setStudentEmailBodyHtmlTemplate(storedBody);
+    }
+
     async function loadData() {
       try {
         const [studentData, levelData] = await Promise.all([
@@ -202,8 +258,7 @@ export default function StudentNotificationsPage() {
       const programming = programmingByLevel[selectedLevelId];
       setCurrentScheduledDate(programming?.scheduledDate ? (programming.scheduledDate instanceof Date ? programming.scheduledDate : parseISO(programming.scheduledDate as string)) : undefined);
       setCurrentScheduledTime(programming?.scheduledTime || "09:00");
-      setCurrentEmailSubject(programming?.emailSubject || DEFAULT_EMAIL_SUBJECT);
-      setCurrentEmailMessageTemplate(programming?.emailMessageTemplate || DEFAULT_EMAIL_MESSAGE_TEMPLATE);
+      // Subject and Body templates are now global, not per-level programming
 
       const level = displayableAcademicLevels.find(l => l.id === selectedLevelId);
       if (level) {
@@ -225,24 +280,92 @@ export default function StudentNotificationsPage() {
         setSelectedStudentForPreviewId("");
         setCurrentScheduledDate(undefined);
         setCurrentScheduledTime("09:00");
-        setCurrentEmailSubject(DEFAULT_EMAIL_SUBJECT);
-        setCurrentEmailMessageTemplate(DEFAULT_EMAIL_MESSAGE_TEMPLATE);
     }
   }, [selectedLevelId, programmingByLevel, displayableAcademicLevels, studentsReadyForNotification, selectedStudentForPreviewId]); 
+
+
+  // Update email preview when selected student or templates change
+  React.useEffect(() => {
+    const studentToPreview = allStudentsData.find(s => s.id === selectedStudentForPreviewId);
+    if (studentToPreview) {
+      const { subject, body } = renderStudentEmail(
+        studentEmailSubjectTemplate,
+        studentEmailBodyHtmlTemplate,
+        studentToPreview,
+        notifiedInstitutionName,
+        institutionContactName,
+        institutionContactRole,
+        institutionContactEmail,
+        practicumProfStartDate,
+        practicumProfEndDate,
+        practicumOtherStartDate,
+        practicumOtherEndDate
+      );
+      setPreviewSubject(subject);
+      setPreviewBodyHtml(body);
+    } else if (selectedLevelId && studentsInSelectedLevelForPreview.length > 0) {
+      // Preview with generic data if a level is selected but no specific student
+      const genericStudent = studentsInSelectedLevelForPreview[0]; // Use first student of level for structure
+       const { subject, body } = renderStudentEmail(
+        studentEmailSubjectTemplate,
+        studentEmailBodyHtmlTemplate,
+        {...genericStudent, firstName: "[Nombre", lastNamePaternal: "Estudiante]", lastNameMaternal: "" }, // Generic name
+        notifiedInstitutionName,
+        institutionContactName,
+        institutionContactRole,
+        institutionContactEmail,
+        practicumProfStartDate,
+        practicumProfEndDate,
+        practicumOtherStartDate,
+        practicumOtherEndDate
+      );
+      setPreviewSubject(subject);
+      setPreviewBodyHtml(body.replace(/\[Nombre Estudiante\]/g, "(Seleccione un alumno para vista previa detallada)"));
+    }
+     else {
+      // Fallback or empty preview
+      setPreviewSubject(studentEmailSubjectTemplate); // Show default subject
+      setPreviewBodyHtml(studentEmailBodyHtmlTemplate
+        .replace(/\{\{studentFullName\}\}/g, "(No hay alumnos en este nivel para previsualizar)")
+        .replace(/\{\{institutionName\}\}/g, notifiedInstitutionName || "(Institución no especificada)")
+        .replace(/\{\{practicumLevel\}\}/g, displayableAcademicLevels.find(l=>l.id === selectedLevelId)?.name || "(Nivel no seleccionado)")
+        .replace(/\{\{practicumStartDate\}\}/g, formatDateForStudentEmail(practicumOtherStartDate, 'start')) // Generic example
+        .replace(/\{\{practicumEndDate\}\}/g, formatDateForStudentEmail(practicumOtherEndDate, 'end'))
+        .replace(/\{\{institutionContactName\}\}/g, institutionContactName || "(Nombre de directivo no disponible)")
+        .replace(/\{\{institutionContactRole\}\}/g, institutionContactRole || "(Cargo de directivo no disponible)")
+        .replace(/\{\{institutionContactEmail\}\}/g, institutionContactEmail || "(Email de directivo no disponible)")
+      );
+    }
+  }, [
+    selectedStudentForPreviewId, 
+    allStudentsData, 
+    studentEmailSubjectTemplate, 
+    studentEmailBodyHtmlTemplate, 
+    notifiedInstitutionName, 
+    institutionContactName, 
+    institutionContactRole, 
+    institutionContactEmail, 
+    practicumProfStartDate, 
+    practicumProfEndDate, 
+    practicumOtherStartDate, 
+    practicumOtherEndDate,
+    selectedLevelId, // to update generic preview when level changes
+    studentsInSelectedLevelForPreview, // to update generic preview
+    displayableAcademicLevels
+  ]);
+
 
   const updateProgrammingForLevel = (levelId: string, newProgramming: Partial<LevelProgramming>) => {
     if (!levelId) return; 
     setProgrammingByLevel(prev => {
       const updatedLevelProg = {
-        ...(prev[levelId] || { 
-            scheduledTime: "09:00",
-            emailSubject: DEFAULT_EMAIL_SUBJECT,
-            emailMessageTemplate: DEFAULT_EMAIL_MESSAGE_TEMPLATE
-        }),
+        ...(prev[levelId] || { scheduledTime: "09:00" }), // Subject & template are global now
         ...newProgramming 
       };
       
+      // Ensure date is stored as ISO string for localStorage
       if (updatedLevelProg.scheduledDate && updatedLevelProg.scheduledDate instanceof Date) {
+        // @ts-ignore
         updatedLevelProg.scheduledDate = updatedLevelProg.scheduledDate.toISOString();
       }
       
@@ -269,9 +392,10 @@ export default function StudentNotificationsPage() {
       const programming = programmingByLevel[levelIdKey];
       if (
         programming.scheduledDate &&
-        programming.scheduledTime?.trim() &&
-        programming.emailSubject?.trim() &&
-        programming.emailMessageTemplate?.trim()
+        programming.scheduledTime?.trim() 
+        // Subject and message template are global, so check if they exist
+        && studentEmailSubjectTemplate.trim()
+        && studentEmailBodyHtmlTemplate.trim()
       ) {
         const level = displayableAcademicLevels.find(l => l.id === levelIdKey);
         if (level) {
@@ -302,7 +426,7 @@ export default function StudentNotificationsPage() {
     if (configuredLevelsAndStudents.length === 0) {
       toast({
         title: "No hay niveles completamente configurados",
-        description: "Por favor, configure la fecha, hora, asunto y mensaje para al menos un nivel de práctica con estudiantes asignados antes de programar.",
+        description: "Por favor, configure la fecha y hora para al menos un nivel de práctica con estudiantes asignados antes de programar. Asegúrese también de que las plantillas de correo no estén vacías.",
         variant: "destructive",
       });
       return;
@@ -312,30 +436,25 @@ export default function StudentNotificationsPage() {
     configuredLevelsAndStudents.forEach(({ level, programming, students, scheduledDateTime }) => {
       console.log(`--- Programando notificaciones para nivel: ${level.name} ---`);
       console.log(`Fecha y hora programada: ${scheduledDateTime.toLocaleString('es-CL', { dateStyle: 'short', timeStyle: 'short' })}`);
-      console.log(`Asunto: ${programming.emailSubject}`);
-
+      
       students.forEach(student => {
-        const studentFullName = `${student.firstName} ${student.lastNamePaternal} ${student.lastNameMaternal}`;
-        let startDate, endDate;
-        if (student.practicumLevel.toLowerCase().includes('profesional')) {
-          startDate = practicumProfStartDate;
-          endDate = practicumProfEndDate;
-        } else {
-          startDate = practicumOtherStartDate;
-          endDate = practicumOtherEndDate;
-        }
+        const { subject: finalSubject, body: finalBody } = renderStudentEmail(
+          studentEmailSubjectTemplate,
+          studentEmailBodyHtmlTemplate,
+          student,
+          notifiedInstitutionName,
+          institutionContactName,
+          institutionContactRole,
+          institutionContactEmail,
+          practicumProfStartDate,
+          practicumProfEndDate,
+          practicumOtherStartDate,
+          practicumOtherEndDate
+        );
 
-        const finalMessage = programming.emailMessageTemplate
-          .replace(/\[Nombre del Estudiante\]/g, studentFullName)
-          .replace(/\[Nombre Institucion\]/g, notifiedInstitutionName)
-          .replace(/\[Nivel de Practica\]/g, student.practicumLevel)
-          .replace(/\[Fecha Inicio Practica\]/g, formatDateForStudentEmail(startDate, 'start'))
-          .replace(/\[Fecha Termino Practica\]/g, formatDateForStudentEmail(endDate, 'end'))
-          .replace(/\[Nombre Directivo\]/g, institutionContactName)
-          .replace(/\[Cargo Directivo\]/g, institutionContactRole)
-          .replace(/\[Correo Electronico Directivo\]/g, institutionContactEmail);
-
-        console.log(`   Para ${student.email} (Estudiante: ${studentFullName}) - Correo simulado`);
+        console.log(`   Para ${student.email} (Estudiante: ${student.firstName} ${student.lastNamePaternal})`);
+        console.log(`   Asunto: ${finalSubject}`);
+        // console.log(`   Cuerpo: ${finalBody}`); // For brevity, can be logged if needed
         totalStudentsNotifiedCount++;
       });
     });
@@ -350,57 +469,9 @@ export default function StudentNotificationsPage() {
     setIsSuccessDialogOpen(true);
   };
 
-
-  const selectedStudentDetailsForPreview = allStudentsData.find(s => s.id === selectedStudentForPreviewId);
-  let emailPreview = currentEmailMessageTemplate; 
-  const currentSelectedLevelName = displayableAcademicLevels.find(l => l.id === selectedLevelId)?.name || "(Nivel no seleccionado)";
-
-
-  if (selectedStudentDetailsForPreview) {
-      let startDate, endDate;
-      if (selectedStudentDetailsForPreview.practicumLevel.toLowerCase().includes('profesional')) {
-          startDate = practicumProfStartDate;
-          endDate = practicumProfEndDate;
-      } else {
-          startDate = practicumOtherStartDate;
-          endDate = practicumOtherEndDate;
-      }
-      emailPreview = currentEmailMessageTemplate
-        .replace(/\[Nombre del Estudiante\]/g, `${selectedStudentDetailsForPreview.firstName} ${selectedStudentDetailsForPreview.lastNamePaternal} ${selectedStudentDetailsForPreview.lastNameMaternal}`)
-        .replace(/\[Nombre Institucion\]/g, notifiedInstitutionName || "(Institución no especificada)") 
-        .replace(/\[Nivel de Practica\]/g, selectedStudentDetailsForPreview.practicumLevel)
-        .replace(/\[Fecha Inicio Practica\]/g, formatDateForStudentEmail(startDate, 'start'))
-        .replace(/\[Fecha Termino Practica\]/g, formatDateForStudentEmail(endDate, 'end'))
-        .replace(/\[Nombre Directivo\]/g, institutionContactName || "(Nombre de directivo no disponible)") 
-        .replace(/\[Cargo Directivo\]/g, institutionContactRole || "(Cargo de directivo no disponible)")   
-        .replace(/\[Correo Electronico Directivo\]/g, institutionContactEmail || "(Email de directivo no disponible)"); 
-  } else {
-     const genericStudentName = studentsInSelectedLevelForPreview.length > 0 ? "(Seleccione un alumno para vista previa detallada)" : "(No hay alumnos en este nivel para previsualizar)";
-     
-     let genericStartDate, genericEndDate;
-     if (currentSelectedLevelName.toLowerCase().includes('profesional')) {
-         genericStartDate = practicumProfStartDate;
-         genericEndDate = practicumProfEndDate;
-     } else {
-         genericStartDate = practicumOtherStartDate;
-         genericEndDate = practicumOtherEndDate;
-     }
-
-     emailPreview = currentEmailMessageTemplate
-        .replace(/\[Nombre del Estudiante\]/g, genericStudentName)
-        .replace(/\[Nombre Institucion\]/g, notifiedInstitutionName || "(Institución no especificada)")
-        .replace(/\[Nivel de Practica\]/g, currentSelectedLevelName)
-        .replace(/\[Fecha Inicio Practica\]/g, formatDateForStudentEmail(genericStartDate, 'start'))
-        .replace(/\[Fecha Termino Practica\]/g, formatDateForStudentEmail(genericEndDate, 'end'))
-        .replace(/\[Nombre Directivo\]/g, institutionContactName || "(Nombre de directivo no disponible)")
-        .replace(/\[Cargo Directivo\]/g, institutionContactRole || "(Cargo de directivo no disponible)")
-        .replace(/\[Correo Electronico Directivo\]/g, institutionContactEmail || "(Email de directivo no disponible)");
-  }
-
   const fullyConfiguredLevelsCount = Object.values(programmingByLevel).filter(
-    p => p.scheduledDate && p.scheduledTime?.trim() && p.emailSubject?.trim() && p.emailMessageTemplate?.trim()
+    p => p.scheduledDate && p.scheduledTime?.trim()
   ).length;
-
 
   if (isLoadingProgress) {
     return <div className="flex justify-center items-center h-64"><p>Cargando notificaciones a estudiantes...</p></div>;
@@ -415,10 +486,12 @@ export default function StudentNotificationsPage() {
       <form onSubmit={handleSendAllNotifications}>
         <Card>
           <CardHeader>
-            <CardTitle>Redactar y Programar Notificación por Nivel de Práctica</CardTitle>
+            <CardTitle>Programar Notificación por Nivel de Práctica</CardTitle>
             <CardDescription>
               Los estudiantes listados son aquellos confirmados en etapas anteriores.
-              Seleccione un nivel de práctica para definir la fecha, hora y mensaje de la notificación. Los cambios se guardan automáticamente.
+              Seleccione un nivel de práctica para definir la fecha y hora de la notificación. 
+              El asunto y cuerpo del correo se basan en las plantillas globales (editables en la sección 'Plantillas').
+              Los cambios de fecha/hora se guardan automáticamente.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -429,16 +502,14 @@ export default function StudentNotificationsPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <Label htmlFor="level-select">Nivel de Práctica (para editar configuración)</Label>
+                <Label htmlFor="level-select">Nivel de Práctica (para programar envío)</Label>
                 <Select
-                    onValueChange={(value) => {
-                        setSelectedLevelId(value);
-                    }}
+                    onValueChange={(value) => setSelectedLevelId(value)}
                     value={selectedLevelId}
                     disabled={displayableAcademicLevels.length === 0}
                 >
                   <SelectTrigger id="level-select">
-                    <SelectValue placeholder={displayableAcademicLevels.length === 0 ? "No hay niveles con alumnos confirmados" : "Elija un nivel para configurar"} />
+                    <SelectValue placeholder={displayableAcademicLevels.length === 0 ? "No hay niveles con alumnos confirmados" : "Elija un nivel para programar"} />
                   </SelectTrigger>
                   <SelectContent>
                     {displayableAcademicLevels.map(level => (
@@ -475,9 +546,9 @@ export default function StudentNotificationsPage() {
             {!selectedLevelId && displayableAcademicLevels.length > 0 && (
                  <Alert variant="default" className="bg-accent/10 border-accent/30"> 
                     <Info className="h-4 w-4 text-accent" />
-                    <AlertTitle className="text-accent">Seleccione un Nivel de Práctica para Configurar</AlertTitle>
+                    <AlertTitle className="text-accent">Seleccione un Nivel de Práctica</AlertTitle>
                     <AlertDescription>
-                        Por favor, elija un nivel de práctica de la lista de arriba para editar su fecha de envío, hora y mensaje.
+                        Por favor, elija un nivel de práctica de la lista de arriba para definir su fecha y hora de envío.
                     </AlertDescription>
                 </Alert>
             )}
@@ -486,7 +557,7 @@ export default function StudentNotificationsPage() {
               <>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <Label htmlFor="schedule-date">Fecha de envío del correo para {currentSelectedLevelName}</Label>
+                    <Label htmlFor="schedule-date">Fecha de envío para {displayableAcademicLevels.find(l => l.id === selectedLevelId)?.name}</Label>
                     <Popover>
                       <PopoverTrigger asChild>
                         <Button
@@ -517,7 +588,7 @@ export default function StudentNotificationsPage() {
                     </Popover>
                   </div>
                   <div>
-                    <Label htmlFor="schedule-time">Horario de envío para {currentSelectedLevelName}</Label>
+                    <Label htmlFor="schedule-time">Horario de envío para {displayableAcademicLevels.find(l => l.id === selectedLevelId)?.name}</Label>
                     <Input
                       id="schedule-time"
                       type="time"
@@ -532,64 +603,47 @@ export default function StudentNotificationsPage() {
                     />
                   </div>
                 </div>
-                <div>
-                  <Label htmlFor="email-subject-student">Asunto del Correo para {currentSelectedLevelName}</Label>
-                  <Input
-                    id="email-subject-student"
-                    placeholder={DEFAULT_EMAIL_SUBJECT}
-                    value={currentEmailSubject}
-                    onChange={(e) => {
-                        const newSubject = e.target.value;
-                        setCurrentEmailSubject(newSubject); 
-                        updateProgrammingForLevel(selectedLevelId, { emailSubject: newSubject });
-                    }}
-                    className="mt-1"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="email-message-student">Plantilla de correo para {currentSelectedLevelName}</Label>
-                   <Textarea
-                    id="email-message-student"
-                    value={currentEmailMessageTemplate}
-                    onChange={(e) => {
-                        const newTemplate = e.target.value;
-                        setCurrentEmailMessageTemplate(newTemplate); 
-                        updateProgrammingForLevel(selectedLevelId, { emailMessageTemplate: newTemplate });
-                    }}
-                    className="mt-1 min-h-[250px]"
-                    placeholder="Edite aquí el contenido del correo..."
-                  />
-                   <p className="text-xs text-muted-foreground mt-1">
-                    Modifique el mensaje que se enviará a los estudiantes. Los textos que vea entre corchetes (por ejemplo: <code>[Nombre del Estudiante]</code>, <code>[Nombre Institucion]</code>) se reemplazarán automáticamente con los datos reales de cada estudiante y la institución asignada.
-                   </p>
-                </div>
-                <div>
-                    <Label>
-                      Vista Previa del Mensaje (cómo lo verá {selectedStudentDetailsForPreview ? `${selectedStudentDetailsForPreview.firstName} ${selectedStudentDetailsForPreview.lastNamePaternal}` : (studentsInSelectedLevelForPreview.length > 0 && selectedLevelId ? "el alumno seleccionado arriba" : (selectedLevelId ? "un alumno de este nivel" : "nadie, seleccione nivel y alumno"))})
-                    </Label>
-                    <div
-                      className="mt-1 p-3 border rounded-md bg-muted min-h-[200px] text-sm overflow-auto"
-                      dangerouslySetInnerHTML={{ __html: emailPreview.replace(/\n/g, '<br />') }}
-                    />
-                </div>
+                
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="text-lg">Vista Previa del Correo para {selectedStudentForPreviewId ? studentsReadyForNotification.find(s=>s.id === selectedStudentForPreviewId)?.firstName : "Alumno Seleccionado"}</CardTitle>
+                        <CardDescription>Así se verá el correo para el alumno seleccionado arriba, usando las plantillas guardadas.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div>
+                            <Label>Asunto (Vista Previa)</Label>
+                            <Input value={previewSubject} readOnly className="mt-1 bg-muted/50" />
+                        </div>
+                        <div>
+                            <Label>Cuerpo del Correo (Vista Previa Renderizada)</Label>
+                            <div
+                              className="mt-1 p-3 border rounded-md bg-muted min-h-[200px] text-sm overflow-auto"
+                              dangerouslySetInnerHTML={{ __html: previewBodyHtml }} // Preview rendered HTML
+                            />
+                        </div>
+                    </CardContent>
+                </Card>
               </>
             )}
             <div className="border-t pt-6">
               <Button
                   type="submit"
                   className="w-full md:w-auto"
-                  disabled={fullyConfiguredLevelsCount === 0 || isLoadingProgress}
+                  disabled={fullyConfiguredLevelsCount === 0 || isLoadingProgress || !studentEmailSubjectTemplate.trim() || !studentEmailBodyHtmlTemplate.trim()}
               >
                 <SendHorizonal className="mr-2 h-4 w-4" /> Programar Todas las Notificaciones
               </Button>
               {fullyConfiguredLevelsCount === 0 && !isLoadingProgress && (
                 <p className="text-sm text-muted-foreground mt-2">
-                  No hay niveles de práctica completamente configurados para enviar notificaciones. 
-                  Por favor, seleccione un nivel, complete su fecha, hora, asunto y mensaje.
+                  No hay niveles de práctica con fecha/hora configuradas para enviar notificaciones. 
+                  Por favor, seleccione un nivel y complete su programación.
                 </p>
               )}
+               {(!studentEmailSubjectTemplate.trim() || !studentEmailBodyHtmlTemplate.trim()) && (
+                    <p className="text-sm text-destructive mt-2">
+                      Advertencia: La plantilla de asunto o cuerpo del correo para estudiantes está vacía. Por favor, configúrela en la sección 'Plantillas'.
+                    </p>
+                )}
             </div>
           </CardContent>
         </Card>
@@ -614,4 +668,3 @@ export default function StudentNotificationsPage() {
     </>
   );
 }
-

@@ -2,7 +2,7 @@
 "use client";
 
 import Link from "next/link";
-import { GraduationCap, Settings, LogOut, Home, MapPin, Landmark, NotebookText, Contact2, UserCog, UserCircle, LayoutDashboard, Users, DatabaseZap } from "lucide-react";
+import { GraduationCap, Settings, LogOut, Home, MapPin, Landmark, NotebookText, Contact2, UserCog, UserCircle, LayoutDashboard, Users, DatabaseZap, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -33,7 +33,13 @@ import { cn } from "@/lib/utils";
 // Helper component to handle active state for sidebar menu items
 function AppSidebarMenuButton({ href, tooltip, children, icon: Icon }: { href: string, tooltip: string, children: ReactNode, icon: React.ElementType }) {
   const pathname = usePathname();
-  const isActive = pathname === href || (href !== "/" && pathname.startsWith(href) && href !== "/students" && href !== "/admin/bulk-upload"); // More specific active check
+  // More specific active check: exact match or prefix match if not a base student/bulk path.
+  let isActive = pathname === href;
+  if (href !== "/" && href !== "/students" && href !== "/admin/bulk-upload" && href !== "/admin/templates" && pathname.startsWith(href)) {
+    isActive = true;
+  }
+
+
   const { state: sidebarState } = useSidebar(); // Get sidebar state for tooltip visibility
 
   // Special case for /students to avoid matching /student-notifications
@@ -43,6 +49,9 @@ function AppSidebarMenuButton({ href, tooltip, children, icon: Icon }: { href: s
   }
   if (href === "/admin/bulk-upload") {
     finalIsActive = pathname === "/admin/bulk-upload";
+  }
+  if (href === "/admin/templates") {
+    finalIsActive = pathname === "/admin/templates";
   }
 
 
@@ -100,6 +109,9 @@ export function AppShell({ children }: { children: ReactNode }) {
             </AppSidebarMenuButton>
             <AppSidebarMenuButton href="/admin/bulk-upload" tooltip="Carga Masiva" icon={DatabaseZap}>
               Carga Masiva
+            </AppSidebarMenuButton>
+            <AppSidebarMenuButton href="/admin/templates" tooltip="Plantillas" icon={FileText}>
+              Plantillas
             </AppSidebarMenuButton>
           </SidebarMenu>
         </SidebarContent>

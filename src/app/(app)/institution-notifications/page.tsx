@@ -21,6 +21,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { format, parse } from "date-fns";
 import { es } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import RichTextEditor from "@/components/rich-text-editor";
 
 const CONFIRMED_STUDENT_IDS_KEY = 'confirmedPracticumStudentIds';
 const LAST_NOTIFIED_INSTITUTION_ID_KEY = 'lastNotifiedInstitutionId';
@@ -36,13 +37,34 @@ const PRACTICUM_OTHER_START_DATE_KEY = 'practicumOtherStartDate';
 const PRACTICUM_OTHER_END_DATE_KEY = 'practicumOtherEndDate';
 const PRACTICUM_OTHER_WEEKS_KEY = 'practicumOtherWeeks';
 
+// Template Keys for localStorage
+const TEMPLATE_INSTITUTION_SUBJECT_KEY = "TEMPLATE_INSTITUTION_SUBJECT";
+const TEMPLATE_INSTITUTION_BODY_HTML_KEY = "TEMPLATE_INSTITUTION_BODY_HTML";
+
+// Default template content (with placeholders)
+const DEFAULT_INSTITUTION_SUBJECT = "Información Estudiantes de Práctica";
+const DEFAULT_INSTITUTION_BODY_HTML = `
+<div style="font-family: Arial, sans-serif; font-size: 10pt;">
+  <p style="margin-bottom: 10px;">Estimado/a {{contactName}}{{contactRole ? ', en su calidad de ' + contactRole + ' de ' : ''}} {{institutionName}}.</p>
+  <p style="margin-bottom: 15px;">Le saludo de manera cordial en nombre de la Unidad de Práctica Pedagógica (UPP) de la Facultad de Educación de la Universidad Católica de la Santísima Concepción, y presento a usted el inicio de las pasantías de estudiantes de Pedagogía de nuestra Facultad, de acuerdo con el siguiente calendario de prácticas UCSC primer semestre 2025:</p>
+  {{practiceCalendarHTML}}
+  <p style="margin-top: 15px; margin-bottom: 5px;">Adjuntamos la lista de estudiantes propuestos para realizar su práctica en su establecimiento:</p>
+  {{studentTableHTML}}
+  {{documentationListHTML}}
+  <p style="margin-top: 20px;">Finalmente, como UPP agradecemos el espacio formativo otorgado por su comunidad educativa.</p>
+  <p style="margin-top: 15px;">Se despide atentamente,<br />Equipo Unidad de Prácticas Pedagógicas UCSC</p>
+</div>
+`.trim();
+
 
 const formatDateForEmail = (date: Date | undefined, type: 'inicio' | 'termino'): string => {
   if (!date) return `Semana [Fecha ${type === 'inicio' ? 'Inicio' : 'Término'}]`;
   return `Semana ${format(date, "dd 'de' MMMM", { locale: es })}`;
 };
 
-const generateEmailBodyTemplate = (
+// This function now renders the email body using a template and provided data.
+const renderEmailBody = (
+  templateBodyHtml: string,
   contactName: string,
   contactRole: string,
   institutionName: string,
@@ -64,7 +86,7 @@ const generateEmailBodyTemplate = (
     studentTableRowsHTML = `<tr><td colspan="4" style="border: 1px solid #ddd; padding: 8px; text-align: center;">(No hay estudiantes seleccionados para esta notificación)</td></tr>`;
   }
   
-  const studentListHTML = `
+  const studentTableHTML = `
     <table style="border-collapse: collapse; width: 100%; border: 1px solid #ddd; font-family: Arial, sans-serif; font-size: 10pt;">
       <thead style="background-color: #f2f2f2;">
         <tr>
@@ -79,11 +101,9 @@ const generateEmailBodyTemplate = (
       </tbody>
     </table>`;
 
-
   const profStartDateText = formatDateForEmail(profStartDate, 'inicio');
   const profEndDateText = formatDateForEmail(profEndDate, 'termino');
   const profWeeksText = profWeeks || "[Nº]";
-
   const otherStartDateText = formatDateForEmail(otherStartDate, 'inicio');
   const otherEndDateText = formatDateForEmail(otherEndDate, 'termino');
   const otherWeeksText = otherWeeks || "[Nº]";
@@ -124,23 +144,15 @@ const generateEmailBodyTemplate = (
       <li>Otra documentación</li>
     </ul>`;
   
-  let roleSalutation = "";
-  if (contactRole && contactRole.trim() !== "") {
-    roleSalutation = `en su calidad de ${contactRole} de `;
-  }
-
-  return `
-    <div style="font-family: Arial, sans-serif; font-size: 10pt;">
-      <p style="margin-bottom: 10px;">Estimado/a ${contactName || '[Nombre Contacto]'}${contactRole ? `, ${roleSalutation}${institutionName || '[Nombre Institución]'}` : (institutionName ? ` de ${institutionName || '[Nombre Institución]'}`: '')}.</p>
-      <p style="margin-bottom: 15px;">Le saludo de manera cordial en nombre de la Unidad de Práctica Pedagógica (UPP) de la Facultad de Educación de la Universidad Católica de la Santísima Concepción, y presento a usted el inicio de las pasantías de estudiantes de Pedagogía de nuestra Facultad, de acuerdo con el siguiente calendario de prácticas UCSC primer semestre 2025:</p>
-      ${practiceCalendarHTML}
-      <p style="margin-top: 15px; margin-bottom: 5px;">Adjuntamos la lista de estudiantes propuestos para realizar su práctica en su establecimiento:</p>
-      ${studentListHTML}
-      ${documentationListHTML}
-      <p style="margin-top: 20px;">Finalmente, como UPP agradecemos el espacio formativo otorgado por su comunidad educativa.</p>
-      <p style="margin-top: 15px;">Se despide atentamente,<br />Equipo Unidad de Prácticas Pedagógicas UCSC</p>
-    </div>
-  `;
+  let renderedBody = templateBodyHtml;
+  renderedBody = renderedBody.replace(/\{\{contactName\}\}/g, contactName || '[Nombre Contacto]');
+  renderedBody = renderedBody.replace(/\{\{contactRole\}\}/g, contactRole || '');
+  renderedBody = renderedBody.replace(/\{\{institutionName\}\}/g, institutionName || '[Nombre Institución]');
+  renderedBody = renderedBody.replace(/\{\{studentTableHTML\}\}/g, studentTableHTML);
+  renderedBody = renderedBody.replace(/\{\{practiceCalendarHTML\}\}/g, practiceCalendarHTML);
+  renderedBody = renderedBody.replace(/\{\{documentationListHTML\}\}/g, documentationListHTML);
+  
+  return renderedBody;
 };
 
 
@@ -171,14 +183,24 @@ export default function InstitutionNotificationsPage() {
   const [practiceWeeksOther, setPracticeWeeksOther] = React.useState<string>("14");
 
   const [selectedStudentsMap, setSelectedStudentsMap] = React.useState<Record<string, boolean>>({});
-  const [emailSubject, setEmailSubject] = React.useState("Información Estudiantes de Práctica");
-  const [emailBody, setEmailBody] = React.useState("");
+  
+  const [emailSubjectTemplate, setEmailSubjectTemplate] = React.useState(DEFAULT_INSTITUTION_SUBJECT);
+  const [emailBodyHtmlTemplate, setEmailBodyHtmlTemplate] = React.useState(DEFAULT_INSTITUTION_BODY_HTML);
+  const [currentRenderedEmailBody, setCurrentRenderedEmailBody] = React.useState("");
   
   const { toast } = useToast();
   const router = useRouter();
   const { advanceStage, maxAccessLevel, isLoadingProgress } = usePracticumProgress();
 
   React.useEffect(() => {
+    // Load templates from localStorage or use defaults
+    if (typeof window !== 'undefined') {
+      const storedSubject = localStorage.getItem(TEMPLATE_INSTITUTION_SUBJECT_KEY);
+      if (storedSubject) setEmailSubjectTemplate(storedSubject);
+      const storedBody = localStorage.getItem(TEMPLATE_INSTITUTION_BODY_HTML_KEY);
+      if (storedBody) setEmailBodyHtmlTemplate(storedBody);
+    }
+
     const currentYear = new Date().getFullYear();
     try {
       const initialProfStart = parse(`10-03-${currentYear}`, 'dd-MM-yyyy', new Date());
@@ -270,7 +292,6 @@ export default function InstitutionNotificationsPage() {
 
   React.useEffect(() => {
     if (selectedInstitution) {
-      // If there are contacts, try to select the first one by default or based on localStorage
       if (selectedInstitution.directorContacts && selectedInstitution.directorContacts.length > 0) {
         const lastContactId = typeof window !== 'undefined' ? localStorage.getItem(LAST_NOTIFIED_INSTITUTION_CONTACT_ID_KEY) : null;
         const defaultContact = selectedInstitution.directorContacts.find(c => c.id === lastContactId) || selectedInstitution.directorContacts[0];
@@ -301,7 +322,6 @@ export default function InstitutionNotificationsPage() {
             setContactRoleForDisplay(contact.role || "");
             setContactEmailForDisplay(contact.email);
         } else {
-            // Contact ID might be stale if institution contacts changed, clear them
             setContactNameForDisplay("");
             setContactRoleForDisplay("");
             setContactEmailForDisplay("");
@@ -316,7 +336,8 @@ export default function InstitutionNotificationsPage() {
 
   React.useEffect(() => {
     const currentSelectedStudentsForEmail = studentsForInstitutionCheckboxes.filter(s => selectedStudentsMap[s.id]);
-    const body = generateEmailBodyTemplate(
+    const body = renderEmailBody(
+      emailBodyHtmlTemplate,
       contactNameForDisplay,
       contactRoleForDisplay,
       selectedInstitution?.name || "",
@@ -328,7 +349,7 @@ export default function InstitutionNotificationsPage() {
       practiceEndDateOther,
       practiceWeeksOther
     );
-    setEmailBody(body);
+    setCurrentRenderedEmailBody(body);
   }, [
       selectedInstitution, 
       contactNameForDisplay, 
@@ -340,7 +361,8 @@ export default function InstitutionNotificationsPage() {
       practiceWeeksProf,
       practiceStartDateOther,
       practiceEndDateOther,
-      practiceWeeksOther
+      practiceWeeksOther,
+      emailBodyHtmlTemplate // Re-render if template changes
     ]);
 
 
@@ -369,10 +391,10 @@ export default function InstitutionNotificationsPage() {
         });
         return;
     }
-    if (!emailSubject.trim() || !emailBody.trim()) {
+    if (!emailSubjectTemplate.trim() || !currentRenderedEmailBody.trim()) {
       toast({
         title: "Correo incompleto",
-        description: "Por favor, complete el asunto y el cuerpo del mensaje.",
+        description: "Por favor, complete el asunto y el cuerpo del mensaje (la plantilla podría estar vacía).",
         variant: "destructive",
       });
       return;
@@ -414,13 +436,12 @@ export default function InstitutionNotificationsPage() {
         if (practiceWeeksOther) localStorage.setItem(PRACTICUM_OTHER_WEEKS_KEY, practiceWeeksOther);
     }
 
-
     console.log("Enviando correo a:", contactEmailForDisplay);
     console.log("Nombre Contacto:", contactNameForDisplay);
     console.log("Cargo Contacto:", contactRoleForDisplay);
     console.log("Institución:", selectedInstitution.name);
-    console.log("Asunto:", emailSubject);
-    console.log("Cuerpo del Correo (HTML):", emailBody); 
+    console.log("Asunto:", emailSubjectTemplate); // Use the template subject
+    console.log("Cuerpo del Correo (HTML Renderizado):", currentRenderedEmailBody); 
     console.log("Estudiantes seleccionados para este correo:", studentsActuallySelected.map(s => s.firstName));
     
     toast({
@@ -438,8 +459,8 @@ export default function InstitutionNotificationsPage() {
 
   const isSubmitDisabled = !selectedInstitution || 
                            Object.values(selectedStudentsMap).filter(Boolean).length === 0 || 
-                           !emailSubject.trim() || 
-                           !emailBody.trim() || 
+                           !emailSubjectTemplate.trim() || 
+                           !currentRenderedEmailBody.trim() || 
                            isLoadingProgress || 
                            !selectedContactId ||
                            !contactEmailForDisplay.trim() || 
@@ -635,26 +656,25 @@ export default function InstitutionNotificationsPage() {
         {selectedInstitution && Object.values(selectedStudentsMap).filter(Boolean).length > 0 && selectedContactId && (
             <Card>
                 <CardHeader>
-                    <CardTitle>Plantilla de correo editable</CardTitle>
-                    <CardDescription>Revise el contenido del correo. La información del calendario y estudiantes se actualizará automáticamente.</CardDescription>
+                    <CardTitle>Previsualización del correo</CardTitle>
+                    <CardDescription>Revise el contenido del correo. Este se basa en la plantilla guardada (o la plantilla por defecto si no se ha personalizado).</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div>
-                        <Label htmlFor="email-subject">Asunto del correo</Label>
+                        <Label htmlFor="email-subject-preview">Asunto del correo (Vista Previa)</Label>
                         <Input 
-                        id="email-subject" 
-                        placeholder="Información Estudiantes de Práctica" 
-                        value={emailSubject}
-                        onChange={(e) => setEmailSubject(e.target.value)}
-                        required
+                        id="email-subject-preview" 
+                        value={emailSubjectTemplate} // Display the template subject
+                        readOnly
+                        className="bg-muted/50"
                         />
                     </div>
                     <div>
-                        <Label htmlFor="email-body-preview">Cuerpo del correo (Vista Previa)</Label>
+                        <Label htmlFor="email-body-preview">Cuerpo del correo (Vista Previa Renderizada)</Label>
                         <div
                           id="email-body-preview"
                           className="min-h-[400px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm overflow-auto"
-                          dangerouslySetInnerHTML={{ __html: emailBody }}
+                          dangerouslySetInnerHTML={{ __html: currentRenderedEmailBody }}
                         />
                     </div>
                 </CardContent>
@@ -672,6 +692,3 @@ export default function InstitutionNotificationsPage() {
     </>
   );
 }
-
-
-    
