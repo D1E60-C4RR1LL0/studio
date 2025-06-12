@@ -16,17 +16,16 @@ const institutionPlaceholders = [
 ];
 
 const studentPlaceholders = [
-  { key: "{{studentFullName}}", description: "Nombre completo del estudiante." },
-  { key: "{{institutionName}}", description: "Nombre de la institución asignada." },
-  { key: "{{practicumLevel}}", description: "Nivel de práctica del estudiante." },
-  { key: "{{practicumStartDate}}", description: "Fecha de inicio de la práctica (formateada)." },
-  { key: "{{practicumEndDate}}", description: "Fecha de término de la práctica (formateada)." },
-  { key: "{{institutionContactName}}", description: "Nombre del directivo/contacto en la institución." },
-  { key: "{{institutionContactRole}}", description: "Cargo del directivo/contacto." },
-  { key: "{{institutionContactEmail}}", description: "Correo electrónico del directivo/contacto." },
-  { key: "{{linkCertificadoAntecedentes}}", description: "Enlace al Certificado de Antecedentes." },
-  { key: "{{linkCertificadoInhabilidadesMenores}}", description: "Enlace al Certificado de Inhabilidades para trabajar con menores." },
-  { key: "{{linkCertificadoInhabilidadesMaltrato}}", description: "Enlace al Certificado de Inhabilidades por maltrato relevante." },
+  { key: "{{estudiante.nombre}}", description: "Nombre del estudiante." },
+  { key: "{{estudiante.ap_paterno}}", description: "Apellido paterno del estudiante." },
+  { key: "{{estudiante.ap_materno}}", description: "Apellido materno del estudiante." },
+  { key: "{{nombre_establecimiento}}", description: "Nombre del establecimiento asignado." },
+  { key: "{{nivel_practica}}", description: "Nivel de práctica del estudiante." },
+  { key: "{{practicumStartDate}}", description: "Fecha de inicio de la práctica (ej: 'semana del dd de MMMM')." },
+  { key: "{{practicumEndDate}}", description: "Fecha de término de la práctica (ej: 'semana del dd de MMMM yyyy')." },
+  { key: "{{directivo.nombre}}", description: "Nombre del directivo/contacto en la institución." },
+  { key: "{{directivo.cargo}}", description: "Cargo del directivo/contacto en la institución." },
+  { key: "{{directivo.email}}", description: "Correo electrónico del directivo/contacto en la institución." },
 ];
 
 const DEFAULT_INSTITUTION_EMAIL_SUBJECT = "Información Estudiantes de Práctica";
@@ -50,29 +49,34 @@ Atentamente,
 Equipo Unidad de Prácticas Pedagógicas UCSC
 `.trim();
 
-const DEFAULT_STUDENT_EMAIL_SUBJECT = "Confirmación de Práctica Pedagógica";
-const DEFAULT_STUDENT_EMAIL_BODY_TEXT = `Estimado/a estudiante {{studentFullName}},
+const DEFAULT_STUDENT_EMAIL_SUBJECT = "Confirmación de Práctica Pedagógica UCSC";
+const DEFAULT_STUDENT_EMAIL_BODY_TEXT = `Estimado/a estudiante
+{{estudiante.nombre}} {{estudiante.ap_paterno}} {{estudiante.ap_materno}}
 
-Junto con saludar, se informa que, desde la coordinación de gestión de centros de Práctica de la UPP, ha sido adscrito/a a {{institutionName}}, para desarrollar su {{practicumLevel}}, que inicia la {{practicumStartDate}} hasta la {{practicumEndDate}}.
+Junto con saludar, se informa que, desde la coordinación de gestión de centros de Práctica de la UPP, ha sido adscrito/a a {{nombre_establecimiento}}, para desarrollar su {{nivel_practica}}, que inicia la {{practicumStartDate}} hasta la {{practicumEndDate}}.
 
 Los datos de contacto del establecimiento son:
-- Nombre directivo: {{institutionContactName}}
-- Cargo: {{institutionContactRole}}
-- Correo electrónico: {{institutionContactEmail}}
+Nombre directivo: {{directivo.nombre}}
+Cargo: {{directivo.cargo}}
+Correo electrónico: {{directivo.email}}
 
-Posterior a este correo, deberá coordinar el inicio de su pasantía de acuerdo calendario de prácticas UCSC y hacer entrega de su carpeta de práctica y documentación personal, que incluye:
-- Certificado de Antecedentes ({{linkCertificadoAntecedentes}})
-- Certificado de Inhabilidades para trabajar con menores de edad ({{linkCertificadoInhabilidadesMenores}})
-- Certificado de Inhabilidades por maltrato relevante ({{linkCertificadoInhabilidadesMaltrato}})
-- Horario universitario
-- Otra documentación
+Posterior a este correo, deberá coordinar el inicio de su pasantía de acuerdo al calendario de prácticas UCSC y hacer entrega de su carpeta de práctica y documentación personal, que incluye:
+Certificado de Antecedentes
+Certificado de Inhabilidades para trabajar con menores de edad
+Certificado de Inhabilidades por maltrato relevante
+Horario universitario
+Otra documentación
 
 Se informa, además, que el equipo directivo del establecimiento está en conocimiento de su adscripción y por tanto es importante que asista presencialmente al centro educativo.
 
-Favor no responder a este correo. Para dudas y/o consulta favor escribir a sus respectivas coordinadoras de prácticas.
-
-Saludos cordiales,
-Unidad de Prácticas Pedagógicas UCSC
+Atentamente,
+Coordinación de Gestión de Centros de Práctica Pedagógica
+Unidad de Práctica Pedagógica
+Facultad de Educación
+Universidad Católica de la Santísima Concepción
+Alonso de Ribera 2850 - Concepción - Chile
+Fono +56 412345859
+www.ucsc.cl
 `.trim();
 
 

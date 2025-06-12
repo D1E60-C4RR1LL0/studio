@@ -37,30 +37,37 @@ const STUDENT_NOTIFICATION_LEVEL_PROGRAMMING_KEY = 'studentNotificationLevelProg
 const TEMPLATE_STUDENT_SUBJECT_KEY = "TEMPLATE_STUDENT_SUBJECT";
 const TEMPLATE_STUDENT_BODY_HTML_KEY = "TEMPLATE_STUDENT_BODY_HTML"; // Stores plain text
 
-const DEFAULT_STUDENT_SUBJECT = "Confirmación de Práctica Pedagógica";
-const DEFAULT_STUDENT_BODY_TEXT = `Estimado/a estudiante {{studentFullName}},
+// Updated default student email body to reflect new placeholder names
+const DEFAULT_STUDENT_SUBJECT = "Confirmación de Práctica Pedagógica UCSC";
+const DEFAULT_STUDENT_BODY_TEXT = `Estimado/a estudiante
+{{estudiante.nombre}} {{estudiante.ap_paterno}} {{estudiante.ap_materno}}
 
-Junto con saludar, se informa que, desde la coordinación de gestión de centros de Práctica de la UPP, ha sido adscrito/a a {{institutionName}}, para desarrollar su {{practicumLevel}}, que inicia la {{practicumStartDate}} hasta la {{practicumEndDate}}.
+Junto con saludar, se informa que, desde la coordinación de gestión de centros de Práctica de la UPP, ha sido adscrito/a a {{nombre_establecimiento}}, para desarrollar su {{nivel_practica}}, que inicia la {{practicumStartDate}} hasta la {{practicumEndDate}}.
 
 Los datos de contacto del establecimiento son:
-- Nombre directivo: {{institutionContactName}}
-- Cargo: {{institutionContactRole}}
-- Correo electrónico: {{institutionContactEmail}}
+Nombre directivo: {{directivo.nombre}}
+Cargo: {{directivo.cargo}}
+Correo electrónico: {{directivo.email}}
 
-Posterior a este correo, deberá coordinar el inicio de su pasantía de acuerdo calendario de prácticas UCSC y hacer entrega de su carpeta de práctica y documentación personal, que incluye:
-- Certificado de Antecedentes ({{linkCertificadoAntecedentes}})
-- Certificado de Inhabilidades para trabajar con menores de edad ({{linkCertificadoInhabilidadesMenores}})
-- Certificado de Inhabilidades por maltrato relevante ({{linkCertificadoInhabilidadesMaltrato}})
-- Horario universitario
-- Otra documentación
+Posterior a este correo, deberá coordinar el inicio de su pasantía de acuerdo al calendario de prácticas UCSC y hacer entrega de su carpeta de práctica y documentación personal, que incluye:
+Certificado de Antecedentes
+Certificado de Inhabilidades para trabajar con menores de edad
+Certificado de Inhabilidades por maltrato relevante
+Horario universitario
+Otra documentación
 
 Se informa, además, que el equipo directivo del establecimiento está en conocimiento de su adscripción y por tanto es importante que asista presencialmente al centro educativo.
 
-Favor no responder a este correo. Para dudas y/o consulta favor escribir a sus respectivas coordinadoras de prácticas.
-
-Saludos cordiales,
-Unidad de Prácticas Pedagógicas UCSC
+Atentamente,
+Coordinación de Gestión de Centros de Práctica Pedagógica
+Unidad de Práctica Pedagógica
+Facultad de Educación
+Universidad Católica de la Santísima Concepción
+Alonso de Ribera 2850 - Concepción - Chile
+Fono +56 412345859
+www.ucsc.cl
 `.trim();
+
 
 interface LevelProgramming {
   scheduledDate?: Date | string;
@@ -69,10 +76,9 @@ interface LevelProgramming {
 
 const formatDateForStudentEmail = (date: Date | undefined, type: 'start' | 'end'): string => {
   if (!date) return type === 'start' ? "[Fecha Inicio Practica indefinida]" : "[Fecha Termino Practica indefinida]";
-  if (type === 'start') {
-    return format(date, "'semana del' dd 'de' MMMM", { locale: es });
-  }
-  return format(date, "'semana del' dd 'de' MMMM yyyy", { locale: es });
+  // Example format: "semana del 17 de marzo" or "semana del 16 de junio 2025"
+  const yearFormat = type === 'end' ? " yyyy" : ""; // Add year only for end date or if needed
+  return format(date, `'semana del' dd 'de' MMMM${yearFormat}`, { locale: es });
 };
 
 // Updated textToHtmlWithPlaceholders function for general use
@@ -100,19 +106,20 @@ const textToHtmlWithPlaceholders = (
     .map(paragraph => {
       if (paragraph.trim() === "") return "";
       
-      // Check if this paragraph *is* one of our temp HTML placeholders
+      let currentParagraph = paragraph;
+      // Restore any HTML placeholders that were part of this paragraph block
+      for (const tempKey in tempHtmlMap) {
+        if (tempHtmlMap.hasOwnProperty(tempKey) && currentParagraph.includes(tempKey)) {
+          currentParagraph = currentParagraph.replace(new RegExp(tempKey.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'g'), tempHtmlMap[tempKey]);
+        }
+      }
+      
+      // If the entire paragraph was JUST a placeholder, don't wrap it in <p>
       if (tempHtmlMap[paragraph.trim()]) {
         return tempHtmlMap[paragraph.trim()];
       }
       
       // Otherwise, process as text: wrap in <p>, convert \n to <br />
-      // and also check if it *contains* any temp HTML placeholders
-      let currentParagraph = paragraph;
-      for (const tempKey in tempHtmlMap) {
-        if (tempHtmlMap.hasOwnProperty(tempKey)) {
-          currentParagraph = currentParagraph.replace(new RegExp(tempKey.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'g'), tempHtmlMap[tempKey]);
-        }
-      }
       return `<p>${currentParagraph.replace(/\n/g, "<br />")}</p>`;
     })
     .join("\n");
@@ -141,49 +148,42 @@ const renderStudentEmail = (
   practicumOtherStartDate?: Date,
   practicumOtherEndDate?: Date
 ): { subject: string; body: string } => {
-  const studentFullName = `${student.firstName} ${student.lastNamePaternal} ${student.lastNameMaternal}`;
+
   let startDate, endDate;
-  if (student.practicumLevel.toLowerCase().includes('profesional')) {
+  if (student.practicumLevel.toLowerCase().includes('profesional') || student.practicumLevel.toLowerCase().includes('pasantía')) { // Assuming "Pasantía" uses professional dates
     startDate = practicumProfStartDate;
     endDate = practicumProfEndDate;
-  } else {
+  } else { // Other pedagogical practices
     startDate = practicumOtherStartDate;
     endDate = practicumOtherEndDate;
   }
 
-  // Subject remains as is, typically no complex HTML
-  let subject = templateSubject; 
-
-  // Define text placeholders for this email
-  const textPlaceholders = {
-    "{{studentFullName}}": studentFullName,
-    "{{institutionName}}": notifiedInstitutionName,
-    "{{practicumLevel}}": student.practicumLevel,
+  // Define text placeholders for this email based on new format
+  const textPlaceholders: Record<string, string> = {
+    "{{estudiante.nombre}}": student.firstName,
+    "{{estudiante.ap_paterno}}": student.lastNamePaternal,
+    "{{estudiante.ap_materno}}": student.lastNameMaternal,
+    "{{nombre_establecimiento}}": notifiedInstitutionName,
+    "{{nivel_practica}}": student.practicumLevel,
     "{{practicumStartDate}}": formatDateForStudentEmail(startDate, 'start'),
     "{{practicumEndDate}}": formatDateForStudentEmail(endDate, 'end'),
-    "{{institutionContactName}}": institutionContactName,
-    "{{institutionContactRole}}": institutionContactRole,
-    "{{institutionContactEmail}}": institutionContactEmail,
-    "{{linkCertificadoAntecedentes}}": "<a href='https://www.chileatiende.gob.cl/fichas/3442-certificado-de-antecedentes' target='_blank' rel='noopener noreferrer'>Link de descarga</a>",
-    "{{linkCertificadoInhabilidadesMenores}}": "<a href='https://inhabilidades.srcei.cl/ConsInhab/consultaInhabilidad.do' target='_blank' rel='noopener noreferrer'>Link de descarga</a>",
-    "{{linkCertificadoInhabilidadesMaltrato}}": "<a href='https://inhabilidades.srcei.cl/InhabilidadesRelevante/#/inicio' target='_blank' rel='noopener noreferrer'>Link de descarga</a>",
+    "{{directivo.nombre}}": institutionContactName,
+    "{{directivo.cargo}}": institutionContactRole,
+    "{{directivo.email}}": institutionContactEmail,
   };
   
-  // Student email usually doesn't have complex HTML placeholders like tables
-  // So, the htmlPlaceholders map is empty for this specific renderer
+  // Student email usually doesn't have complex HTML placeholders from this function's perspective
+  // Any HTML placeholders would be part of the `templateBodyPlainText` itself.
   const htmlPlaceholders = {};
 
   const body = textToHtmlWithPlaceholders(templateBodyPlainText, htmlPlaceholders, textPlaceholders);
 
   // Replace placeholders in subject as well
+  let subject = templateSubject;
   for (const key in textPlaceholders) {
     if (Object.prototype.hasOwnProperty.call(textPlaceholders, key)) {
         const placeholderValue = textPlaceholders[key as keyof typeof textPlaceholders];
-        // For subject, we don't want HTML tags, so strip them if they are links
-        const subjectValue = placeholderValue.startsWith('<a href') ? 
-                             (key.includes('Link') ? 'enlace' : placeholderValue.replace(/<[^>]*>?/gm, '')) 
-                             : placeholderValue;
-        subject = subject.replace(new RegExp(key.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'g'), subjectValue);
+        subject = subject.replace(new RegExp(key.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'g'), placeholderValue);
     }
   }
 
@@ -218,9 +218,6 @@ export default function StudentNotificationsPage() {
   const [studentEmailSubjectTemplate, setStudentEmailSubjectTemplate] = React.useState(DEFAULT_STUDENT_SUBJECT);
   const [studentEmailBodyPlainTextTemplate, setStudentEmailBodyPlainTextTemplate] = React.useState(DEFAULT_STUDENT_BODY_TEXT);
 
-  const [currentScheduledDate, setCurrentScheduledDate] = React.useState<Date | undefined>();
-  const [currentScheduledTime, setCurrentScheduledTime] = React.useState<string>("09:00");
-  
   const [previewSubject, setPreviewSubject] = React.useState("");
   const [previewBodyHtml, setPreviewBodyHtml] = React.useState("");
 
@@ -237,6 +234,8 @@ export default function StudentNotificationsPage() {
     if (typeof window !== 'undefined') {
       const storedSubject = localStorage.getItem(TEMPLATE_STUDENT_SUBJECT_KEY);
       if (storedSubject) setStudentEmailSubjectTemplate(storedSubject);
+      else setStudentEmailSubjectTemplate(DEFAULT_STUDENT_SUBJECT);
+
       const storedBody = localStorage.getItem(TEMPLATE_STUDENT_BODY_HTML_KEY); // Key now stores plain text
       if (storedBody) setStudentEmailBodyPlainTextTemplate(storedBody);
       else setStudentEmailBodyPlainTextTemplate(DEFAULT_STUDENT_BODY_TEXT);
