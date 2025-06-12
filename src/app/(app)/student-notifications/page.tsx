@@ -38,33 +38,30 @@ const TEMPLATE_STUDENT_SUBJECT_KEY = "TEMPLATE_STUDENT_SUBJECT";
 const TEMPLATE_STUDENT_BODY_HTML_KEY = "TEMPLATE_STUDENT_BODY_HTML"; // Stores plain text
 
 const DEFAULT_STUDENT_SUBJECT = "Confirmación de Práctica Pedagógica UCSC";
-const DEFAULT_STUDENT_BODY_TEXT = `Estimado/a estudiante
-{{estudiante.nombre}} {{estudiante.ap_paterno}} {{estudiante.ap_materno}}
+const DEFAULT_STUDENT_BODY_TEXT = `Estimado/a estudiante [Nombre del Estudiante]
 
-Junto con saludar, se informa que, desde la coordinación de gestión de centros de Práctica de la UPP, ha sido adscrito/a a {{nombre_establecimiento}}, para desarrollar su {{nivel_practica}}, que inicia la {{practicumStartDate}} hasta la {{practicumEndDate}}.
+Junto con saludar, se informa que, desde la coordinación de gestión de centros de Práctica de la UPP, ha sido adscrito/a a [Nombre Institucion], para desarrollar su [Nivel de Practica], que inicia la [Fecha Inicio Practica] hasta la [Fecha Termino Practica].
 
 Los datos de contacto del establecimiento son:
-Nombre directivo: {{directivo.nombre}}
-Cargo: {{directivo.cargo}}
-Correo electrónico: {{directivo.email}}
+
+Nombre directivo: [Nombre Directivo]
+Cargo: [Cargo Directivo]
+Correo electrónico: [Correo Electronico Directivo]
 
 Posterior a este correo, deberá coordinar el inicio de su pasantía de acuerdo al calendario de prácticas UCSC y hacer entrega de su carpeta de práctica y documentación personal, que incluye:
-- Certificado de Antecedentes ({{linkCertificadoAntecedentes}})
-- Certificado de Inhabilidades para trabajar con menores de edad ({{linkCertificadoInhabilidadesMenores}})
-- Certificado de Inhabilidades por maltrato relevante ({{linkCertificadoInhabilidadesMaltrato}})
-- Horario universitario
-- Otra documentación
+
+Certificado de Antecedentes (https://www.chileatiende.gob.cl/fichas/3442-certificado-de-antecedentes)
+Certificado de Inhabilidades para trabajar con menores de edad (https://inhabilidades.srcei.cl/ConsInhab/consultaInhabilidad.do)
+Certificado de Inhabilidades por maltrato relevante (https://inhabilidades.srcei.cl/InhabilidadesRelevante/#/inicio)
+Horario universitario
+Otra documentación
 
 Se informa, además, que el equipo directivo del establecimiento está en conocimiento de su adscripción y por tanto es importante que asista presencialmente al centro educativo.
 
-Atentamente,
-Coordinación de Gestión de Centros de Práctica Pedagógica
-Unidad de Práctica Pedagógica
-Facultad de Educación
-Universidad Católica de la Santísima Concepción
-Alonso de Ribera 2850 - Concepción - Chile
-Fono +56 412345859
-www.ucsc.cl
+Favor no responder a este correo. Para dudas y/o consultas, favor escribir a sus respectivas coordinadoras de prácticas.
+
+Saludos cordiales,
+Unidad de Prácticas Pedagógicas UCSC
 `.trim();
 
 
@@ -156,27 +153,19 @@ const renderStudentEmail = (
     startDate = practicumOtherStartDate;
     endDate = practicumOtherEndDate;
   }
-
-  const linkCertAntecedentes = `<a href="https://www.chileatiende.gob.cl/fichas/3729-certificado-de-antecedentes-para-fines-especiales" target="_blank" rel="noopener noreferrer">Link de descarga</a>`;
-  const linkCertInhabilidadesMenores = `<a href="https://www.chileatiende.gob.cl/fichas/3839-certificado-de-inhabilidades-para-trabajar-con-menores-de-edad" target="_blank" rel="noopener noreferrer">Link de descarga</a>`;
-  const linkCertInhabilidadesMaltrato = `<a href="https://www.chileatiende.gob.cl/fichas/100249-consulta-en-el-registro-de-inhabilidades-por-maltrato-relevante" target="_blank" rel="noopener noreferrer">Link de descarga</a>`;
-
+  
+  const studentFullName = `${student.firstName} ${student.lastNamePaternal} ${student.lastNameMaternal}`;
 
   // Define text placeholders for this email based on new format
   const textPlaceholders: Record<string, string> = {
-    "{{estudiante.nombre}}": student.firstName,
-    "{{estudiante.ap_paterno}}": student.lastNamePaternal,
-    "{{estudiante.ap_materno}}": student.lastNameMaternal,
-    "{{nombre_establecimiento}}": notifiedInstitutionName,
-    "{{nivel_practica}}": student.practicumLevel,
-    "{{practicumStartDate}}": formatDateForStudentEmail(startDate, 'start'),
-    "{{practicumEndDate}}": formatDateForStudentEmail(endDate, 'end'),
-    "{{directivo.nombre}}": institutionContactName,
-    "{{directivo.cargo}}": institutionContactRole,
-    "{{directivo.email}}": institutionContactEmail,
-    "{{linkCertificadoAntecedentes}}": linkCertAntecedentes,
-    "{{linkCertificadoInhabilidadesMenores}}": linkCertInhabilidadesMenores,
-    "{{linkCertificadoInhabilidadesMaltrato}}": linkCertInhabilidadesMaltrato,
+    "[Nombre del Estudiante]": studentFullName,
+    "[Nombre Institucion]": notifiedInstitutionName,
+    "[Nivel de Practica]": student.practicumLevel,
+    "[Fecha Inicio Practica]": formatDateForStudentEmail(startDate, 'start'),
+    "[Fecha Termino Practica]": formatDateForStudentEmail(endDate, 'end'),
+    "[Nombre Directivo]": institutionContactName,
+    "[Cargo Directivo]": institutionContactRole,
+    "[Correo Electronico Directivo]": institutionContactEmail,
   };
   
   const htmlPlaceholders = {}; // No complex HTML blocks to insert directly here for student email
@@ -188,9 +177,7 @@ const renderStudentEmail = (
   for (const key in textPlaceholders) {
     if (Object.prototype.hasOwnProperty.call(textPlaceholders, key)) {
         const placeholderValue = textPlaceholders[key as keyof typeof textPlaceholders];
-        // Avoid inserting HTML into subject
-        const subjectValue = placeholderValue.startsWith('<a href') ? 'enlace' : placeholderValue;
-        subject = subject.replace(new RegExp(key.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'g'), subjectValue);
+        subject = subject.replace(new RegExp(key.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'g'), placeholderValue);
     }
   }
 

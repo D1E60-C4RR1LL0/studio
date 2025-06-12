@@ -16,16 +16,14 @@ const institutionPlaceholders = [
 ];
 
 const studentPlaceholders = [
-  { key: "{{estudiante.nombre}}", description: "Nombre del estudiante." },
-  { key: "{{estudiante.ap_paterno}}", description: "Apellido paterno del estudiante." },
-  { key: "{{estudiante.ap_materno}}", description: "Apellido materno del estudiante." },
-  { key: "{{nombre_establecimiento}}", description: "Nombre del establecimiento asignado." },
-  { key: "{{nivel_practica}}", description: "Nivel de práctica del estudiante." },
-  { key: "{{practicumStartDate}}", description: "Fecha de inicio de la práctica (ej: 'semana del dd de MMMM')." },
-  { key: "{{practicumEndDate}}", description: "Fecha de término de la práctica (ej: 'semana del dd de MMMM yyyy')." },
-  { key: "{{directivo.nombre}}", description: "Nombre del directivo/contacto en la institución." },
-  { key: "{{directivo.cargo}}", description: "Cargo del directivo/contacto en la institución." },
-  { key: "{{directivo.email}}", description: "Correo electrónico del directivo/contacto en la institución." },
+  { key: "[Nombre del Estudiante]", description: "Nombre completo del estudiante (ej: Ana Pérez García)." },
+  { key: "[Nombre Institucion]", description: "Nombre del establecimiento asignado." },
+  { key: "[Nivel de Practica]", description: "Nivel de práctica del estudiante." },
+  { key: "[Fecha Inicio Practica]", description: "Fecha de inicio de la práctica (ej: 'semana del dd de MMMM')." },
+  { key: "[Fecha Termino Practica]", description: "Fecha de término de la práctica (ej: 'semana del dd de MMMM yyyy')." },
+  { key: "[Nombre Directivo]", description: "Nombre del directivo/contacto en la institución." },
+  { key: "[Cargo Directivo]", description: "Cargo del directivo/contacto en la institución." },
+  { key: "[Correo Electronico Directivo]", description: "Correo electrónico del directivo/contacto en la institución." },
 ];
 
 const DEFAULT_INSTITUTION_EMAIL_SUBJECT = "Información Estudiantes de Práctica";
@@ -50,33 +48,30 @@ Equipo Unidad de Prácticas Pedagógicas UCSC
 `.trim();
 
 const DEFAULT_STUDENT_EMAIL_SUBJECT = "Confirmación de Práctica Pedagógica UCSC";
-const DEFAULT_STUDENT_EMAIL_BODY_TEXT = `Estimado/a estudiante
-{{estudiante.nombre}} {{estudiante.ap_paterno}} {{estudiante.ap_materno}}
+const DEFAULT_STUDENT_EMAIL_BODY_TEXT = `Estimado/a estudiante [Nombre del Estudiante]
 
-Junto con saludar, se informa que, desde la coordinación de gestión de centros de Práctica de la UPP, ha sido adscrito/a a {{nombre_establecimiento}}, para desarrollar su {{nivel_practica}}, que inicia la {{practicumStartDate}} hasta la {{practicumEndDate}}.
+Junto con saludar, se informa que, desde la coordinación de gestión de centros de Práctica de la UPP, ha sido adscrito/a a [Nombre Institucion], para desarrollar su [Nivel de Practica], que inicia la [Fecha Inicio Practica] hasta la [Fecha Termino Practica].
 
 Los datos de contacto del establecimiento son:
-Nombre directivo: {{directivo.nombre}}
-Cargo: {{directivo.cargo}}
-Correo electrónico: {{directivo.email}}
+
+Nombre directivo: [Nombre Directivo]
+Cargo: [Cargo Directivo]
+Correo electrónico: [Correo Electronico Directivo]
 
 Posterior a este correo, deberá coordinar el inicio de su pasantía de acuerdo al calendario de prácticas UCSC y hacer entrega de su carpeta de práctica y documentación personal, que incluye:
-Certificado de Antecedentes
-Certificado de Inhabilidades para trabajar con menores de edad
-Certificado de Inhabilidades por maltrato relevante
+
+Certificado de Antecedentes (https://www.chileatiende.gob.cl/fichas/3442-certificado-de-antecedentes)
+Certificado de Inhabilidades para trabajar con menores de edad (https://inhabilidades.srcei.cl/ConsInhab/consultaInhabilidad.do)
+Certificado de Inhabilidades por maltrato relevante (https://inhabilidades.srcei.cl/InhabilidadesRelevante/#/inicio)
 Horario universitario
 Otra documentación
 
 Se informa, además, que el equipo directivo del establecimiento está en conocimiento de su adscripción y por tanto es importante que asista presencialmente al centro educativo.
 
-Atentamente,
-Coordinación de Gestión de Centros de Práctica Pedagógica
-Unidad de Práctica Pedagógica
-Facultad de Educación
-Universidad Católica de la Santísima Concepción
-Alonso de Ribera 2850 - Concepción - Chile
-Fono +56 412345859
-www.ucsc.cl
+Favor no responder a este correo. Para dudas y/o consultas, favor escribir a sus respectivas coordinadoras de prácticas.
+
+Saludos cordiales,
+Unidad de Prácticas Pedagógicas UCSC
 `.trim();
 
 
