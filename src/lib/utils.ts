@@ -17,68 +17,64 @@ export const textToHtmlWithPlaceholders = (
   textPlaceholders: Record<string, string>  // e.g., {"{{directivo.nombre}}": "Juan Perez"}
 ): string => {
   let processedText = plainTextTemplate;
-
-  // 1. Temporarily replace HTML block placeholders (like {{studentTableHTML}}) with unique IDs
-  //    to protect them from general text processing.
-  const tempHtmlPlaceholderMap: Record<string, string> = {};
+  const tempHtmlIdToOriginalHtmlMap: Record<string, string> = {}; // Maps temp ID to original HTML
+  // originalPlaceholderToTempIdMap is not strictly needed if we replace directly in processedText
   let placeholderIndex = 0;
-  for (const key in htmlPlaceholders) {
-    if (Object.prototype.hasOwnProperty.call(htmlPlaceholders, key)) {
+
+  // 1. Temporarily replace HTML block placeholders (e.g., {{studentTableHTML}}) with unique IDs (e.g., __HTML_BLOCK_PLACEHOLDER_0__) in the processedText.
+  //    Store the mapping from the unique ID back to the original HTML content.
+  for (const originalPlaceholderKey in htmlPlaceholders) {
+    if (Object.prototype.hasOwnProperty.call(htmlPlaceholders, originalPlaceholderKey)) {
       const tempId = `__HTML_BLOCK_PLACEHOLDER_${placeholderIndex++}__`;
-      tempHtmlPlaceholderMap[tempId] = htmlPlaceholders[key];
-      processedText = processedText.replace(new RegExp(escapeRegExp(key), 'g'), tempId);
+      tempHtmlIdToOriginalHtmlMap[tempId] = htmlPlaceholders[originalPlaceholderKey];
+      processedText = processedText.replace(new RegExp(escapeRegExp(originalPlaceholderKey), 'g'), tempId);
     }
   }
 
-  // 2. Process the template, converting plain text parts to HTML
-  //    while preserving already identified HTML blocks and pre-formatted HTML.
+  // 2. Process the template (which now contains temporary IDs for HTML blocks), converting plain text parts to HTML.
+  //    Blocks are separated by one or more blank lines.
   const blocks = processedText.split(/(\n\s*\n+)/); // Split by one or more blank lines, keeping delimiters
   let htmlResult = "";
 
   for (let i = 0; i < blocks.length; i++) {
     let block = blocks[i];
 
-    // Skip over delimiter blocks (captured blank lines)
+    // Skip over delimiter blocks (captured blank lines themselves)
     if (i % 2 === 1) {
-      // htmlResult += block; // If we wanted to preserve multiple newlines as is in source, but <p> handles paragraph spacing
+      // htmlResult += block; // Preserve newlines if needed, but <p> handles paragraph spacing.
       continue;
     }
 
     const trimmedBlock = block.trim();
 
-    if (tempHtmlPlaceholderMap[trimmedBlock]) {
-      // This block is one of the special HTML placeholders (e.g., {{studentTableHTML}})
-      htmlResult += tempHtmlPlaceholderMap[trimmedBlock];
+    if (tempHtmlIdToOriginalHtmlMap[trimmedBlock]) {
+      // This block is one of the special HTML temporary IDs (e.g., __HTML_BLOCK_PLACEHOLDER_0__).
+      // Add THE ID ITSELF (trimmedBlock) to htmlResult. It will be replaced by actual HTML content later.
+      // This ensures it's not wrapped in <p> tags and maintains its block-level nature.
+      htmlResult += trimmedBlock; 
     } else if (trimmedBlock.startsWith('<') && trimmedBlock.endsWith('>')) {
-      // Assume this block is already formatted HTML (e.g., an embedded table)
-      // We need to be careful here: internal newlines in this pre-formatted HTML block
-      // should NOT be converted to <br />.
-      // And it should NOT be wrapped in <p> tags.
-      htmlResult += block; // Add the block as is (preserving original newlines within it for source readability)
+      // Assume this block is already pre-formatted HTML directly in the template string. Add as is.
+      htmlResult += block; // Use `block` to preserve original spacing if any, within the HTML.
     } else if (trimmedBlock) {
-      // This is a plain text block
-      // Convert internal newlines to <br /> and wrap in <p>
+      // This is a plain text block. Convert internal newlines to <br /> and wrap in <p>.
       htmlResult += `<p>${block.replace(/\n/g, "<br />")}</p>\n`;
     }
+    // If block is empty or only whitespace (and not a delimiter), it's skipped by trimmedBlock check.
   }
-  
-  // 3. Replace simple text placeholders (like {{directivo.nombre}}) in the entire HTML accumulated so far.
+
+  // 3. Replace the temporary HTML block IDs (e.g., __HTML_BLOCK_PLACEHOLDER_0__) in htmlResult with their actual HTML content.
+  for (const tempIdKey in tempHtmlIdToOriginalHtmlMap) {
+    if (Object.prototype.hasOwnProperty.call(tempHtmlIdToOriginalHtmlMap, tempIdKey)) {
+      htmlResult = htmlResult.replace(new RegExp(escapeRegExp(tempIdKey), 'g'), tempHtmlIdToOriginalHtmlMap[tempIdKey]);
+    }
+  }
+
+  // 4. Replace simple text placeholders (like {{directivo.nombre}}) in the entire HTML accumulated so far.
   for (const key in textPlaceholders) {
     if (Object.prototype.hasOwnProperty.call(textPlaceholders, key)) {
       htmlResult = htmlResult.replace(new RegExp(escapeRegExp(key), 'g'), textPlaceholders[key]);
     }
   }
-
-  // 4. Clean up: Remove any <p><br /></p> that might result from empty lines or multiple <br> sequences.
-  // and ensure that paragraphs containing only an HTML block placeholder are not wrapped in <p> tags again.
-  // This part can be tricky and might need more sophisticated parsing if issues arise.
-  // A simpler approach for now: if an HTML block placeholder was the only content of what would be a <p>,
-  // the logic above (tempHtmlPlaceholderMap[trimmedBlock]) should handle it.
-  // The main concern is not double-wrapping or misinterpreting newlines within pre-formatted HTML.
-
-  // The current logic of adding `block` directly for pre-formatted HTML
-  // and `tempHtmlPlaceholderMap[trimmedBlock]` for placeholders
-  // should prevent them from being wrapped in <p> or having internal newlines converted.
 
   return htmlResult.replace(/<p>\s*<\/p>/g, ''); // Remove empty paragraphs
 };
