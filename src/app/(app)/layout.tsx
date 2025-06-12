@@ -5,14 +5,15 @@ import type { ReactNode } from 'react';
 import { AppShell } from '@/components/app-shell';
 import { CoordinationHeader } from '@/components/coordination-header';
 import { usePathname } from 'next/navigation';
-import { STAGES, STAGE_PATHS } from '@/hooks/usePracticumProgress'; // Import STAGES
+import { STAGES, STAGE_PATHS } from '@/hooks/usePracticumProgress';
 
 export default function AppLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
 
-  let activeIndex: typeof STAGES[keyof typeof STAGES] = STAGES.STUDENT_SELECTION; // Default to first stage
+  let activeIndex: typeof STAGES[keyof typeof STAGES] = STAGES.STUDENT_SELECTION; // Default
   let showCoordinationHeader = false;
 
+  // Determine if the current path is one of the student workflow stages
   if (pathname.startsWith(STAGE_PATHS[STAGES.STUDENT_SELECTION])) {
     activeIndex = STAGES.STUDENT_SELECTION;
     showCoordinationHeader = true;
@@ -23,7 +24,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     activeIndex = STAGES.STUDENT_NOTIFICATION;
     showCoordinationHeader = true;
   }
-  // For any other path, including admin paths like /admin/..., showCoordinationHeader will remain false.
+  // For any other path, including /admin/* paths, showCoordinationHeader will remain false.
 
   return (
     <AppShell>
@@ -34,4 +35,3 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     </AppShell>
   );
 }
-
