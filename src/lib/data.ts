@@ -108,6 +108,33 @@ function persistTutors() {
   }
 }
 
+// --- Commune Data ---
+export const mockInitialCommunes: Commune[] = [
+    { id: 'com1', name: 'Santiago' },
+    { id: 'com2', name: 'Providencia' },
+    { id: 'com3', name: 'Las Condes' },
+    { id: 'com4', name: 'Valparaíso' },
+    { id: 'com5', name: 'Viña del Mar' },
+    { id: 'com6', name: 'Concepción' },
+    { id: 'com7', name: 'Antofagasta' },
+    { id: 'com8', name: 'Talcahuano'},
+    { id: 'com9', name: 'San Pedro de la Paz'},
+];
+function initializeCommunes(): Commune[] {
+  if (typeof window !== 'undefined') {
+    const storedCommunes = localStorage.getItem('practicumCommunes');
+    if (storedCommunes) {
+      try { return JSON.parse(storedCommunes); } catch (e) { console.error("Error parsing communes from localStorage", e); }
+    }
+  }
+  return [...mockInitialCommunes];
+}
+let mockCommunes: Commune[] = initializeCommunes();
+function persistCommunes() {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('practicumCommunes', JSON.stringify(mockCommunes));
+  }
+}
 
 // --- AcademicLevel Data (Currently Read-Only) ---
 export const mockAcademicLevels: AcademicLevel[] = [
@@ -118,19 +145,6 @@ export const mockAcademicLevels: AcademicLevel[] = [
   { id: 'level5', name: 'Pasantía Fase Final' },
   { id: 'level6', name: 'Práctica Pedagógica I'},
   { id: 'level7', name: 'Práctica Pedagógica II'},
-];
-
-// --- Commune Data (Currently Read-Only) ---
-export const mockCommunes: Commune[] = [
-    { id: 'com1', name: 'Santiago' },
-    { id: 'com2', name: 'Providencia' },
-    { id: 'com3', name: 'Las Condes' },
-    { id: 'com4', name: 'Valparaíso' },
-    { id: 'com5', name: 'Viña del Mar' },
-    { id: 'com6', name: 'Concepción' },
-    { id: 'com7', name: 'Antofagasta' },
-    { id: 'com8', name: 'Talcahuano'},
-    { id: 'com9', name: 'San Pedro de la Paz'},
 ];
 
 
@@ -268,6 +282,38 @@ export async function deleteTutor(tutorId: string): Promise<void> {
     persistTutors();
 }
 
+// === Commune Data Functions ===
+export async function getCommunes(): Promise<Commune[]> {
+    await new Promise(resolve => setTimeout(resolve, 50));
+    if (mockCommunes.length === 0 && typeof window !== 'undefined' && !localStorage.getItem('practicumCommunes')) {
+        mockCommunes = [...mockInitialCommunes];
+        persistCommunes();
+    } else if (mockCommunes.length === 0 && (typeof window === 'undefined' || !localStorage.getItem('practicumCommunes'))) {
+        mockCommunes = [...mockInitialCommunes];
+    }
+    return [...mockCommunes];
+}
+
+export async function saveCommune(communeToSave: Omit<Commune, 'id'> | Commune): Promise<Commune> {
+    await new Promise(resolve => setTimeout(resolve, 200));
+    const communeWithId: Commune = ('id' in communeToSave && communeToSave.id && !communeToSave.id.startsWith('new-commune-'))
+        ? communeToSave as Commune
+        : { ...communeToSave, id: `commune-${Date.now()}-${Math.random().toString(36).substring(2, 9)}` };
+    const index = mockCommunes.findIndex(c => c.id === communeWithId.id);
+    if (index !== -1) {
+        mockCommunes[index] = communeWithId;
+    } else {
+        mockCommunes.push(communeWithId);
+    }
+    persistCommunes();
+    return communeWithId;
+}
+
+export async function deleteCommune(communeId: string): Promise<void> {
+    await new Promise(resolve => setTimeout(resolve, 200));
+    mockCommunes = mockCommunes.filter(c => c.id !== communeId);
+    persistCommunes();
+}
 
 // === Read-Only Data Functions ===
 export async function getAcademicLevels(): Promise<AcademicLevel[]> {
@@ -275,10 +321,6 @@ export async function getAcademicLevels(): Promise<AcademicLevel[]> {
     return mockAcademicLevels;
 }
 
-export async function getCommunes(): Promise<Commune[]> {
-    await new Promise(resolve => setTimeout(resolve, 50));
-    return mockCommunes;
-}
 
 // === Global Data Deletion ===
 export async function deleteAllData(): Promise<void> {
@@ -287,10 +329,12 @@ export async function deleteAllData(): Promise<void> {
   mockInstitutions = [];
   mockCareers = [];
   mockTutors = [];
-  // Communes and AcademicLevels are read-only, so not cleared from here.
+  mockCommunes = []; // Clear communes
   persistStudents();
   persistInstitutions();
   persistCareers();
   persistTutors();
-  console.log("All mutable mock data (students, institutions, careers, tutors) cleared.");
+  persistCommunes(); // Persist cleared communes
+  console.log("All mutable mock data (students, institutions, careers, tutors, communes) cleared.");
 }
+
