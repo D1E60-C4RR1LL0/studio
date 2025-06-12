@@ -38,7 +38,7 @@ function AppSidebarMenuButton({ href, tooltip, children, icon: Icon }: { href: s
 
   return (
     <SidebarMenuItem>
-      <Link href={href} passHref legacyBehavior>
+      <Link href={href}>
         <SidebarMenuButton
           isActive={isActive}
           tooltip={sidebarState === 'collapsed' ? tooltip : undefined}
