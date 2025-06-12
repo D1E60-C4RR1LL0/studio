@@ -28,42 +28,41 @@ const studentPlaceholders = [
 
 const DEFAULT_INSTITUTION_EMAIL_SUBJECT = "Información Estudiantes de Práctica";
 const DEFAULT_INSTITUTION_EMAIL_BODY_HTML = `
-<div style="font-family: Arial, sans-serif; font-size: 10pt;">
-  <p style="margin-bottom: 10px;">Estimado/a {{contactName}}{{contactRole ? ', en su calidad de ' + contactRole + ' de ' : ''}} {{institutionName}}.</p>
-  <p style="margin-bottom: 15px;">Le saludo de manera cordial en nombre de la Unidad de Práctica Pedagógica (UPP) de la Facultad de Educación de la Universidad Católica de la Santísima Concepción, y presento a usted el inicio de las pasantías de estudiantes de Pedagogía de nuestra Facultad, de acuerdo con el siguiente calendario de prácticas UCSC primer semestre 2025:</p>
-  {{practiceCalendarHTML}}
-  <p style="margin-top: 15px; margin-bottom: 5px;">Adjuntamos la lista de estudiantes propuestos para realizar su práctica en su establecimiento:</p>
-  {{studentTableHTML}}
-  {{documentationListHTML}}
-  <p style="margin-top: 20px;">Finalmente, como UPP agradecemos el espacio formativo otorgado por su comunidad educativa.</p>
-  <p style="margin-top: 15px;">Se despide atentamente,<br />Equipo Unidad de Prácticas Pedagógicas UCSC</p>
-</div>
+<p>Estimado/a {{contactName}},</p>
+<p>Reciba un cordial saludo en nombre de la Unidad de Práctica Pedagógica (UPP) de la Facultad de Educación de la Universidad Católica de la Santísima Concepción.</p>
+<p>Nos ponemos en contacto con usted referente a su rol como {{contactRole}} en la institución {{institutionName}}.</p>
+<p>A continuación, presentamos el calendario de prácticas UCSC para el primer semestre:</p>
+{{practiceCalendarHTML}}
+<p>Adjuntamos la lista de estudiantes propuestos para realizar su práctica en su establecimiento:</p>
+{{studentTableHTML}}
+<p>Es importante que cada estudiante, al iniciar su pasantía, entregue su carpeta de práctica que incluye la siguiente documentación esencial:</p>
+{{documentationListHTML}}
+<p>Agradecemos sinceramente el valioso espacio formativo que su comunidad educativa proporciona a nuestros futuros profesionales.</p>
+<p>Atentamente,<br />
+Equipo Unidad de Prácticas Pedagógicas UCSC</p>
 `.trim();
 
 const DEFAULT_STUDENT_EMAIL_SUBJECT = "Confirmación de Práctica Pedagógica";
 const DEFAULT_STUDENT_EMAIL_BODY_HTML = `
-Estimado/a estudiante {{studentFullName}}
-
-Junto con saludar, se informa que, desde la coordinación de gestión de centros de Práctica de la UPP, ha sido adscrito/a a {{institutionName}}, para desarrollar su {{practicumLevel}}, que inicia la {{practicumStartDate}} hasta la {{practicumEndDate}}.
-
-Los datos de contacto del establecimiento son:
-- Nombre directivo: {{institutionContactName}}
-- Cargo: {{institutionContactRole}}
-- Correo electrónico: {{institutionContactEmail}}
-
-Posterior a este correo, deberá coordinar el inicio de su pasantía de acuerdo calendario de prácticas UCSC y hacer entrega de su carpeta de práctica y documentación personal, que incluye:
-- Certificado de Antecedentes (Link de descarga: https://www.chileatiende.gob.cl/fichas/3442-certificado-de-antecedentes)
-- Certificado de Inhabilidades para trabajar con menores de edad (Link de descarga: https://inhabilidades.srcei.cl/ConsInhab/consultaInhabilidad.do)
-- Certificado de Inhabilidades por maltrato relevante (Link de descarga: https://inhabilidades.srcei.cl/InhabilidadesRelevante/#/inicio)
-- Horario universitario
-- Otra documentación
-
-Se informa, además, que el equipo directivo del establecimiento está en conocimiento de su adscripción y por tanto es importante que asista presencialmente al centro educativo.
-
-Favor no responder a este correo. Para dudas y/o consulta favor escribir a sus respectivas coordinadoras de prácticas.
-
-Saludos cordiales,
-Unidad de Prácticas Pedagógicas UCSC
+<p>Estimado/a estudiante {{studentFullName}},</p>
+<p>Junto con saludar, se informa que, desde la coordinación de gestión de centros de Práctica de la UPP, ha sido adscrito/a a {{institutionName}}, para desarrollar su {{practicumLevel}}, que inicia la {{practicumStartDate}} hasta la {{practicumEndDate}}.</p>
+<p>Los datos de contacto del establecimiento son:</p>
+<ul>
+  <li>Nombre directivo: {{institutionContactName}}</li>
+  <li>Cargo: {{institutionContactRole}}</li>
+  <li>Correo electrónico: {{institutionContactEmail}}</li>
+</ul>
+<p>Posterior a este correo, deberá coordinar el inicio de su pasantía de acuerdo calendario de prácticas UCSC y hacer entrega de su carpeta de práctica y documentación personal, que incluye:</p>
+<ul>
+  <li>Certificado de Antecedentes (Link de descarga: https://www.chileatiende.gob.cl/fichas/3442-certificado-de-antecedentes)</li>
+  <li>Certificado de Inhabilidades para trabajar con menores de edad (Link de descarga: https://inhabilidades.srcei.cl/ConsInhab/consultaInhabilidad.do)</li>
+  <li>Certificado de Inhabilidades por maltrato relevante (Link de descarga: https://inhabilidades.srcei.cl/InhabilidadesRelevante/#/inicio)</li>
+  <li>Horario universitario</li>
+  <li>Otra documentación</li>
+</ul>
+<p>Se informa, además, que el equipo directivo del establecimiento está en conocimiento de su adscripción y por tanto es importante que asista presencialmente al centro educativo.</p>
+<p>Favor no responder a este correo. Para dudas y/o consulta favor escribir a sus respectivas coordinadoras de prácticas.</p>
+<p>Saludos cordiales,<br/>Unidad de Prácticas Pedagógicas UCSC</p>
 `.trim();
 
 

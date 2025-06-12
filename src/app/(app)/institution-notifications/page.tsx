@@ -41,19 +41,21 @@ const PRACTICUM_OTHER_WEEKS_KEY = 'practicumOtherWeeks';
 const TEMPLATE_INSTITUTION_SUBJECT_KEY = "TEMPLATE_INSTITUTION_SUBJECT";
 const TEMPLATE_INSTITUTION_BODY_HTML_KEY = "TEMPLATE_INSTITUTION_BODY_HTML";
 
-// Default template content (with placeholders)
-const DEFAULT_INSTITUTION_SUBJECT = "Información Estudiantes de Práctica";
+// Default template content (with placeholders) - These are now sourced from admin/templates/page.tsx at runtime effectively
+const DEFAULT_INSTITUTION_SUBJECT = "Información Estudiantes de Práctica"; // This will be overridden by localStorage if set
 const DEFAULT_INSTITUTION_BODY_HTML = `
-<div style="font-family: Arial, sans-serif; font-size: 10pt;">
-  <p style="margin-bottom: 10px;">Estimado/a {{contactName}}{{contactRole ? ', en su calidad de ' + contactRole + ' de ' : ''}} {{institutionName}}.</p>
-  <p style="margin-bottom: 15px;">Le saludo de manera cordial en nombre de la Unidad de Práctica Pedagógica (UPP) de la Facultad de Educación de la Universidad Católica de la Santísima Concepción, y presento a usted el inicio de las pasantías de estudiantes de Pedagogía de nuestra Facultad, de acuerdo con el siguiente calendario de prácticas UCSC primer semestre 2025:</p>
-  {{practiceCalendarHTML}}
-  <p style="margin-top: 15px; margin-bottom: 5px;">Adjuntamos la lista de estudiantes propuestos para realizar su práctica en su establecimiento:</p>
-  {{studentTableHTML}}
-  {{documentationListHTML}}
-  <p style="margin-top: 20px;">Finalmente, como UPP agradecemos el espacio formativo otorgado por su comunidad educativa.</p>
-  <p style="margin-top: 15px;">Se despide atentamente,<br />Equipo Unidad de Prácticas Pedagógicas UCSC</p>
-</div>
+<p>Estimado/a {{contactName}},</p>
+<p>Reciba un cordial saludo en nombre de la Unidad de Práctica Pedagógica (UPP) de la Facultad de Educación de la Universidad Católica de la Santísima Concepción.</p>
+<p>Nos ponemos en contacto con usted referente a su rol como {{contactRole}} en la institución {{institutionName}}.</p>
+<p>A continuación, presentamos el calendario de prácticas UCSC para el primer semestre:</p>
+{{practiceCalendarHTML}}
+<p>Adjuntamos la lista de estudiantes propuestos para realizar su práctica en su establecimiento:</p>
+{{studentTableHTML}}
+<p>Es importante que cada estudiante, al iniciar su pasantía, entregue su carpeta de práctica que incluye la siguiente documentación esencial:</p>
+{{documentationListHTML}}
+<p>Agradecemos sinceramente el valioso espacio formativo que su comunidad educativa proporciona a nuestros futuros profesionales.</p>
+<p>Atentamente,<br />
+Equipo Unidad de Prácticas Pedagógicas UCSC</p>
 `.trim();
 
 
@@ -80,20 +82,20 @@ const renderEmailBody = (
   if (selectedStudentsForEmail.length > 0) {
     studentTableRowsHTML = selectedStudentsForEmail.map(student => {
       const fullName = `${student.firstName} ${student.lastNamePaternal} ${student.lastNameMaternal}`;
-      return `<tr><td style="border: 1px solid #ddd; padding: 8px;">${fullName}</td><td style="border: 1px solid #ddd; padding: 8px;">${student.rut}</td><td style="border: 1px solid #ddd; padding: 8px;">${student.career}</td><td style="border: 1px solid #ddd; padding: 8px;">${student.practicumLevel}</td></tr>`;
+      return `<tr><td>${fullName}</td><td>${student.rut}</td><td>${student.career}</td><td>${student.practicumLevel}</td></tr>`;
     }).join("");
   } else {
-    studentTableRowsHTML = `<tr><td colspan="4" style="border: 1px solid #ddd; padding: 8px; text-align: center;">(No hay estudiantes seleccionados para esta notificación)</td></tr>`;
+    studentTableRowsHTML = `<tr><td colspan="4" style="text-align: center;">(No hay estudiantes seleccionados para esta notificación)</td></tr>`;
   }
   
   const studentTableHTML = `
-    <table style="border-collapse: collapse; width: 100%; border: 1px solid #ddd; font-family: Arial, sans-serif; font-size: 10pt;">
-      <thead style="background-color: #f2f2f2;">
+    <table border="1" cellpadding="5" cellspacing="0" style="border-collapse: collapse; width: 100%;">
+      <thead>
         <tr>
-          <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">NOMBRE COMPLETO</th>
-          <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">RUT</th>
-          <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">CARRERA</th>
-          <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">NIVEL PRÁCTICA</th>
+          <th>NOMBRE COMPLETO</th>
+          <th>RUT</th>
+          <th>CARRERA</th>
+          <th>NIVEL PRÁCTICA</th>
         </tr>
       </thead>
       <tbody>
@@ -109,34 +111,33 @@ const renderEmailBody = (
   const otherWeeksText = otherWeeks || "[Nº]";
 
   const practiceCalendarHTML = `
-    <table style="border-collapse: collapse; width: 100%; border: 1px solid #ddd; margin-bottom: 15px; font-family: Arial, sans-serif; font-size: 10pt;">
-      <thead style="background-color: #f2f2f2;">
+    <table border="1" cellpadding="5" cellspacing="0" style="border-collapse: collapse; width: 100%; margin-bottom: 15px;">
+      <thead>
         <tr>
-          <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">NIVEL DE PRÁCTICA</th>
-          <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">FECHA INICIO</th>
-          <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">FECHA TÉRMINO</th>
-          <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Nº SEMANAS</th>
+          <th>NIVEL DE PRÁCTICA</th>
+          <th>FECHA INICIO</th>
+          <th>FECHA TÉRMINO</th>
+          <th>Nº SEMANAS</th>
         </tr>
       </thead>
       <tbody>
         <tr>
-          <td style="border: 1px solid #ddd; padding: 8px;">P. PROFESIONAL</td>
-          <td style="border: 1px solid #ddd; padding: 8px;">${profStartDateText}</td>
-          <td style="border: 1px solid #ddd; padding: 8px;">${profEndDateText}</td>
-          <td style="border: 1px solid #ddd; padding: 8px;">${profWeeksText}</td>
+          <td>P. PROFESIONAL</td>
+          <td>${profStartDateText}</td>
+          <td>${profEndDateText}</td>
+          <td>${profWeeksText}</td>
         </tr>
         <tr>
-          <td style="border: 1px solid #ddd; padding: 8px;">PPV - PPIV - PPIII - PPII - PPI</td>
-          <td style="border: 1px solid #ddd; padding: 8px;">${otherStartDateText}</td>
-          <td style="border: 1px solid #ddd; padding: 8px;">${otherEndDateText}</td>
-          <td style="border: 1px solid #ddd; padding: 8px;">${otherWeeksText}</td>
+          <td>PPV - PPIV - PPIII - PPII - PPI</td>
+          <td>${otherStartDateText}</td>
+          <td>${otherEndDateText}</td>
+          <td>${otherWeeksText}</td>
         </tr>
       </tbody>
     </table>`;
 
   const documentationListHTML = `
-    <p style="font-family: Arial, sans-serif; font-size: 10pt; margin-top: 15px;">Al iniciar su pasantía, cada estudiante deberá hacer entrega de su carpeta de práctica con documentación institucional y personal; la cual considera:</p>
-    <ul style="font-family: Arial, sans-serif; font-size: 10pt;">
+    <ul>
       <li>Certificado de Antecedentes</li>
       <li>Certificado de Inhabilidades para trabajar con menores de edad</li>
       <li>Certificado de Inhabilidades por maltrato relevante</li>
@@ -146,7 +147,7 @@ const renderEmailBody = (
   
   let renderedBody = templateBodyHtml;
   renderedBody = renderedBody.replace(/\{\{contactName\}\}/g, contactName || '[Nombre Contacto]');
-  renderedBody = renderedBody.replace(/\{\{contactRole\}\}/g, contactRole || '');
+  renderedBody = renderedBody.replace(/\{\{contactRole\}\}/g, contactRole || ''); // If role is empty, it will become an empty string.
   renderedBody = renderedBody.replace(/\{\{institutionName\}\}/g, institutionName || '[Nombre Institución]');
   renderedBody = renderedBody.replace(/\{\{studentTableHTML\}\}/g, studentTableHTML);
   renderedBody = renderedBody.replace(/\{\{practiceCalendarHTML\}\}/g, practiceCalendarHTML);
@@ -196,9 +197,9 @@ export default function InstitutionNotificationsPage() {
     // Load templates from localStorage or use defaults
     if (typeof window !== 'undefined') {
       const storedSubject = localStorage.getItem(TEMPLATE_INSTITUTION_SUBJECT_KEY);
-      if (storedSubject) setEmailSubjectTemplate(storedSubject);
+      setEmailSubjectTemplate(storedSubject || DEFAULT_INSTITUTION_SUBJECT);
       const storedBody = localStorage.getItem(TEMPLATE_INSTITUTION_BODY_HTML_KEY);
-      if (storedBody) setEmailBodyHtmlTemplate(storedBody);
+      setEmailBodyHtmlTemplate(storedBody || DEFAULT_INSTITUTION_BODY_HTML);
     }
 
     const currentYear = new Date().getFullYear();
