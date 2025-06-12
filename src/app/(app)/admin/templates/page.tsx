@@ -17,6 +17,7 @@ const institutionPlaceholders = [
   { key: "{{semana_inicio_pp}}", description: "Semana de inicio de otras Prácticas Pedagógicas (ej: semana del dd de MMMM)." },
   { key: "{{semana_termino_pp}}", description: "Semana de término de otras Prácticas Pedagógicas (ej: semana del dd de MMMM yyyy)." },
   { key: "{{numero_semanas_pp}}", description: "Número de semanas de otras Prácticas Pedagógicas." },
+  { key: "{{practiceCalendarHTML}}", description: "Tabla HTML con el calendario de prácticas (P. Profesional y Otras Prácticas)." },
   { key: "{{studentTableHTML}}", description: "Tabla HTML con la lista de estudiantes asignados." },
   { key: "{{documentationListHTML}}", description: "Lista HTML de la documentación requerida." },
 ];
@@ -30,8 +31,6 @@ const studentPlaceholders = [
   { key: "[Nombre Directivo]", description: "Nombre del directivo/contacto en la institución." },
   { key: "[Cargo Directivo]", description: "Cargo del directivo/contacto en la institución." },
   { key: "[Correo Electronico Directivo]", description: "Correo electrónico del directivo/contacto en la institución." },
-  // Placeholders for certificate links are no longer explicitly listed as separate placeholders for HTML links,
-  // as URLs are now part of the main template text.
 ];
 
 const DEFAULT_INSTITUTION_EMAIL_SUBJECT = "Información Estudiantes de Práctica";
@@ -41,30 +40,7 @@ Reciba un cordial saludo en nombre de la Unidad de Práctica Pedagógica (UPP) d
 Nos ponemos en contacto con usted referente a su rol como {{directivo.cargo}} en la institución {{nombre_establecimiento}}.
 
 A continuación, presentamos el calendario de prácticas UCSC para el primer semestre:
-<table border="1" cellpadding="5" cellspacing="0" style="border-collapse: collapse; width: 100%; margin-top: 10px; margin-bottom: 10px;">
-  <thead>
-    <tr>
-      <th>NIVEL DE PRÁCTICA</th>
-      <th>FECHA INICIO</th>
-      <th>FECHA TÉRMINO</th>
-      <th>Nº SEMANAS</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>P. PROFESIONAL</td>
-      <td>{{semana_inicio_profesional}}</td>
-      <td>{{semana_termino_profesional}}</td>
-      <td>{{numero_semanas_profesional}}</td>
-    </tr>
-    <tr>
-      <td>PPV - PPIV - PPIII - PPII - PPI</td>
-      <td>{{semana_inicio_pp}}</td>
-      <td>{{semana_termino_pp}}</td>
-      <td>{{numero_semanas_pp}}</td>
-    </tr>
-  </tbody>
-</table>
+{{practiceCalendarHTML}}
 
 Adjuntamos la lista de estudiantes propuestos para realizar su práctica en su establecimiento:
 {{studentTableHTML}}
