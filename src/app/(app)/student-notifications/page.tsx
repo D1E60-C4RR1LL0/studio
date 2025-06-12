@@ -37,7 +37,6 @@ const STUDENT_NOTIFICATION_LEVEL_PROGRAMMING_KEY = 'studentNotificationLevelProg
 const TEMPLATE_STUDENT_SUBJECT_KEY = "TEMPLATE_STUDENT_SUBJECT";
 const TEMPLATE_STUDENT_BODY_HTML_KEY = "TEMPLATE_STUDENT_BODY_HTML"; // Stores plain text
 
-// Updated default student email body to reflect new placeholder names
 const DEFAULT_STUDENT_SUBJECT = "Confirmación de Práctica Pedagógica UCSC";
 const DEFAULT_STUDENT_BODY_TEXT = `Estimado/a estudiante
 {{estudiante.nombre}} {{estudiante.ap_paterno}} {{estudiante.ap_materno}}
@@ -50,11 +49,11 @@ Cargo: {{directivo.cargo}}
 Correo electrónico: {{directivo.email}}
 
 Posterior a este correo, deberá coordinar el inicio de su pasantía de acuerdo al calendario de prácticas UCSC y hacer entrega de su carpeta de práctica y documentación personal, que incluye:
-Certificado de Antecedentes
-Certificado de Inhabilidades para trabajar con menores de edad
-Certificado de Inhabilidades por maltrato relevante
-Horario universitario
-Otra documentación
+- Certificado de Antecedentes ({{linkCertificadoAntecedentes}})
+- Certificado de Inhabilidades para trabajar con menores de edad ({{linkCertificadoInhabilidadesMenores}})
+- Certificado de Inhabilidades por maltrato relevante ({{linkCertificadoInhabilidadesMaltrato}})
+- Horario universitario
+- Otra documentación
 
 Se informa, además, que el equipo directivo del establecimiento está en conocimiento de su adscripción y por tanto es importante que asista presencialmente al centro educativo.
 
@@ -76,8 +75,8 @@ interface LevelProgramming {
 
 const formatDateForStudentEmail = (date: Date | undefined, type: 'start' | 'end'): string => {
   if (!date) return type === 'start' ? "[Fecha Inicio Practica indefinida]" : "[Fecha Termino Practica indefinida]";
-  // Example format: "semana del 17 de marzo" or "semana del 16 de junio 2025"
-  const yearFormat = type === 'end' ? " yyyy" : ""; // Add year only for end date or if needed
+  // Example format: "semana del 17 de marzo" or "semana del 16 de junio yyyy"
+  const yearFormat = type === 'end' ? " yyyy" : ""; 
   return format(date, `'semana del' dd 'de' MMMM${yearFormat}`, { locale: es });
 };
 
@@ -115,8 +114,8 @@ const textToHtmlWithPlaceholders = (
       }
       
       // If the entire paragraph was JUST a placeholder, don't wrap it in <p>
-      if (tempHtmlMap[paragraph.trim()]) {
-        return tempHtmlMap[paragraph.trim()];
+      if (Object.values(tempHtmlMap).includes(paragraph.trim())) {
+        return paragraph.trim();
       }
       
       // Otherwise, process as text: wrap in <p>, convert \n to <br />
@@ -150,13 +149,18 @@ const renderStudentEmail = (
 ): { subject: string; body: string } => {
 
   let startDate, endDate;
-  if (student.practicumLevel.toLowerCase().includes('profesional') || student.practicumLevel.toLowerCase().includes('pasantía')) { // Assuming "Pasantía" uses professional dates
+  if (student.practicumLevel.toLowerCase().includes('profesional') || student.practicumLevel.toLowerCase().includes('pasantía')) { 
     startDate = practicumProfStartDate;
     endDate = practicumProfEndDate;
-  } else { // Other pedagogical practices
+  } else { 
     startDate = practicumOtherStartDate;
     endDate = practicumOtherEndDate;
   }
+
+  const linkCertAntecedentes = `<a href="https://www.chileatiende.gob.cl/fichas/3729-certificado-de-antecedentes-para-fines-especiales" target="_blank" rel="noopener noreferrer">Link de descarga</a>`;
+  const linkCertInhabilidadesMenores = `<a href="https://www.chileatiende.gob.cl/fichas/3839-certificado-de-inhabilidades-para-trabajar-con-menores-de-edad" target="_blank" rel="noopener noreferrer">Link de descarga</a>`;
+  const linkCertInhabilidadesMaltrato = `<a href="https://www.chileatiende.gob.cl/fichas/100249-consulta-en-el-registro-de-inhabilidades-por-maltrato-relevante" target="_blank" rel="noopener noreferrer">Link de descarga</a>`;
+
 
   // Define text placeholders for this email based on new format
   const textPlaceholders: Record<string, string> = {
@@ -170,11 +174,12 @@ const renderStudentEmail = (
     "{{directivo.nombre}}": institutionContactName,
     "{{directivo.cargo}}": institutionContactRole,
     "{{directivo.email}}": institutionContactEmail,
+    "{{linkCertificadoAntecedentes}}": linkCertAntecedentes,
+    "{{linkCertificadoInhabilidadesMenores}}": linkCertInhabilidadesMenores,
+    "{{linkCertificadoInhabilidadesMaltrato}}": linkCertInhabilidadesMaltrato,
   };
   
-  // Student email usually doesn't have complex HTML placeholders from this function's perspective
-  // Any HTML placeholders would be part of the `templateBodyPlainText` itself.
-  const htmlPlaceholders = {};
+  const htmlPlaceholders = {}; // No complex HTML blocks to insert directly here for student email
 
   const body = textToHtmlWithPlaceholders(templateBodyPlainText, htmlPlaceholders, textPlaceholders);
 
@@ -183,7 +188,9 @@ const renderStudentEmail = (
   for (const key in textPlaceholders) {
     if (Object.prototype.hasOwnProperty.call(textPlaceholders, key)) {
         const placeholderValue = textPlaceholders[key as keyof typeof textPlaceholders];
-        subject = subject.replace(new RegExp(key.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'g'), placeholderValue);
+        // Avoid inserting HTML into subject
+        const subjectValue = placeholderValue.startsWith('<a href') ? 'enlace' : placeholderValue;
+        subject = subject.replace(new RegExp(key.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'g'), subjectValue);
     }
   }
 
@@ -220,6 +227,10 @@ export default function StudentNotificationsPage() {
 
   const [previewSubject, setPreviewSubject] = React.useState("");
   const [previewBodyHtml, setPreviewBodyHtml] = React.useState("");
+
+  // Declare the missing state variables
+  const [currentScheduledDate, setCurrentScheduledDate] = React.useState<Date | undefined>();
+  const [currentScheduledTime, setCurrentScheduledTime] = React.useState<string>("09:00");
 
 
   const { toast } = useToast();
@@ -448,7 +459,14 @@ export default function StudentNotificationsPage() {
       if (typeof window !== 'undefined') {
         localStorage.setItem(STUDENT_NOTIFICATION_LEVEL_PROGRAMMING_KEY, JSON.stringify(newState));
       }
-      return newState;
+      // Convert back to Date objects for React state if needed, after stringifying for localStorage
+      const reactState = { ...newState };
+      if (reactState[levelId]?.scheduledDate && typeof reactState[levelId].scheduledDate === 'string') {
+        // @ts-ignore
+        reactState[levelId].scheduledDate = parseISO(reactState[levelId].scheduledDate as string);
+      }
+
+      return reactState;
     });
   };
 
