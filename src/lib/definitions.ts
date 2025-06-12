@@ -50,4 +50,5 @@ export type Commune = {
 export type Tutor = {
   id: string;
   name: string;
+  email?: string; // Email is optional
 };
