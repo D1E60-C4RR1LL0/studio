@@ -48,9 +48,9 @@ Los datos de contacto del establecimiento son:
 - Correo electrónico: {{institutionContactEmail}}
 
 Posterior a este correo, deberá coordinar el inicio de su pasantía de acuerdo calendario de prácticas UCSC y hacer entrega de su carpeta de práctica y documentación personal, que incluye:
-- Certificado de Antecedentes (Link de descarga: https://www.chileatiende.gob.cl/fichas/3442-certificado-de-antecedentes)
-- Certificado de Inhabilidades para trabajar con menores de edad (Link de descarga: https://inhabilidades.srcei.cl/ConsInhab/consultaInhabilidad.do)
-- Certificado de Inhabilidades por maltrato relevante (Link de descarga: https://inhabilidades.srcei.cl/InhabilidadesRelevante/#/inicio)
+- Certificado de Antecedentes ({{linkCertificadoAntecedentes}})
+- Certificado de Inhabilidades para trabajar con menores de edad ({{linkCertificadoInhabilidadesMenores}})
+- Certificado de Inhabilidades por maltrato relevante ({{linkCertificadoInhabilidadesMaltrato}})
 - Horario universitario
 - Otra documentación
 
@@ -164,6 +164,9 @@ const renderStudentEmail = (
     "{{institutionContactName}}": institutionContactName,
     "{{institutionContactRole}}": institutionContactRole,
     "{{institutionContactEmail}}": institutionContactEmail,
+    "{{linkCertificadoAntecedentes}}": "<a href='https://www.chileatiende.gob.cl/fichas/3442-certificado-de-antecedentes' target='_blank' rel='noopener noreferrer'>Link de descarga</a>",
+    "{{linkCertificadoInhabilidadesMenores}}": "<a href='https://inhabilidades.srcei.cl/ConsInhab/consultaInhabilidad.do' target='_blank' rel='noopener noreferrer'>Link de descarga</a>",
+    "{{linkCertificadoInhabilidadesMaltrato}}": "<a href='https://inhabilidades.srcei.cl/InhabilidadesRelevante/#/inicio' target='_blank' rel='noopener noreferrer'>Link de descarga</a>",
   };
   
   // Student email usually doesn't have complex HTML placeholders like tables
@@ -171,6 +174,18 @@ const renderStudentEmail = (
   const htmlPlaceholders = {};
 
   const body = textToHtmlWithPlaceholders(templateBodyPlainText, htmlPlaceholders, textPlaceholders);
+
+  // Replace placeholders in subject as well
+  for (const key in textPlaceholders) {
+    if (Object.prototype.hasOwnProperty.call(textPlaceholders, key)) {
+        const placeholderValue = textPlaceholders[key as keyof typeof textPlaceholders];
+        // For subject, we don't want HTML tags, so strip them if they are links
+        const subjectValue = placeholderValue.startsWith('<a href') ? 
+                             (key.includes('Link') ? 'enlace' : placeholderValue.replace(/<[^>]*>?/gm, '')) 
+                             : placeholderValue;
+        subject = subject.replace(new RegExp(key.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'g'), subjectValue);
+    }
+  }
 
   return { subject, body };
 };

@@ -24,10 +24,13 @@ const studentPlaceholders = [
   { key: "{{institutionContactName}}", description: "Nombre del directivo/contacto en la institución." },
   { key: "{{institutionContactRole}}", description: "Cargo del directivo/contacto." },
   { key: "{{institutionContactEmail}}", description: "Correo electrónico del directivo/contacto." },
+  { key: "{{linkCertificadoAntecedentes}}", description: "Enlace al Certificado de Antecedentes." },
+  { key: "{{linkCertificadoInhabilidadesMenores}}", description: "Enlace al Certificado de Inhabilidades para trabajar con menores." },
+  { key: "{{linkCertificadoInhabilidadesMaltrato}}", description: "Enlace al Certificado de Inhabilidades por maltrato relevante." },
 ];
 
 const DEFAULT_INSTITUTION_EMAIL_SUBJECT = "Información Estudiantes de Práctica";
-const DEFAULT_INSTITUTION_EMAIL_BODY_HTML = `Estimado/a {{contactName}},
+const DEFAULT_INSTITUTION_EMAIL_BODY_TEXT = `Estimado/a {{contactName}},
 
 Reciba un cordial saludo en nombre de la Unidad de Práctica Pedagógica (UPP) de la Facultad de Educación de la Universidad Católica de la Santísima Concepción.
 Nos ponemos en contacto con usted referente a su rol como {{contactRole}} en la institución {{institutionName}}.
@@ -48,7 +51,7 @@ Equipo Unidad de Prácticas Pedagógicas UCSC
 `.trim();
 
 const DEFAULT_STUDENT_EMAIL_SUBJECT = "Confirmación de Práctica Pedagógica";
-const DEFAULT_STUDENT_EMAIL_BODY_HTML = `Estimado/a estudiante {{studentFullName}},
+const DEFAULT_STUDENT_EMAIL_BODY_TEXT = `Estimado/a estudiante {{studentFullName}},
 
 Junto con saludar, se informa que, desde la coordinación de gestión de centros de Práctica de la UPP, ha sido adscrito/a a {{institutionName}}, para desarrollar su {{practicumLevel}}, que inicia la {{practicumStartDate}} hasta la {{practicumEndDate}}.
 
@@ -58,9 +61,9 @@ Los datos de contacto del establecimiento son:
 - Correo electrónico: {{institutionContactEmail}}
 
 Posterior a este correo, deberá coordinar el inicio de su pasantía de acuerdo calendario de prácticas UCSC y hacer entrega de su carpeta de práctica y documentación personal, que incluye:
-- Certificado de Antecedentes (Link de descarga: https://www.chileatiende.gob.cl/fichas/3442-certificado-de-antecedentes)
-- Certificado de Inhabilidades para trabajar con menores de edad (Link de descarga: https://inhabilidades.srcei.cl/ConsInhab/consultaInhabilidad.do)
-- Certificado de Inhabilidades por maltrato relevante (Link de descarga: https://inhabilidades.srcei.cl/InhabilidadesRelevante/#/inicio)
+- Certificado de Antecedentes ({{linkCertificadoAntecedentes}})
+- Certificado de Inhabilidades para trabajar con menores de edad ({{linkCertificadoInhabilidadesMenores}})
+- Certificado de Inhabilidades por maltrato relevante ({{linkCertificadoInhabilidadesMaltrato}})
 - Horario universitario
 - Otra documentación
 
@@ -89,9 +92,9 @@ export default function TemplatesPage() {
           <TemplateEditor
             templateTypeTitle="Plantilla para Establecimientos"
             templateKeySubject="TEMPLATE_INSTITUTION_SUBJECT"
-            templateKeyBodyHtml="TEMPLATE_INSTITUTION_BODY_HTML"
+            templateKeyBodyHtml="TEMPLATE_INSTITUTION_BODY_HTML" // Stores plain text
             defaultSubject={DEFAULT_INSTITUTION_EMAIL_SUBJECT}
-            defaultBodyHtml={DEFAULT_INSTITUTION_EMAIL_BODY_HTML}
+            defaultBodyHtml={DEFAULT_INSTITUTION_EMAIL_BODY_TEXT} // Default body as plain text
             placeholders={institutionPlaceholders}
           />
         </TabsContent>
@@ -99,9 +102,9 @@ export default function TemplatesPage() {
           <TemplateEditor
             templateTypeTitle="Plantilla para Alumnos"
             templateKeySubject="TEMPLATE_STUDENT_SUBJECT"
-            templateKeyBodyHtml="TEMPLATE_STUDENT_BODY_HTML"
+            templateKeyBodyHtml="TEMPLATE_STUDENT_BODY_HTML" // Stores plain text
             defaultSubject={DEFAULT_STUDENT_EMAIL_SUBJECT}
-            defaultBodyHtml={DEFAULT_STUDENT_EMAIL_BODY_HTML}
+            defaultBodyHtml={DEFAULT_STUDENT_EMAIL_BODY_TEXT} // Default body as plain text
             placeholders={studentPlaceholders}
           />
         </TabsContent>
