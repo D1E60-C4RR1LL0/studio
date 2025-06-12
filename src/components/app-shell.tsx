@@ -2,7 +2,7 @@
 "use client";
 
 import Link from "next/link";
-import { GraduationCap, Settings, LogOut, Home, MapPin, Landmark, NotebookText, Contact2, UsersCog, UserCircle, LayoutDashboard, Users } from "lucide-react";
+import { GraduationCap, Settings, LogOut, Home, MapPin, Landmark, NotebookText, Contact2, UserCog, UserCircle, LayoutDashboard, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -85,7 +85,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <AppSidebarMenuButton href="/admin/tutors" tooltip="Tutores" icon={Contact2}>
               Tutores
             </AppSidebarMenuButton>
-             <AppSidebarMenuButton href="/admin/directors" tooltip="Directivos" icon={UsersCog}>
+             <AppSidebarMenuButton href="/admin/directors" tooltip="Directivos" icon={UserCog}>
               Directivos
             </AppSidebarMenuButton>
           </SidebarMenu>
