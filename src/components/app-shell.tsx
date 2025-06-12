@@ -2,7 +2,7 @@
 "use client";
 
 import Link from "next/link";
-import { GraduationCap, Settings, LogOut, Home, MapPin, Landmark, NotebookText, Contact2, UserCog, UserCircle, LayoutDashboard, Users } from "lucide-react";
+import { GraduationCap, Settings, LogOut, Home, MapPin, Landmark, NotebookText, Contact2, UserCog, UserCircle, LayoutDashboard, Users, DatabaseZap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -33,16 +33,26 @@ import { cn } from "@/lib/utils";
 // Helper component to handle active state for sidebar menu items
 function AppSidebarMenuButton({ href, tooltip, children, icon: Icon }: { href: string, tooltip: string, children: ReactNode, icon: React.ElementType }) {
   const pathname = usePathname();
-  const isActive = pathname.startsWith(href);
+  const isActive = pathname === href || (href !== "/" && pathname.startsWith(href) && href !== "/students" && href !== "/admin/bulk-upload"); // More specific active check
   const { state: sidebarState } = useSidebar(); // Get sidebar state for tooltip visibility
+
+  // Special case for /students to avoid matching /student-notifications
+  let finalIsActive = isActive;
+  if (href === "/students") {
+    finalIsActive = pathname === "/students";
+  }
+  if (href === "/admin/bulk-upload") {
+    finalIsActive = pathname === "/admin/bulk-upload";
+  }
+
 
   return (
     <SidebarMenuItem>
       <Link href={href}>
         <SidebarMenuButton
-          isActive={isActive}
+          isActive={finalIsActive}
           tooltip={sidebarState === 'collapsed' ? tooltip : undefined}
-          asChild={false} // Ensure it's a button for proper tooltip behavior if not linking directly
+          asChild={false} 
           className="flex items-center gap-2"
         >
           <Icon className="h-5 w-5" />
@@ -88,6 +98,9 @@ export function AppShell({ children }: { children: ReactNode }) {
              <AppSidebarMenuButton href="/admin/directors" tooltip="Directivos" icon={UserCog}>
               Directivos
             </AppSidebarMenuButton>
+            <AppSidebarMenuButton href="/admin/bulk-upload" tooltip="Carga Masiva" icon={DatabaseZap}>
+              Carga Masiva
+            </AppSidebarMenuButton>
           </SidebarMenu>
         </SidebarContent>
         <SidebarFooter className="p-2">
@@ -109,7 +122,6 @@ export function AppShell({ children }: { children: ReactNode }) {
             {/* Left: Sidebar Toggle and Branding (Branding hidden if sidebar is visible and expanded) */}
             <div className="flex items-center gap-2">
               <SidebarTrigger className="md:hidden" /> {/* Hidden on md and up, sidebar rail handles it */}
-               {/* Optional: Show title if sidebar is collapsed or on mobile */}
                <Link href="/" className="flex items-center gap-2 group md:hidden">
                 <GraduationCap className="h-7 w-7 text-primary"/>
                 <h1 className="text-lg font-semibold text-foreground font-headline">GestorPrácticas</h1>

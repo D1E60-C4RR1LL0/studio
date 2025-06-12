@@ -174,10 +174,15 @@ export async function saveStudent(studentToSave: Student | Omit<Student, 'id'>):
   return studentWithLocation;
 }
 
-export async function deleteAllStudents(): Promise<void> {
+export async function deleteAllData(): Promise<void> {
   await new Promise(resolve => setTimeout(resolve, 500));
   mockStudents = [];
+  mockInstitutions = []; 
+  // In a real app, you would also clear other data types (careers, communes, etc.)
   persistStudents();
+  persistInstitutions();
+  // Persist other data types if they are also stored in localStorage
+  console.log("All mock data (students, institutions) cleared from localStorage.");
 }
 
 // Institution Data Functions
@@ -202,7 +207,7 @@ export async function saveInstitution(institutionToSave: Omit<Institution, 'id' 
 
   let institutionWithId: Institution;
 
-  if ('id' in institutionToSave && institutionToSave.id && !institutionToSave.id.startsWith('new-')) {
+  if ('id' in institutionToSave && institutionToSave.id && !institutionToSave.id.startsWith('new-inst-')) {
     institutionWithId = institutionToSave as Institution;
   } else {
     institutionWithId = {
@@ -258,6 +263,3 @@ export async function getTutors(): Promise<Tutor[]> {
     await new Promise(resolve => setTimeout(resolve, 200));
     return mockTutors;
 }
-
-
-    

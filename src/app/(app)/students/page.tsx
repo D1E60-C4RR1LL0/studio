@@ -7,16 +7,16 @@ import { getStudents, saveStudent } from "@/lib/data";
 import { StudentTable } from "./components/student-table";
 import { AddStudentForm } from "./components/add-student-form";
 import { EditStudentForm } from "./components/edit-student-form";
-import { BulkStudentUploadForm } from "./components/bulk-student-upload-form";
+// BulkStudentUploadForm is no longer imported here
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/page-header";
-import { Search, Edit3, Check, UserPlus, List, UploadCloud } from "lucide-react";
+import { Search, Edit3, Check, UserPlus, List } from "lucide-react"; // Removed UploadCloud
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from 'next/navigation';
 import { usePracticumProgress, STAGES, STAGE_PATHS } from '@/hooks/usePracticumProgress';
 
-type ViewMode = "table" | "addForm" | "editForm" | "bulkUploadForm";
+type ViewMode = "table" | "addForm" | "editForm"; // Removed "bulkUploadForm"
 const CONFIRMED_STUDENT_IDS_KEY = 'confirmedPracticumStudentIds';
 
 // Helper function to normalize RUTs by removing dots, hyphens, and converting to uppercase.
@@ -28,8 +28,8 @@ const normalizeRut = (rut: string | undefined): string => {
 export default function StudentManagementPage() {
   const [students, setStudents] = React.useState<Student[]>([]);
   const [filteredStudents, setFilteredStudents] = React.useState<Student[]>([]);
-  const [currentSearchInput, setCurrentSearchInput] = React.useState(""); // For live input
-  const [searchTerm, setSearchTerm] = React.useState(""); // For triggered search
+  const [currentSearchInput, setCurrentSearchInput] = React.useState(""); 
+  const [searchTerm, setSearchTerm] = React.useState(""); 
   const [isLoading, setIsLoading] = React.useState(true);
   
   const [selectedStudentsForConfirmation, setSelectedStudentsForConfirmation] = React.useState<Set<string>>(new Set());
@@ -59,10 +59,9 @@ export default function StudentManagementPage() {
     loadStudentData();
   }, [loadStudentData]);
 
-  // Effect for filtering students when searchTerm or the base students list changes
   React.useEffect(() => {
     if (!searchTerm.trim()) {
-      setFilteredStudents([]); // Keep table empty if no search term or search term is cleared
+      setFilteredStudents([]); 
       return;
     }
 
@@ -101,9 +100,6 @@ export default function StudentManagementPage() {
       });
       setViewMode('table'); 
       setSelectedStudentsForConfirmation(new Set());
-      // Optionally clear search after saving to show an empty table or re-apply search if needed
-      // setCurrentSearchInput(""); 
-      // setSearchTerm(""); 
     } catch (error) {
        toast({
         title: "Error al guardar",
@@ -111,16 +107,6 @@ export default function StudentManagementPage() {
         variant: "destructive",
       });
     }
-  };
-
-  const handleBulkFileProcessed = async () => {
-    await loadStudentData(); 
-    setViewMode('table');
-  };
-  
-  const handleDatabaseEmptied = async () => {
-    await loadStudentData(); 
-    // Stay in bulkUploadForm view
   };
 
   const handleTableSelectionChange = (studentId: string, isSelected: boolean) => {
@@ -176,13 +162,11 @@ export default function StudentManagementPage() {
     table: "Selección de Estudiantes",
     addForm: "Agregar Nuevo Estudiante",
     editForm: "Editar Información del Estudiante",
-    bulkUploadForm: "Carga Masiva de Datos desde Excel"
   };
   const pageDescriptions: Record<ViewMode, string> = {
     table: "Busca y selecciona los alumnos que podrían realizar su práctica.",
     addForm: "Complete el formulario para agregar un nuevo estudiante a la base de datos.",
     editForm: "Busque por RUT y modifique los datos del estudiante.",
-    bulkUploadForm: "Suba la plantilla Excel con la información correspondiente."
   }
 
   if (isLoadingPracticumProgress || isLoading) {
@@ -205,8 +189,6 @@ export default function StudentManagementPage() {
             variant={viewMode === 'table' ? 'default' : 'outline'} 
             onClick={() => {
               setViewMode('table');
-              // setCurrentSearchInput(""); // Optionally clear search input when switching to table view
-              // setSearchTerm(""); // Optionally clear search results
             }}
             className={viewMode === 'table' ? 'bg-primary hover:bg-primary/90' : ''}
         >
@@ -229,14 +211,7 @@ export default function StudentManagementPage() {
             <Edit3 className="mr-2 h-4 w-4" />
             Editar estudiante
         </Button>
-        <Button 
-            variant={viewMode === 'bulkUploadForm' ? 'default' : 'outline'} 
-            onClick={() => setViewMode('bulkUploadForm')}
-            className={viewMode === 'bulkUploadForm' ? 'bg-primary hover:bg-primary/90' : ''}
-        >
-            <UploadCloud className="mr-2 h-4 w-4" />
-            Carga Masiva
-        </Button>
+        {/* "Carga Masiva" button removed from here */}
       </div>
 
       {viewMode === 'table' && (
@@ -293,13 +268,7 @@ export default function StudentManagementPage() {
         />
       )}
 
-      {viewMode === 'bulkUploadForm' && (
-        <BulkStudentUploadForm
-          onFileProcessed={handleBulkFileProcessed}
-          onDatabaseEmptied={handleDatabaseEmptied}
-          onCancel={() => setViewMode('table')}
-        />
-      )}
+      {/* BulkStudentUploadForm rendering removed from here */}
     </>
   );
 }
