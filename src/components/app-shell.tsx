@@ -2,7 +2,7 @@
 "use client";
 
 import Link from "next/link";
-import { GraduationCap, Settings, LogOut, Home, MapPin, Landmark, NotebookText, Contact2, UserCog, UserCircle, LayoutDashboard, Users, DatabaseZap, FileText, Route } from "lucide-react";
+import { GraduationCap, Settings, LogOut, Home, MapPin, Landmark, NotebookText, Contact2, UserCog, Users, DatabaseZap, FileText, Route } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -33,28 +33,37 @@ import { cn } from "@/lib/utils";
 // Helper component to handle active state for sidebar menu items
 function AppSidebarMenuButton({ href, tooltip, children, icon: Icon }: { href: string, tooltip: string, children: ReactNode, icon: React.ElementType }) {
   const pathname = usePathname();
-  // More specific active check: exact match or prefix match if not a base student/bulk path.
   let isActive = pathname === href;
-  if (href !== "/" && !href.startsWith("/students") && href !== "/admin/bulk-upload" && href !== "/admin/templates" && href !== "/admin/students-management" && pathname.startsWith(href)) {
+
+  // More specific active check for admin sections: prefix match if not a base student/bulk path.
+  if (
+    href !== "/" &&
+    !href.startsWith("/students") && // Exclude main coordination flow base
+    href !== "/admin/carga-masiva" &&    // Exact match for carga-masiva
+    href !== "/admin/email-templates" && // Exact match for email-templates
+    href !== "/admin/estudiantes" &&  // Exact match for estudiantes CRUD
+    pathname.startsWith(href) &&
+    href.startsWith("/admin/") // Ensure it's an admin path for prefix matching
+  ) {
     isActive = true;
   }
 
+  const { state: sidebarState } = useSidebar();
 
-  const { state: sidebarState } = useSidebar(); // Get sidebar state for tooltip visibility
-
-  // Special case for /students to avoid matching /student-notifications
   let finalIsActive = isActive;
-  if (href === "/students") { // This is for the coordination flow
+  // Specific handling for coordination flow parent item
+  if (href === "/students") {
     finalIsActive = pathname.startsWith("/students") || pathname.startsWith("/institution-notifications") || pathname.startsWith("/student-notifications");
   }
-  if (href === "/admin/students-management") { // This is for the CRUD
-    finalIsActive = pathname === "/admin/students-management";
+  // Specific handling for exact matches of admin pages
+  if (href === "/admin/estudiantes") {
+    finalIsActive = pathname === "/admin/estudiantes";
   }
-  if (href === "/admin/bulk-upload") {
-    finalIsActive = pathname === "/admin/bulk-upload";
+  if (href === "/admin/carga-masiva") {
+    finalIsActive = pathname === "/admin/carga-masiva";
   }
-  if (href === "/admin/templates") {
-    finalIsActive = pathname === "/admin/templates";
+  if (href === "/admin/email-templates") {
+    finalIsActive = pathname === "/admin/email-templates";
   }
 
 
@@ -64,7 +73,7 @@ function AppSidebarMenuButton({ href, tooltip, children, icon: Icon }: { href: s
         <SidebarMenuButton
           isActive={finalIsActive}
           tooltip={sidebarState === 'collapsed' ? tooltip : undefined}
-          asChild={false} 
+          asChild={false}
           className="flex items-center gap-2"
         >
           <Icon className="h-5 w-5" />
@@ -95,29 +104,29 @@ export function AppShell({ children }: { children: ReactNode }) {
             <AppSidebarMenuButton href="/students" tooltip="Coordinación de Prácticas" icon={Route}>
               Coordinación Prácticas
             </AppSidebarMenuButton>
-             <AppSidebarMenuButton href="/admin/students-management" tooltip="Gestión de Alumnos" icon={Users}>
+             <AppSidebarMenuButton href="/admin/estudiantes" tooltip="Gestión de Alumnos" icon={Users}>
               Gestión de Alumnos
             </AppSidebarMenuButton>
-            <AppSidebarMenuButton href="/admin/institutions" tooltip="Establecimientos" icon={Landmark}>
+            <AppSidebarMenuButton href="/admin/establecimientos" tooltip="Establecimientos" icon={Landmark}>
               Establecimientos
             </AppSidebarMenuButton>
-            <AppSidebarMenuButton href="/admin/communes" tooltip="Comunas" icon={MapPin}>
+            <AppSidebarMenuButton href="/admin/comunas" tooltip="Comunas" icon={MapPin}>
               Comunas
             </AppSidebarMenuButton>
-            <AppSidebarMenuButton href="/admin/careers" tooltip="Carreras" icon={NotebookText}>
+            <AppSidebarMenuButton href="/admin/carreras" tooltip="Carreras" icon={NotebookText}>
               Carreras
             </AppSidebarMenuButton>
-            <AppSidebarMenuButton href="/admin/tutors" tooltip="Tutores" icon={Contact2}>
+            <AppSidebarMenuButton href="/admin/tutores" tooltip="Tutores" icon={Contact2}>
               Tutores
             </AppSidebarMenuButton>
-             <AppSidebarMenuButton href="/admin/directors" tooltip="Directivos" icon={UserCog}>
+             <AppSidebarMenuButton href="/admin/directivos" tooltip="Directivos" icon={UserCog}>
               Directivos
             </AppSidebarMenuButton>
-            <AppSidebarMenuButton href="/admin/bulk-upload" tooltip="Carga Masiva" icon={DatabaseZap}>
+            <AppSidebarMenuButton href="/admin/carga-masiva" tooltip="Carga Masiva" icon={DatabaseZap}>
               Carga Masiva
             </AppSidebarMenuButton>
-            <AppSidebarMenuButton href="/admin/templates" tooltip="Plantillas" icon={FileText}>
-              Plantillas
+            <AppSidebarMenuButton href="/admin/email-templates" tooltip="Plantillas de Correo" icon={FileText}>
+              Plantillas de Correo
             </AppSidebarMenuButton>
           </SidebarMenu>
         </SidebarContent>
