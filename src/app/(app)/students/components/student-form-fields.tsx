@@ -21,52 +21,46 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { AcademicLevel, Career, Commune, Tutor } from "@/lib/definitions";
-import { getAcademicLevels, getCareers, getCommunes, getTutors } from "@/lib/data";
+import type { Career, Commune, Tutor } from "@/lib/definitions";
+import { getCareers, getCommunes, getTutors } from "@/lib/data";
 import { useToast } from "@/hooks/use-toast";
 
 export const studentFormSchema = z.object({
   rut: z.string()
     .min(1, { message: "RUT es requerido." })
     .transform((val, ctx) => {
-      // Normalize: remove dots, hyphens, convert K to uppercase
       const cleaned = val.replace(/\./g, "").replace(/-/g, "").toUpperCase();
-      
       if (!/^\d{7,8}[\dkK]$/.test(cleaned)) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
-          message: "RUT inválido. Formato esperado: XXXXXXXXK o XX.XXX.XXX-K (donde X es número y K puede ser K o número).",
+          message: "RUT inválido.",
         });
-        return z.NEVER; // Prevents further processing by Zod for this field
+        return z.NEVER;
       }
-
       const body = cleaned.slice(0, -1);
       const verifier = cleaned.slice(-1);
-
       let formattedRut = "";
-      if (body.length === 8) { // e.g., 12345678
+      if (body.length === 8) {
         formattedRut = `${body.substring(0, 2)}.${body.substring(2, 5)}.${body.substring(5, 8)}-${verifier}`;
-      } else if (body.length === 7) { // e.g., 1234567
+      } else if (body.length === 7) {
         formattedRut = `${body.substring(0, 1)}.${body.substring(1, 4)}.${body.substring(4, 7)}-${verifier}`;
       } else {
-        // This case should ideally be caught by the regex, but acts as a fallback.
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
-          message: "RUT inválido. Largo incorrecto después de la normalización.",
+          message: "RUT inválido. Largo incorrecto.",
         });
         return z.NEVER;
       }
       return formattedRut;
     }),
-  firstName: z.string().min(1, { message: "Nombre es requerido." }),
-  lastNamePaternal: z.string().min(1, { message: "Apellido paterno es requerido." }),
-  lastNameMaternal: z.string().min(1, { message: "Apellido materno es requerido." }),
-  email: z.string().email({ message: "Dirección de correo inválida." }),
-  career: z.string().min(1, { message: "Carrera es requerida." }),
-  commune: z.string().optional(),
-  tutor: z.string().optional(),
-  practicumLevel: z.string().min(1, { message: "Nivel de práctica es requerido." }),
-  specialConditions: z.string().optional(),
+  nombre: z.string().min(1, { message: "Nombre es requerido." }),
+  ap_paterno: z.string().min(1, { message: "Apellido paterno es requerido." }),
+  ap_materno: z.string().min(1, { message: "Apellido materno es requerido." }),
+  email: z.string().email({ message: "Correo inválido." }),
+  carrera_id: z.string().min(1, { message: "Carrera es requerida." }),
+  comuna_id: z.string().optional(), // ahora es opcional
+  tutor_id: z.string().optional(),  // ahora es opcional
+  cond_especial: z.string().optional(),
 });
 
 export type StudentFormData = z.infer<typeof studentFormSchema>;
@@ -76,7 +70,6 @@ interface StudentFormFieldsProps {
 }
 
 export function StudentFormFields({ form }: StudentFormFieldsProps) {
-  const [academicLevels, setAcademicLevels] = React.useState<AcademicLevel[]>([]);
   const [careers, setCareers] = React.useState<Career[]>([]);
   const [communes, setCommunes] = React.useState<Commune[]>([]);
   const [tutors, setTutors] = React.useState<Tutor[]>([]);
@@ -85,20 +78,18 @@ export function StudentFormFields({ form }: StudentFormFieldsProps) {
   React.useEffect(() => {
     async function loadSelectOptions() {
       try {
-        const [levels, careerData, communeData, tutorData] = await Promise.all([
-          getAcademicLevels(),
+        const [careerData, communeData, tutorData] = await Promise.all([
           getCareers(),
           getCommunes(),
           getTutors(),
         ]);
-        setAcademicLevels(levels);
         setCareers(careerData);
         setCommunes(communeData);
         setTutors(tutorData);
       } catch (error) {
         toast({
           title: "Error al cargar opciones",
-          description: "No se pudieron cargar los datos para los campos de selección.",
+          description: "No se pudieron cargar los datos.",
           variant: "destructive",
         });
       }
@@ -124,7 +115,7 @@ export function StudentFormFields({ form }: StudentFormFieldsProps) {
         />
         <FormField
           control={form.control}
-          name="firstName"
+          name="nombre"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Nombre *</FormLabel>
@@ -139,7 +130,7 @@ export function StudentFormFields({ form }: StudentFormFieldsProps) {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <FormField
           control={form.control}
-          name="lastNamePaternal"
+          name="ap_paterno"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Apellido Paterno *</FormLabel>
@@ -152,7 +143,7 @@ export function StudentFormFields({ form }: StudentFormFieldsProps) {
         />
         <FormField
           control={form.control}
-          name="lastNameMaternal"
+          name="ap_materno"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Apellido Materno *</FormLabel>
@@ -180,19 +171,21 @@ export function StudentFormFields({ form }: StudentFormFieldsProps) {
         />
         <FormField
           control={form.control}
-          name="career"
+          name="carrera_id"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Carrera *</FormLabel>
-              <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
+              <FormLabel>Carrera</FormLabel>
+              <Select onValueChange={field.onChange} value={field.value ?? ""}>
                 <FormControl>
                   <SelectTrigger>
                     <SelectValue placeholder="Seleccione una carrera" />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  {careers.map(career => (
-                    <SelectItem key={career.id} value={career.name}>{career.name}</SelectItem>
+                  {careers.map((career) => (
+                    <SelectItem key={career.id} value={career.id}>
+                      {career.nombre}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -200,15 +193,16 @@ export function StudentFormFields({ form }: StudentFormFieldsProps) {
             </FormItem>
           )}
         />
+
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <FormField
           control={form.control}
-          name="commune"
+          name="comuna_id"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Comuna</FormLabel>
-              <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
+              <Select onValueChange={field.onChange} value={field.value ?? ""}>
                 <FormControl>
                   <SelectTrigger>
                     <SelectValue placeholder="Seleccione una comuna" />
@@ -216,7 +210,7 @@ export function StudentFormFields({ form }: StudentFormFieldsProps) {
                 </FormControl>
                 <SelectContent>
                   {communes.map(commune => (
-                    <SelectItem key={commune.id} value={commune.name}>{commune.name}</SelectItem>
+                    <SelectItem key={commune.id} value={commune.id}>{commune.nombre}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -226,11 +220,11 @@ export function StudentFormFields({ form }: StudentFormFieldsProps) {
         />
         <FormField
           control={form.control}
-          name="tutor"
+          name="tutor_id"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Tutor</FormLabel>
-              <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
+              <Select onValueChange={field.onChange} value={field.value ?? ""}>
                 <FormControl>
                   <SelectTrigger>
                     <SelectValue placeholder="Seleccione un tutor" />
@@ -238,7 +232,7 @@ export function StudentFormFields({ form }: StudentFormFieldsProps) {
                 </FormControl>
                 <SelectContent>
                   {tutors.map(tutor => (
-                    <SelectItem key={tutor.id} value={tutor.name}>{tutor.name}</SelectItem>
+                    <SelectItem key={tutor.id} value={tutor.id}>{tutor.nombre}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -249,29 +243,7 @@ export function StudentFormFields({ form }: StudentFormFieldsProps) {
       </div>
       <FormField
         control={form.control}
-        name="practicumLevel"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Nivel de Práctica *</FormLabel>
-            <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
-              <FormControl>
-                <SelectTrigger>
-                  <SelectValue placeholder="Seleccione un nivel de práctica" />
-                </SelectTrigger>
-              </FormControl>
-              <SelectContent>
-                {academicLevels.map(level => (
-                  <SelectItem key={level.id} value={level.name}>{level.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
-      <FormField
-        control={form.control}
-        name="specialConditions"
+        name="cond_especial"
         render={({ field }) => (
           <FormItem>
             <FormLabel>Condiciones Especiales</FormLabel>
@@ -285,4 +257,3 @@ export function StudentFormFields({ form }: StudentFormFieldsProps) {
     </div>
   );
 }
-

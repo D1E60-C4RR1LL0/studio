@@ -60,7 +60,7 @@ export default function AdminCommunesPage() {
   React.useEffect(() => {
     const lowercasedSearchTerm = searchTerm.toLowerCase();
     const filteredData = communes.filter(item =>
-      item.name.toLowerCase().includes(lowercasedSearchTerm)
+      item.nombre.toLowerCase().includes(lowercasedSearchTerm)
     );
     setFilteredCommunes(filteredData);
   }, [searchTerm, communes]);
@@ -71,7 +71,7 @@ export default function AdminCommunesPage() {
       await loadCommuneData();
       toast({
         title: "Comuna Guardada",
-        description: `${saved.name} ha sido guardada exitosamente.`,
+        description: `${saved.nombre} ha sido guardada exitosamente.`,
       });
       setViewMode('table');
       setCurrentSearchInput("");
@@ -97,7 +97,7 @@ export default function AdminCommunesPage() {
       await loadCommuneData();
       toast({
         title: "Comuna Eliminada",
-        description: `${communeToDelete.name} ha sido eliminada.`,
+        description: `${communeToDelete.nombre} ha sido eliminada.`,
       });
     } catch (error) {
       toast({
@@ -220,7 +220,7 @@ export default function AdminCommunesPage() {
             </AlertDialogTitle>
             <AlertDialogDescription>
               Esta acción es irreversible y eliminará permanentemente la comuna: <br />
-              <strong>{communeToDelete?.name}</strong>.
+              <strong>{communeToDelete?.nombre}</strong>.
               <br /><br />
               ¿Desea continuar y eliminar esta comuna?
             </AlertDialogDescription>

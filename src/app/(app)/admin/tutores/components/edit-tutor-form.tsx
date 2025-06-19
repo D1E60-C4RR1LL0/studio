@@ -46,12 +46,12 @@ export function EditTutorForm({ onSave, onCancel }: EditTutorFormProps) {
     try {
       const allTutors = await getTutors();
       const foundTutor = allTutors.find(
-        t => t.name.toLowerCase().includes(lowerSearchTerm) || (t.email && t.email.toLowerCase().includes(lowerSearchTerm))
+        t => t.nombre.toLowerCase().includes(lowerSearchTerm) || (t.email && t.email.toLowerCase().includes(lowerSearchTerm))
       );
 
       if (foundTutor) {
         setCurrentTutor(foundTutor);
-        form.reset({ name: foundTutor.name, email: foundTutor.email || "" });
+        form.reset({ nombre: foundTutor.nombre, email: foundTutor.email || "" });
         setTutorNotFound(false);
       } else {
         setTutorNotFound(true);
@@ -67,7 +67,7 @@ export function EditTutorForm({ onSave, onCancel }: EditTutorFormProps) {
     if (!currentTutor) return;
     const tutorToSave: Tutor = {
       ...currentTutor,
-      name: data.name,
+      nombre: data.nombre,
       email: data.email || undefined,
     };
     await onSave(tutorToSave);
@@ -106,19 +106,19 @@ export function EditTutorForm({ onSave, onCancel }: EditTutorFormProps) {
                 <Button
                   type="submit"
                   className="bg-green-500 hover:bg-green-600 text-white"
-                  disabled={form.formState.isSubmitting || !form.formState.isDirty}
+                  disabled={form.formState.isSubmitting}
                 >
                   <Save className="mr-2 h-4 w-4" /> Guardar Cambios
                 </Button>
                 <Button type="button" variant="outline" onClick={onCancel}>
-                   <XCircle className="mr-2 h-4 w-4" /> Cancelar
+                  <XCircle className="mr-2 h-4 w-4" /> Cancelar
                 </Button>
               </div>
             </form>
           </Form>
         )}
-         {!currentTutor && !isLoadingTutor && !tutorNotFound && (
-            <p className="text-sm text-muted-foreground">Ingrese un término y presione "Buscar" para editar un tutor.</p>
+        {!currentTutor && !isLoadingTutor && !tutorNotFound && (
+          <p className="text-sm text-muted-foreground">Ingrese un término y presione "Buscar" para editar un tutor.</p>
         )}
       </CardContent>
     </Card>

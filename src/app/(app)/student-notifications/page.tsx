@@ -46,14 +46,14 @@ interface LevelProgramming {
 
 const formatDateForStudentEmail = (date: Date | undefined, type: 'start' | 'end'): string => {
   if (!date) return type === 'start' ? "[Fecha Inicio Practica indefinida]" : "[Fecha Termino Practica indefinida]";
-  const yearFormat = type === 'end' ? " yyyy" : ""; 
+  const yearFormat = type === 'end' ? " yyyy" : "";
   return format(date, `'semana del' dd 'de' MMMM${yearFormat}`, { locale: es });
 };
 
 
 const renderStudentEmail = (
   templateSubject: string,
-  templateBodyPlainText: string, 
+  templateBodyPlainText: string,
   student: Student,
   notifiedInstitutionName: string,
   institutionContactName: string,
@@ -70,18 +70,18 @@ const renderStudentEmail = (
   let startDate, endDate;
 
   // Determine which dates to use based on practicum level
-  if (student.practicumLevel.toLowerCase().includes('profesional') || student.practicumLevel.toLowerCase().includes('pasantía')) { 
+  if (student.practicumLevel.toLowerCase().includes('profesional') || student.practicumLevel.toLowerCase().includes('pasantía')) {
     startDate = practicumProfStartDate;
     endDate = practicumProfEndDate;
-  } else { 
+  } else {
     startDate = practicumOtherStartDate;
     endDate = practicumOtherEndDate;
   }
-  
+
   const textPlaceholders: Record<string, string> = {
-    "{{estudiante.nombre}}": student.firstName,
-    "{{estudiante.ap_paterno}}": student.lastNamePaternal,
-    "{{estudiante.ap_materno}}": student.lastNameMaternal,
+    "{{estudiante.nombre}}": student.nombre,
+    "{{estudiante.ap_paterno}}": student.ap_paterno,
+    "{{estudiante.ap_materno}}": student.ap_materno,
     "{{nombre_establecimiento}}": notifiedInstitutionName,
     "{{nivel_practica}}": student.practicumLevel,
     [startDateKeyToUse]: formatDateForStudentEmail(startDate, 'start'),
@@ -90,16 +90,16 @@ const renderStudentEmail = (
     "{{directivo.cargo}}": institutionContactRole,
     "{{directivo.email}}": institutionContactEmail,
   };
-  
-  const htmlPlaceholders = {}; 
+
+  const htmlPlaceholders = {};
 
   const body = textToHtmlWithPlaceholders(templateBodyPlainText, htmlPlaceholders, textPlaceholders);
 
   let subject = templateSubject;
   for (const key in textPlaceholders) {
     if (Object.prototype.hasOwnProperty.call(textPlaceholders, key)) {
-        const placeholderValue = textPlaceholders[key as keyof typeof textPlaceholders];
-        subject = subject.replace(new RegExp(key.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'g'), placeholderValue);
+      const placeholderValue = textPlaceholders[key as keyof typeof textPlaceholders];
+      subject = subject.replace(new RegExp(key.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'g'), placeholderValue);
     }
   }
 
@@ -119,7 +119,7 @@ export default function StudentNotificationsPage() {
   const [institutionContactName, setInstitutionContactName] = React.useState<string>("(Nombre de directivo no disponible)");
   const [institutionContactRole, setInstitutionContactRole] = React.useState<string>("(Cargo de directivo no disponible)");
   const [institutionContactEmail, setInstitutionContactEmail] = React.useState<string>("(Email de directivo no disponible)");
-  
+
   const [practicumProfStartDate, setPracticumProfStartDate] = React.useState<Date | undefined>();
   const [practicumProfEndDate, setPracticumProfEndDate] = React.useState<Date | undefined>();
   const [practicumOtherStartDate, setPracticumOtherStartDate] = React.useState<Date | undefined>();
@@ -154,7 +154,7 @@ export default function StudentNotificationsPage() {
       const storedSubject = localStorage.getItem(TEMPLATE_STUDENT_SUBJECT_KEY);
       setStudentEmailSubjectTemplate(storedSubject || DEFAULT_STUDENT_EMAIL_SUBJECT);
 
-      const storedBody = localStorage.getItem(TEMPLATE_STUDENT_BODY_HTML_KEY); 
+      const storedBody = localStorage.getItem(TEMPLATE_STUDENT_BODY_HTML_KEY);
       setStudentEmailBodyPlainTextTemplate(storedBody || DEFAULT_STUDENT_EMAIL_BODY_TEXT);
     }
 
@@ -173,7 +173,7 @@ export default function StudentNotificationsPage() {
 
           const instName = localStorage.getItem(LAST_NOTIFIED_INSTITUTION_NAME_KEY);
           setNotifiedInstitutionName(instName && instName.trim() !== "" ? instName : "(Institución no especificada)");
-          
+
           const contactName = localStorage.getItem(LAST_NOTIFIED_INSTITUTION_CONTACT_NAME_KEY);
           setInstitutionContactName(contactName && contactName.trim() !== "" ? contactName : "(Nombre de directivo no disponible)");
 
@@ -204,7 +204,7 @@ export default function StudentNotificationsPage() {
           }
         }
       } catch (error) {
-         toast({
+        toast({
           title: "Error al cargar datos",
           description: "No se pudieron cargar datos iniciales o de localStorage.",
           variant: "destructive",
@@ -232,7 +232,7 @@ export default function StudentNotificationsPage() {
       setDisplayableAcademicLevels(filteredLevels);
 
       if (selectedLevelId && !filteredLevels.find(l => l.id === selectedLevelId)) {
-        setSelectedLevelId(""); 
+        setSelectedLevelId("");
       }
     } else {
       setDisplayableAcademicLevels([]);
@@ -249,26 +249,26 @@ export default function StudentNotificationsPage() {
 
       const level = displayableAcademicLevels.find(l => l.id === selectedLevelId);
       if (level) {
-          const filtered = studentsReadyForNotification.filter(s => s.practicumLevel === level.name);
-          setStudentsInSelectedLevelForPreview(filtered);
-          if (filtered.length > 0) {
-            if (!selectedStudentForPreviewId || !filtered.find(s => s.id === selectedStudentForPreviewId)) {
-                 setSelectedStudentForPreviewId(filtered[0].id);
-            }
-          } else {
-            setSelectedStudentForPreviewId(""); 
+        const filtered = studentsReadyForNotification.filter(s => s.practicumLevel === level.name);
+        setStudentsInSelectedLevelForPreview(filtered);
+        if (filtered.length > 0) {
+          if (!selectedStudentForPreviewId || !filtered.find(s => s.id === selectedStudentForPreviewId)) {
+            setSelectedStudentForPreviewId(filtered[0].id);
           }
+        } else {
+          setSelectedStudentForPreviewId("");
+        }
       } else {
         setStudentsInSelectedLevelForPreview([]);
         setSelectedStudentForPreviewId("");
       }
-    } else { 
-        setStudentsInSelectedLevelForPreview([]);
-        setSelectedStudentForPreviewId("");
-        setCurrentScheduledDate(undefined);
-        setCurrentScheduledTime("09:00");
+    } else {
+      setStudentsInSelectedLevelForPreview([]);
+      setSelectedStudentForPreviewId("");
+      setCurrentScheduledDate(undefined);
+      setCurrentScheduledTime("09:00");
     }
-  }, [selectedLevelId, programmingByLevel, displayableAcademicLevels, studentsReadyForNotification, selectedStudentForPreviewId]); 
+  }, [selectedLevelId, programmingByLevel, displayableAcademicLevels, studentsReadyForNotification, selectedStudentForPreviewId]);
 
 
   React.useEffect(() => {
@@ -276,7 +276,7 @@ export default function StudentNotificationsPage() {
     if (studentToPreview) {
       const { subject, body } = renderStudentEmail(
         studentEmailSubjectTemplate,
-        studentEmailBodyPlainTextTemplate, 
+        studentEmailBodyPlainTextTemplate,
         studentToPreview,
         notifiedInstitutionName,
         institutionContactName,
@@ -290,11 +290,11 @@ export default function StudentNotificationsPage() {
       setPreviewSubject(subject);
       setPreviewBodyHtml(body);
     } else if (selectedLevelId && studentsInSelectedLevelForPreview.length > 0) {
-      const genericStudent = studentsInSelectedLevelForPreview[0]; 
-       const { subject, body } = renderStudentEmail(
+      const genericStudent = studentsInSelectedLevelForPreview[0];
+      const { subject, body } = renderStudentEmail(
         studentEmailSubjectTemplate,
         studentEmailBodyPlainTextTemplate,
-        {...genericStudent, firstName: "{{estudiante.nombre}}", lastNamePaternal: "{{estudiante.ap_paterno}}", lastNameMaternal: "{{estudiante.ap_materno}}" }, 
+        { ...genericStudent, firstName: "{{estudiante.nombre}}", lastNamePaternal: "{{estudiante.ap_paterno}}", lastNameMaternal: "{{estudiante.ap_materno}}" },
         notifiedInstitutionName,
         institutionContactName,
         institutionContactRole,
@@ -307,16 +307,16 @@ export default function StudentNotificationsPage() {
       setPreviewSubject(subject);
       setPreviewBodyHtml(body);
     }
-     else {
-      const tempStudentForGenericPreview : Student = { 
-        id: 'generic', rut: '0', 
-        firstName: '{{estudiante.nombre}}', 
-        lastNamePaternal: '{{estudiante.ap_paterno}}', 
-        lastNameMaternal: '{{estudiante.ap_materno}}', 
-        email: '', career: '', 
-        practicumLevel: displayableAcademicLevels.find(l=>l.id === selectedLevelId)?.name || "{{nivel_practica}}"
+    else {
+      const tempStudentForGenericPreview: Student = {
+        id: 'generic', rut: '0',
+        firstName: '{{estudiante.nombre}}',
+        lastNamePaternal: '{{estudiante.ap_paterno}}',
+        lastNameMaternal: '{{estudiante.ap_materno}}',
+        email: '', career: '',
+        practicumLevel: displayableAcademicLevels.find(l => l.id === selectedLevelId)?.name || "{{nivel_practica}}"
       };
-      const {subject, body} = renderStudentEmail(
+      const { subject, body } = renderStudentEmail(
         studentEmailSubjectTemplate,
         studentEmailBodyPlainTextTemplate,
         tempStudentForGenericPreview,
@@ -333,37 +333,37 @@ export default function StudentNotificationsPage() {
       setPreviewBodyHtml(body);
     }
   }, [
-    selectedStudentForPreviewId, 
-    allStudentsData, 
-    studentEmailSubjectTemplate, 
-    studentEmailBodyPlainTextTemplate, 
-    notifiedInstitutionName, 
-    institutionContactName, 
-    institutionContactRole, 
-    institutionContactEmail, 
-    practicumProfStartDate, 
-    practicumProfEndDate, 
-    practicumOtherStartDate, 
+    selectedStudentForPreviewId,
+    allStudentsData,
+    studentEmailSubjectTemplate,
+    studentEmailBodyPlainTextTemplate,
+    notifiedInstitutionName,
+    institutionContactName,
+    institutionContactRole,
+    institutionContactEmail,
+    practicumProfStartDate,
+    practicumProfEndDate,
+    practicumOtherStartDate,
     practicumOtherEndDate,
-    selectedLevelId, 
+    selectedLevelId,
     studentsInSelectedLevelForPreview,
     displayableAcademicLevels
   ]);
 
 
   const updateProgrammingForLevel = (levelId: string, newProgramming: Partial<LevelProgramming>) => {
-    if (!levelId) return; 
+    if (!levelId) return;
     setProgrammingByLevel(prev => {
       const updatedLevelProg = {
-        ...(prev[levelId] || { scheduledTime: "09:00" }), 
-        ...newProgramming 
+        ...(prev[levelId] || { scheduledTime: "09:00" }),
+        ...newProgramming
       };
-      
+
       if (updatedLevelProg.scheduledDate && updatedLevelProg.scheduledDate instanceof Date) {
         // @ts-ignore
         updatedLevelProg.scheduledDate = updatedLevelProg.scheduledDate.toISOString();
       }
-      
+
       const newState = { ...prev, [levelId]: updatedLevelProg };
 
       if (typeof window !== 'undefined') {
@@ -395,7 +395,7 @@ export default function StudentNotificationsPage() {
         programming.scheduledDate &&
         programming.scheduledTime?.trim() &&
         studentEmailSubjectTemplate.trim() &&
-        studentEmailBodyPlainTextTemplate.trim() 
+        studentEmailBodyPlainTextTemplate.trim()
       ) {
         const level = displayableAcademicLevels.find(l => l.id === levelIdKey);
         if (level) {
@@ -404,13 +404,13 @@ export default function StudentNotificationsPage() {
           );
 
           if (studentsForThisLevel.length > 0) {
-            const dateToParse = programming.scheduledDate instanceof Date 
-                               ? programming.scheduledDate 
-                               : parseISO(programming.scheduledDate as string);
-            
+            const dateToParse = programming.scheduledDate instanceof Date
+              ? programming.scheduledDate
+              : parseISO(programming.scheduledDate as string);
+
             const scheduledDateTime = new Date(dateToParse);
             const [hours, minutes] = programming.scheduledTime.split(':').map(Number);
-            scheduledDateTime.setHours(hours, minutes, 0, 0); 
+            scheduledDateTime.setHours(hours, minutes, 0, 0);
 
             configuredLevelsAndStudents.push({
               level,
@@ -436,11 +436,11 @@ export default function StudentNotificationsPage() {
     configuredLevelsAndStudents.forEach(({ level, programming, students, scheduledDateTime }) => {
       console.log(`--- Programando notificaciones para nivel: ${level.name} ---`);
       console.log(`Fecha y hora programada: ${scheduledDateTime.toLocaleString('es-CL', { dateStyle: 'short', timeStyle: 'short' })}`);
-      
+
       students.forEach(student => {
         const { subject: finalSubject, body: finalBody } = renderStudentEmail(
           studentEmailSubjectTemplate,
-          studentEmailBodyPlainTextTemplate, 
+          studentEmailBodyPlainTextTemplate,
           student,
           notifiedInstitutionName,
           institutionContactName,
@@ -452,7 +452,7 @@ export default function StudentNotificationsPage() {
           practicumOtherEndDate
         );
 
-        console.log(`   Para ${student.email} (Estudiante: ${student.firstName} ${student.lastNamePaternal})`);
+        console.log(`   Para ${student.email} (Estudiante: ${student.nombre} ${student.ap_paterno})`);
         console.log(`   Asunto: ${finalSubject}`);
         totalStudentsNotifiedCount++;
       });
@@ -462,7 +462,7 @@ export default function StudentNotificationsPage() {
       title: "Notificaciones Programadas (Simulado)",
       description: `Correos para ${totalStudentsNotifiedCount} estudiante(s) en ${configuredLevelsAndStudents.length} nivel(es) han sido programados. Este es el último paso del flujo principal.`,
     });
-    
+
     setSuccessDialogTitle("¡Notificaciones Programadas Exitosamente!");
     setSuccessDialogMessage(`Los correos para ${totalStudentsNotifiedCount} estudiante(s) en ${configuredLevelsAndStudents.length} nivel(es) han sido programados. Puede revisar la consola del navegador para ver los detalles de los correos simulados.`);
     setIsSuccessDialogOpen(true);
@@ -488,7 +488,7 @@ export default function StudentNotificationsPage() {
             <CardTitle>Programar Notificación por Nivel de Práctica</CardTitle>
             <CardDescription>
               Los estudiantes listados son aquellos confirmados en etapas anteriores.
-              Seleccione un nivel de práctica para definir la fecha y hora de la notificación. 
+              Seleccione un nivel de práctica para definir la fecha y hora de la notificación.
               El asunto y cuerpo del correo se basan en las plantillas globales (editables en la sección 'Plantillas').
               Los cambios de fecha/hora se guardan automáticamente.
             </CardDescription>
@@ -496,16 +496,16 @@ export default function StudentNotificationsPage() {
           <CardContent className="space-y-6">
             <div>
               <Label htmlFor="institution-name">Institución Asignada para esta Notificación</Label>
-              <Input id="institution-name" value={notifiedInstitutionName} readOnly className="mt-1 bg-muted"/>
+              <Input id="institution-name" value={notifiedInstitutionName} readOnly className="mt-1 bg-muted" />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <Label htmlFor="level-select">Nivel de Práctica (para programar envío)</Label>
                 <Select
-                    onValueChange={(value) => setSelectedLevelId(value)}
-                    value={selectedLevelId}
-                    disabled={displayableAcademicLevels.length === 0}
+                  onValueChange={(value) => setSelectedLevelId(value)}
+                  value={selectedLevelId}
+                  disabled={displayableAcademicLevels.length === 0}
                 >
                   <SelectTrigger id="level-select">
                     <SelectValue placeholder={displayableAcademicLevels.length === 0 ? "No hay niveles con alumnos confirmados" : "Elija un nivel para programar"} />
@@ -516,26 +516,26 @@ export default function StudentNotificationsPage() {
                     ))}
                   </SelectContent>
                 </Select>
-                 {displayableAcademicLevels.length === 0 && studentsReadyForNotification.length > 0 && (
-                    <p className="text-xs text-muted-foreground mt-1">Asegúrese de que los estudiantes confirmados tengan un nivel de práctica asignado y que los niveles existan.</p>
+                {displayableAcademicLevels.length === 0 && studentsReadyForNotification.length > 0 && (
+                  <p className="text-xs text-muted-foreground mt-1">Asegúrese de que los estudiantes confirmados tengan un nivel de práctica asignado y que los niveles existan.</p>
                 )}
-                 {studentsReadyForNotification.length === 0 && !isLoadingProgress && (
-                     <p className="text-xs text-muted-foreground mt-1">No hay estudiantes confirmados de la etapa anterior para notificar.</p>
-                 )}
+                {studentsReadyForNotification.length === 0 && !isLoadingProgress && (
+                  <p className="text-xs text-muted-foreground mt-1">No hay estudiantes confirmados de la etapa anterior para notificar.</p>
+                )}
               </div>
               <div>
                 <Label htmlFor="student-preview-select">Alumno (para vista previa del correo)</Label>
                 <Select
-                    onValueChange={setSelectedStudentForPreviewId}
-                    value={selectedStudentForPreviewId}
-                    disabled={!selectedLevelId || studentsInSelectedLevelForPreview.length === 0}
+                  onValueChange={setSelectedStudentForPreviewId}
+                  value={selectedStudentForPreviewId}
+                  disabled={!selectedLevelId || studentsInSelectedLevelForPreview.length === 0}
                 >
                   <SelectTrigger id="student-preview-select">
                     <SelectValue placeholder={studentsInSelectedLevelForPreview.length === 0 && selectedLevelId ? "No hay alumnos en este nivel" : (selectedLevelId ? "Elija un alumno para previsualizar" : "Seleccione un nivel primero")} />
                   </SelectTrigger>
                   <SelectContent>
                     {studentsInSelectedLevelForPreview.map(student => (
-                      <SelectItem key={student.id} value={student.id}>{student.firstName} {student.lastNamePaternal} ({student.rut})</SelectItem>
+                      <SelectItem key={student.id} value={student.id}>{student.nombre} {student.ap_paterno} ({student.rut})</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -543,13 +543,13 @@ export default function StudentNotificationsPage() {
             </div>
 
             {!selectedLevelId && displayableAcademicLevels.length > 0 && (
-                 <Alert variant="default" className="bg-accent/10 border-accent/30"> 
-                    <Info className="h-4 w-4 text-accent" />
-                    <AlertTitle className="text-accent">Seleccione un Nivel de Práctica</AlertTitle>
-                    <AlertDescription>
-                        Por favor, elija un nivel de práctica de la lista de arriba para definir su fecha y hora de envío.
-                    </AlertDescription>
-                </Alert>
+              <Alert variant="default" className="bg-accent/10 border-accent/30">
+                <Info className="h-4 w-4 text-accent" />
+                <AlertTitle className="text-accent">Seleccione un Nivel de Práctica</AlertTitle>
+                <AlertDescription>
+                  Por favor, elija un nivel de práctica de la lista de arriba para definir su fecha y hora de envío.
+                </AlertDescription>
+              </Alert>
             )}
 
             {selectedLevelId && (
@@ -576,12 +576,12 @@ export default function StudentNotificationsPage() {
                           mode="single"
                           selected={currentScheduledDate instanceof Date ? currentScheduledDate : (currentScheduledDate ? parseISO(currentScheduledDate as string) : undefined)}
                           onSelect={(date) => {
-                            setCurrentScheduledDate(date); 
+                            setCurrentScheduledDate(date);
                             updateProgrammingForLevel(selectedLevelId, { scheduledDate: date });
                           }}
                           initialFocus
                           locale={es}
-                          fromDate={new Date()} 
+                          fromDate={new Date()}
                         />
                       </PopoverContent>
                     </Popover>
@@ -594,7 +594,7 @@ export default function StudentNotificationsPage() {
                       value={currentScheduledTime}
                       onChange={(e) => {
                         const newTime = e.target.value;
-                        setCurrentScheduledTime(newTime); 
+                        setCurrentScheduledTime(newTime);
                         updateProgrammingForLevel(selectedLevelId, { scheduledTime: newTime });
                       }}
                       className="mt-1"
@@ -602,47 +602,47 @@ export default function StudentNotificationsPage() {
                     />
                   </div>
                 </div>
-                
+
                 <Card>
-                    <CardHeader>
-                        <CardTitle className="text-lg">Vista Previa del Correo para {selectedStudentForPreviewId ? studentsReadyForNotification.find(s=>s.id === selectedStudentForPreviewId)?.firstName : "Alumno Seleccionado"}</CardTitle>
-                        <CardDescription>Así se verá el correo para el alumno seleccionado arriba, usando las plantillas de texto plano guardadas y convirtiéndolas a HTML.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <div>
-                            <Label>Asunto (Vista Previa)</Label>
-                            <Input value={previewSubject} readOnly className="mt-1 bg-muted/50" />
-                        </div>
-                        <div>
-                            <Label>Cuerpo del Correo (Vista Previa Renderizada)</Label>
-                            <div
-                              className="mt-1 p-3 border rounded-md bg-muted min-h-[200px] text-sm overflow-auto"
-                              dangerouslySetInnerHTML={{ __html: previewBodyHtml }} 
-                            />
-                        </div>
-                    </CardContent>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Vista Previa del Correo para {selectedStudentForPreviewId ? studentsReadyForNotification.find(s => s.id === selectedStudentForPreviewId)?.firstName : "Alumno Seleccionado"}</CardTitle>
+                    <CardDescription>Así se verá el correo para el alumno seleccionado arriba, usando las plantillas de texto plano guardadas y convirtiéndolas a HTML.</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div>
+                      <Label>Asunto (Vista Previa)</Label>
+                      <Input value={previewSubject} readOnly className="mt-1 bg-muted/50" />
+                    </div>
+                    <div>
+                      <Label>Cuerpo del Correo (Vista Previa Renderizada)</Label>
+                      <div
+                        className="mt-1 p-3 border rounded-md bg-muted min-h-[200px] text-sm overflow-auto"
+                        dangerouslySetInnerHTML={{ __html: previewBodyHtml }}
+                      />
+                    </div>
+                  </CardContent>
                 </Card>
               </>
             )}
             <div className="border-t pt-6">
               <Button
-                  type="submit"
-                  className="w-full md:w-auto"
-                  disabled={fullyConfiguredLevelsCount === 0 || isLoadingProgress || !studentEmailSubjectTemplate.trim() || !studentEmailBodyPlainTextTemplate.trim()}
+                type="submit"
+                className="w-full md:w-auto"
+                disabled={fullyConfiguredLevelsCount === 0 || isLoadingProgress || !studentEmailSubjectTemplate.trim() || !studentEmailBodyPlainTextTemplate.trim()}
               >
                 <SendHorizonal className="mr-2 h-4 w-4" /> Programar Todas las Notificaciones
               </Button>
               {fullyConfiguredLevelsCount === 0 && !isLoadingProgress && (
                 <p className="text-sm text-muted-foreground mt-2">
-                  No hay niveles de práctica con fecha/hora configuradas para enviar notificaciones. 
+                  No hay niveles de práctica con fecha/hora configuradas para enviar notificaciones.
                   Por favor, seleccione un nivel y complete su programación.
                 </p>
               )}
-               {(!studentEmailSubjectTemplate.trim() || !studentEmailBodyPlainTextTemplate.trim()) && (
-                    <p className="text-sm text-destructive mt-2">
-                      Advertencia: La plantilla de asunto o cuerpo del correo para estudiantes está vacía. Por favor, configúrela en la sección 'Plantillas'.
-                    </p>
-                )}
+              {(!studentEmailSubjectTemplate.trim() || !studentEmailBodyPlainTextTemplate.trim()) && (
+                <p className="text-sm text-destructive mt-2">
+                  Advertencia: La plantilla de asunto o cuerpo del correo para estudiantes está vacía. Por favor, configúrela en la sección 'Plantillas'.
+                </p>
+              )}
             </div>
           </CardContent>
         </Card>

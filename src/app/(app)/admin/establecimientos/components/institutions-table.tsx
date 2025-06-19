@@ -81,12 +81,12 @@ export function InstitutionsTable({ institutions, isLoading, onEdit, onDelete }:
           {institutions.map((institution) => (
             <TableRow key={institution.id}>
               <TableCell className="font-medium">{institution.rbd}</TableCell>
-              <TableCell>{institution.name}</TableCell>
-              <TableCell>{institution.dependency}</TableCell>
-              <TableCell>{institution.location}</TableCell>
+              <TableCell>{institution.nombre}</TableCell>
+              <TableCell>{institution.dependencia}</TableCell>
+              <TableCell>{institution.comuna_id}</TableCell>
               <TableCell className="text-center">
                 <div className="flex items-center justify-center">
-                   <Users className="h-4 w-4 mr-1 text-muted-foreground"/> {institution.directorContacts?.length || 0}
+                   <Users className="h-4 w-4 mr-1 text-muted-foreground"/> {institution.directivos?.length || 0}
                 </div>
               </TableCell>
               <TableCell className="text-right">

@@ -3,7 +3,11 @@
 
 import * as React from "react";
 import type { Institution } from "@/lib/definitions";
-import { getInstitutions, saveInstitution, deleteInstitution } from "@/lib/data";
+import {
+  getInstitutionsFromAPI as getInstitutions,
+  saveInstitutionToAPI as saveInstitution,
+  deleteInstitutionFromAPI as deleteInstitution,
+} from "@/lib/api/institutions";
 import { InstitutionsTable } from "./components/institutions-table";
 import { AddInstitutionForm } from "./components/add-institution-form";
 import { EditInstitutionForm } from "./components/edit-institution-form";
@@ -60,10 +64,10 @@ export default function AdminInstitutionsPage() {
   React.useEffect(() => {
     const lowercasedSearchTerm = searchTerm.toLowerCase();
     const filteredData = institutions.filter(item =>
-      item.name.toLowerCase().includes(lowercasedSearchTerm) ||
+      item.nombre.toLowerCase().includes(lowercasedSearchTerm) ||
       item.rbd.toLowerCase().includes(lowercasedSearchTerm) ||
-      item.location.toLowerCase().includes(lowercasedSearchTerm) ||
-      item.dependency.toLowerCase().includes(lowercasedSearchTerm)
+      item.ubicacion.toLowerCase().includes(lowercasedSearchTerm) ||
+      item.dependencia.toLowerCase().includes(lowercasedSearchTerm)
     );
     setFilteredInstitutions(filteredData);
   }, [searchTerm, institutions]);
@@ -74,7 +78,7 @@ export default function AdminInstitutionsPage() {
       await loadInstitutionData();
       toast({
         title: "Establecimiento Guardado",
-        description: `${saved.name} ha sido guardado exitosamente.`,
+        description: `${saved.nombre} ha sido guardado exitosamente.`,
       });
       setViewMode('table');
       setCurrentSearchInput("");
@@ -100,7 +104,7 @@ export default function AdminInstitutionsPage() {
       await loadInstitutionData();
       toast({
         title: "Establecimiento Eliminado",
-        description: `${institutionToDelete.name} ha sido eliminado.`,
+        description: `${institutionToDelete.nombre} ha sido eliminado.`,
       });
     } catch (error) {
       toast({
@@ -225,7 +229,7 @@ export default function AdminInstitutionsPage() {
             </AlertDialogTitle>
             <AlertDialogDescription>
               Esta acción es irreversible y eliminará permanentemente el establecimiento: <br />
-              <strong>{institutionToDelete?.name} (RBD: {institutionToDelete?.rbd})</strong>.
+              <strong>{institutionToDelete?.nombre} (RBD: {institutionToDelete?.rbd})</strong>.
               <br /><br />
               ¿Desea continuar y eliminar este establecimiento?
             </AlertDialogDescription>

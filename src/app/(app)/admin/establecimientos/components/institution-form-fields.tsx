@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from "react";
@@ -22,7 +21,7 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import type { Commune, DirectorContact } from "@/lib/definitions"; // DirectorContact imported
+import type { Commune, DirectorContact, Institution } from "@/lib/definitions"; // DirectorContact imported
 import { getCommunes } from "@/lib/data";
 import { useToast } from "@/hooks/use-toast";
 import { PlusCircle, Trash2 } from "lucide-react";
@@ -38,10 +37,10 @@ const directorContactSchema = z.object({
 export const institutionFormSchema = z.object({
   rbd: z.string().min(1, { message: "RBD es requerido." })
     .regex(/^\d+$/, { message: "RBD debe contener solo números." }),
-  name: z.string().min(3, { message: "Nombre es requerido (mínimo 3 caracteres)." }),
-  dependency: z.string().min(1, { message: "Dependencia es requerida." }),
-  location: z.string().min(1, { message: "Comuna es requerida." }),
-  directorContacts: z.array(directorContactSchema).min(1, { message: "Debe agregar al menos un directivo." }),
+  nombre: z.string().min(3, { message: "Nombre es requerido (mínimo 3 caracteres)." }),
+  dependencia: z.string().min(1, { message: "Dependencia es requerida." }),
+  comuna_id: z.string().min(1, { message: "La comuna es requerida." }),
+  directivos: z.array(directorContactSchema).min(1, { message: "Debe agregar al menos un directivo." }),
 });
 
 export type InstitutionFormData = z.infer<typeof institutionFormSchema>;
@@ -56,7 +55,7 @@ export function InstitutionFormFields({ form }: InstitutionFormFieldsProps) {
 
   const { fields, append, remove } = useFieldArray({
     control: form.control,
-    name: "directorContacts",
+    name: "directivos",
   });
 
   React.useEffect(() => {
@@ -101,7 +100,7 @@ export function InstitutionFormFields({ form }: InstitutionFormFieldsProps) {
         />
         <FormField
           control={form.control}
-          name="name"
+          name="nombre"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Nombre del Establecimiento *</FormLabel>
@@ -116,7 +115,7 @@ export function InstitutionFormFields({ form }: InstitutionFormFieldsProps) {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <FormField
           control={form.control}
-          name="dependency"
+          name="dependencia"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Dependencia *</FormLabel>
@@ -127,28 +126,27 @@ export function InstitutionFormFields({ form }: InstitutionFormFieldsProps) {
             </FormItem>
           )}
         />
-        <FormField
-          control={form.control}
-          name="location"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Comuna *</FormLabel>
-              <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Seleccione una comuna" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {communes.map(commune => (
-                    <SelectItem key={commune.id} value={commune.name}>{commune.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <FormField control={form.control} name="comuna_id" render={({ field }) => (
+          <FormItem>
+            <FormLabel>Comuna *</FormLabel>
+            <Select name="comuna_id" onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
+              <FormControl>
+                <SelectTrigger>
+                  <SelectValue placeholder="Seleccione una comuna" />
+                </SelectTrigger>
+              </FormControl>
+              <SelectContent>
+                {communes.map((commune) => (
+                  <SelectItem key={commune.id} value={commune.id}>
+                    {commune.nombre}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <FormMessage />
+          </FormItem>
+        )} />
+
       </div>
 
       <Card>
@@ -168,7 +166,7 @@ export function InstitutionFormFields({ form }: InstitutionFormFieldsProps) {
         <CardContent className="space-y-4">
           {fields.map((item, index) => (
             <div key={item.id} className="p-4 border rounded-md space-y-3 relative bg-muted/20">
-               {fields.length > 1 && (
+              {fields.length > 1 && (
                 <Button
                   type="button"
                   variant="ghost"
@@ -182,7 +180,7 @@ export function InstitutionFormFields({ form }: InstitutionFormFieldsProps) {
               )}
               <FormField
                 control={form.control}
-                name={`directorContacts.${index}.name`}
+                name={`directivos.${index}.name`}
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Nombre del Contacto {index + 1} *</FormLabel>
@@ -195,7 +193,7 @@ export function InstitutionFormFields({ form }: InstitutionFormFieldsProps) {
               />
               <FormField
                 control={form.control}
-                name={`directorContacts.${index}.email`}
+                name={`directivos.${index}.email`}
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Correo Electrónico {index + 1} *</FormLabel>
@@ -209,7 +207,7 @@ export function InstitutionFormFields({ form }: InstitutionFormFieldsProps) {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
-                  name={`directorContacts.${index}.phone`}
+                  name={`directivos.${index}.phone`}
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Teléfono {index + 1}</FormLabel>
@@ -222,7 +220,7 @@ export function InstitutionFormFields({ form }: InstitutionFormFieldsProps) {
                 />
                 <FormField
                   control={form.control}
-                  name={`directorContacts.${index}.contactRole`}
+                  name={`directivos.${index}.contactRole`}
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Cargo {index + 1}</FormLabel>
@@ -236,13 +234,13 @@ export function InstitutionFormFields({ form }: InstitutionFormFieldsProps) {
               </div>
             </div>
           ))}
-           <FormField
-              control={form.control}
-              name="directorContacts"
-              render={() => (
-                 <FormMessage />
-              )}
-            />
+          <FormField
+            control={form.control}
+            name="directivos"
+            render={() => (
+              <FormMessage />
+            )}
+          />
         </CardContent>
       </Card>
     </div>

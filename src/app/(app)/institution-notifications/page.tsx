@@ -67,8 +67,8 @@ const renderEmailBody = (
   let studentTableRowsHTML = "";
   if (selectedStudentsForEmail.length > 0) {
     studentTableRowsHTML = selectedStudentsForEmail.map(student => {
-      const fullName = `${student.firstName} ${student.lastNamePaternal} ${student.lastNameMaternal}`;
-      return `<tr><td>${fullName}</td><td>${student.rut}</td><td>${student.career}</td><td>${student.practicumLevel}</td></tr>`;
+      const fullName = `${student.nombre} ${student.ap_paterno} ${student.ap_materno}`;
+      return `<tr><td>${fullName}</td><td>${student.rut}</td><td>${student.carrera_id}</td><td>${''}</td></tr>`;
     }).join("");
   } else {
     studentTableRowsHTML = `<tr><td colspan="4" style="text-align: center;">(No hay estudiantes seleccionados para esta notificación)</td></tr>`;
@@ -632,7 +632,7 @@ export default function InstitutionNotificationsPage() {
                           htmlFor={`student-${student.id}`}
                           className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                         >
-                          {student.firstName} {student.lastNamePaternal} ({student.career}, {student.practicumLevel}, vive en: {student.commune || 'N/A'})
+                          {student.nombre} {student.ap_paterno} ({student.carrera_id}, {''}, vive en: {student.comuna_id || 'N/A'})
                         </label>
                       </div>
                     ))

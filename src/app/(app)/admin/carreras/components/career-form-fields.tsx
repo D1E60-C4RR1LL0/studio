@@ -14,8 +14,9 @@ import {
 import { Input } from "@/components/ui/input";
 
 export const careerFormSchema = z.object({
-  name: z.string().min(3, { message: "Nombre de la carrera es requerido (mínimo 3 caracteres)." }),
+  nombre: z.string().min(3, { message: "Nombre de la carrera es requerido (mínimo 3 caracteres)." }),
 });
+
 
 export type CareerFormData = z.infer<typeof careerFormSchema>;
 
@@ -28,7 +29,8 @@ export function CareerFormFields({ form }: CareerFormFieldsProps) {
     <div className="space-y-6">
       <FormField
         control={form.control}
-        name="name"
+        name="nombre"
+
         render={({ field }) => (
           <FormItem>
             <FormLabel>Nombre de la Carrera *</FormLabel>

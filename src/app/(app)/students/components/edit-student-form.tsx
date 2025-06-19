@@ -20,7 +20,6 @@ interface EditStudentFormProps {
   onCancel: () => void;
 }
 
-// Helper function to normalize RUTs by removing dots, hyphens, and converting to uppercase.
 const normalizeRut = (rut: string | undefined): string => {
   if (!rut) return "";
   return rut.replace(/\./g, "").replace(/-/g, "").toUpperCase();
@@ -45,7 +44,7 @@ export function EditStudentForm({ onSave, onCancel }: EditStudentFormProps) {
     setIsLoadingStudent(true);
     setStudentNotFound(false);
     setCurrentStudent(null);
-    form.reset(); 
+    form.reset();
 
     const normalizedSearchRut = normalizeRut(rutSearch.trim());
 
@@ -58,15 +57,14 @@ export function EditStudentForm({ onSave, onCancel }: EditStudentFormProps) {
         setCurrentStudent(student);
         form.reset({
           rut: student.rut,
-          firstName: student.firstName,
-          lastNamePaternal: student.lastNamePaternal,
-          lastNameMaternal: student.lastNameMaternal,
+          nombre: student.nombre,
+          ap_paterno: student.ap_paterno,
+          ap_materno: student.ap_materno,
           email: student.email,
-          career: student.career,
-          commune: student.commune || "",
-          tutor: student.tutor || "",
-          practicumLevel: student.practicumLevel,
-          specialConditions: student.specialConditions || "",
+          carrera_id: student.carrera_id,
+          comuna_id: student.comuna_id,
+          tutor_id: student.tutor_id,
+          cond_especial: student.cond_especial || "",
         });
         setStudentNotFound(false);
       } else if (foundStudents.length > 1) {
@@ -75,7 +73,7 @@ export function EditStudentForm({ onSave, onCancel }: EditStudentFormProps) {
           description: "Se encontraron varios estudiantes. Por favor, ingrese un RUT más específico.",
           variant: "default",
         });
-        setStudentNotFound(false); 
+        setStudentNotFound(false);
       } else {
         setStudentNotFound(true);
       }
@@ -92,15 +90,14 @@ export function EditStudentForm({ onSave, onCancel }: EditStudentFormProps) {
     const studentToSave: Student = {
       id: currentStudent.id,
       rut: data.rut,
-      firstName: data.firstName,
-      lastNamePaternal: data.lastNamePaternal,
-      lastNameMaternal: data.lastNameMaternal,
+      nombre: data.nombre,
+      ap_paterno: data.ap_paterno,
+      ap_materno: data.ap_materno,
       email: data.email,
-      career: data.career,
-      commune: data.commune,
-      tutor: data.tutor,
-      practicumLevel: data.practicumLevel,
-      specialConditions: data.specialConditions,
+      carrera_id: data.carrera_id,
+      comuna_id: data.comuna_id,
+      tutor_id: data.tutor_id,
+      cond_especial: data.cond_especial,
     };
     await onSave(studentToSave);
   };
@@ -123,7 +120,7 @@ export function EditStudentForm({ onSave, onCancel }: EditStudentFormProps) {
               disabled={isLoadingStudent}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
-                  e.preventDefault(); 
+                  e.preventDefault();
                   handleSearchStudent();
                 }
               }}
@@ -143,12 +140,12 @@ export function EditStudentForm({ onSave, onCancel }: EditStudentFormProps) {
                 <Button
                   type="submit"
                   className="bg-green-500 hover:bg-green-600 text-white"
-                  disabled={form.formState.isSubmitting || !form.formState.isDirty}
+                  disabled={form.formState.isSubmitting}
                 >
                   <Save className="mr-2 h-4 w-4" /> Guardar cambios
                 </Button>
                 <Button type="button" variant="outline" onClick={onCancel}>
-                   <XCircle className="mr-2 h-4 w-4" /> Cancelar
+                  <XCircle className="mr-2 h-4 w-4" /> Cancelar
                 </Button>
               </div>
             </form>

@@ -60,7 +60,7 @@ export default function AdminTutorsPage() {
   React.useEffect(() => {
     const lowercasedSearchTerm = searchTerm.toLowerCase();
     const filteredData = tutors.filter(item =>
-      item.name.toLowerCase().includes(lowercasedSearchTerm) ||
+      item.nombre.toLowerCase().includes(lowercasedSearchTerm) ||
       (item.email && item.email.toLowerCase().includes(lowercasedSearchTerm))
     );
     setFilteredTutors(filteredData);
@@ -72,7 +72,7 @@ export default function AdminTutorsPage() {
       await loadTutorData();
       toast({
         title: "Tutor Guardado",
-        description: `${saved.name} ha sido guardado exitosamente.`,
+        description: `${saved.nombre} ha sido guardado exitosamente.`,
       });
       setViewMode('table');
       setCurrentSearchInput("");
@@ -98,7 +98,7 @@ export default function AdminTutorsPage() {
       await loadTutorData();
       toast({
         title: "Tutor Eliminado",
-        description: `${tutorToDelete.name} ha sido eliminado.`,
+        description: `${tutorToDelete.nombre} ha sido eliminado.`,
       });
     } catch (error) {
       toast({
@@ -221,7 +221,7 @@ export default function AdminTutorsPage() {
             </AlertDialogTitle>
             <AlertDialogDescription>
               Esta acción es irreversible y eliminará permanentemente al tutor: <br />
-              <strong>{tutorToDelete?.name}</strong>.
+              <strong>{tutorToDelete?.nombre}</strong>.
               <br /><br />
               ¿Desea continuar y eliminar este tutor?
             </AlertDialogDescription>

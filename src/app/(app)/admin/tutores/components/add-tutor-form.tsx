@@ -20,14 +20,14 @@ export function AddTutorForm({ onSave, onCancel }: AddTutorFormProps) {
   const form = useForm<TutorFormData>({
     resolver: zodResolver(tutorFormSchema),
     defaultValues: {
-      name: "",
+      nombre: "",
       email: "",
     },
   });
 
   const onSubmit = async (data: TutorFormData) => {
     await onSave({
-        name: data.name,
+        nombre: data.nombre,
         email: data.email || undefined, // Store undefined if email is empty
     });
     form.reset();

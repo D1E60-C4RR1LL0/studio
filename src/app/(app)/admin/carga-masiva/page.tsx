@@ -17,7 +17,7 @@ export default function BulkUploadPage() {
     // This could be a place to trigger a global notification or a refresh
     // of some dashboard if one existed, but for now, it's mainly for the form's internal logic.
     toast({
-      title: "Archivo Procesado (Simulado)",
+      title: "Archivo Procesado",
       description: "La información de la carga masiva se habría actualizado en la base de datos.",
       variant: "default",
     });
@@ -26,7 +26,7 @@ export default function BulkUploadPage() {
   const handleDatabaseEmptied = async () => {
     // Similar to above, could trigger global actions.
     toast({
-      title: "Base de Datos Vaciada (Simulado)",
+      title: "Base de Datos Vaciada",
       description: "Todos los datos han sido eliminados.",
       variant: "default",
     });

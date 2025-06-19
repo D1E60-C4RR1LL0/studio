@@ -1,54 +1,66 @@
-
 export type Student = {
   id: string;
   rut: string;
-  firstName: string;
-  lastNamePaternal: string;
-  lastNameMaternal: string;
+  nombre: string;
+  ap_paterno: string;
+  ap_materno: string;
   email: string;
-  career: string;
-  commune?: string;
-  tutor?: string;
-  practicumLevel: string;
-  specialConditions?: string;
-  location?: string; // Usado para asignar estudiantes a la ubicación de una institución
-};
-
-export type DirectorContact = {
-  id: string; // Unique ID for the contact, can be generated on save
-  name: string;
-  email: string;
-  phone?: string;
-  role?: string;
-};
-
-export type Institution = {
-  id: string;
-  rbd: string; // Rol Base de Datos - Identificador único del establecimiento
-  name: string;
-  dependency: string; // Ej: Municipal, Particular Subvencionado, Particular Pagado
-  location: string; // Comuna donde se ubica
-  directorContacts: DirectorContact[]; // Replaces individual contact fields
-  logo?: string; // URL del logo
-};
-
-export type AcademicLevel = {
-  id: string;
-  name: string;
+  cond_especial?: string;
+  carrera_id: string;
+  comuna_id?: string;
+  tutor_id?: string;
+  carrera?: Career;
+  comuna?: Commune;
+  tutor?: Tutor;
 };
 
 export type Career = {
   id: string;
-  name: string;
+  nombre: string;
 };
 
 export type Commune = {
   id: string;
-  name: string;
+  nombre: string;
 };
 
 export type Tutor = {
   id: string;
-  name: string;
-  email?: string; // Email is optional
+  nombre: string;
+  email?: string;
 };
+
+export type AcademicLevel = {
+  id: string;
+  nombre: string;
+  carrera_id: string;
+};
+
+
+export type DirectorContact = {
+  id?: string;
+  nombre: string;
+  email: string;
+  telefono?: string;
+  cargo?: string;
+};
+
+export interface Institution {
+  rbd: string;
+  nombre: string;
+  dependencia: string;
+  comuna_id: number | string; // Comuna ID puede ser un número o una cadena
+  id?: string;
+  directivos?: DirectorContact[];
+}
+
+export type Cupo = {
+  id: number;
+  establecimiento_id: string;
+  nivel_practica_id: string;
+  carrera_id: string; // ← ESTA propiedad es obligatoria
+  cantidad: number;
+  nivel_practica?: AcademicLevel;
+};
+
+

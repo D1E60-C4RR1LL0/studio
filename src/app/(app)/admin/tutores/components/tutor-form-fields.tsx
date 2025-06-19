@@ -14,7 +14,7 @@ import {
 import { Input } from "@/components/ui/input";
 
 export const tutorFormSchema = z.object({
-  name: z.string().min(3, { message: "Nombre del tutor es requerido (mínimo 3 caracteres)." }),
+  nombre: z.string().min(3, { message: "Nombre del tutor es requerido (mínimo 3 caracteres)." }),
   email: z.string().email({ message: "Correo electrónico inválido." }).optional().or(z.literal('')),
 });
 
@@ -29,7 +29,7 @@ export function TutorFormFields({ form }: TutorFormFieldsProps) {
     <div className="space-y-6">
       <FormField
         control={form.control}
-        name="name"
+        name="nombre"
         render={({ field }) => (
           <FormItem>
             <FormLabel>Nombre del Tutor *</FormLabel>

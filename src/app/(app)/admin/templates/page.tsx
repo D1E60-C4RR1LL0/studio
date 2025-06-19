@@ -30,8 +30,8 @@ export const studentPlaceholders = [
   { key: "{{estudiante.ap_materno}}", description: "Apellido materno del estudiante." },
   { key: "{{nombre_establecimiento}}", description: "Nombre del establecimiento asignado." },
   { key: "{{nivel_practica}}", description: "Nivel de práctica del estudiante." },
-  { key: "{{practicumStartDate}}", description: "Fecha de inicio de la práctica (ej: 'semana del dd de MMMM')." },
-  { key: "{{practicumEndDate}}", description: "Fecha de término de la práctica (ej: 'semana del dd de MMMM yyyy')." },
+  { key: "{{fecha_inicio}}", description: "Fecha de inicio de la práctica (ej: 'semana del dd de MMMM')." },
+  { key: "{{fecha_termino}}", description: "Fecha de término de la práctica (ej: 'semana del dd de MMMM yyyy')." },
   { key: "{{directivo.nombre}}", description: "Nombre del directivo/contacto en la institución." },
   { key: "{{directivo.cargo}}", description: "Cargo del directivo/contacto en la institución." },
   { key: "{{directivo.email}}", description: "Correo electrónico del directivo/contacto en la institución." },
@@ -72,7 +72,7 @@ export const DEFAULT_STUDENT_EMAIL_SUBJECT = "Confirmación de Práctica Pedagó
 export const DEFAULT_STUDENT_EMAIL_BODY_TEXT = `Estimado/a estudiante
 {{estudiante.nombre}} {{estudiante.ap_paterno}} {{estudiante.ap_materno}}
 
-Junto con saludar, se informa que, desde la coordinación de gestión de centros de Práctica de la UPP, ha sido adscrito/a a {{nombre_establecimiento}}, para desarrollar su {{nivel_practica}}, que inicia la {{practicumStartDate}} hasta la {{practicumEndDate}}.
+Junto con saludar, se informa que, desde la coordinación de gestión de centros de Práctica de la UPP, ha sido adscrito/a a {{nombre_establecimiento}}, para desarrollar su {{nivel_practica}}, que inicia la {{fecha_inicio}} hasta la {{fecha_termino}}.
 
 Los datos de contacto del establecimiento son:
 

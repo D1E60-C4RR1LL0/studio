@@ -2,7 +2,7 @@
 "use client";
 
 import * as React from "react";
-import type { Career } from "@/lib/definitions";
+import type { AcademicLevel, Career } from "@/lib/definitions";
 import { getCareers, saveCareer, deleteCareer } from "@/lib/data";
 import { CareersTable } from "./components/careers-table";
 import { AddCareerForm } from "./components/add-career-form";
@@ -23,6 +23,9 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
+import { getAllAcademicLevels } from "@/lib/api/academic-levels";
+
+
 type ViewMode = "table" | "addForm" | "editForm";
 
 export default function AdminCareersPage() {
@@ -34,6 +37,8 @@ export default function AdminCareersPage() {
   const [viewMode, setViewMode] = React.useState<ViewMode>("table");
   const [careerToDelete, setCareerToDelete] = React.useState<Career | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
+  const [academicLevels, setAcademicLevels] = React.useState<AcademicLevel[]>([]);
+
 
   const { toast } = useToast();
 
@@ -58,9 +63,23 @@ export default function AdminCareersPage() {
   }, [loadCareerData]);
 
   React.useEffect(() => {
+    async function fetchLevels() {
+      try {
+        const levels = await getAllAcademicLevels();
+        setAcademicLevels(levels);
+      } catch {
+        toast({ title: "Error al cargar niveles", description: "No se pudieron obtener los niveles.", variant: "destructive" });
+      }
+    }
+
+    fetchLevels();
+  }, []);
+
+
+  React.useEffect(() => {
     const lowercasedSearchTerm = searchTerm.toLowerCase();
     const filteredData = careers.filter(item =>
-      item.name.toLowerCase().includes(lowercasedSearchTerm)
+      item.nombre.toLowerCase().includes(lowercasedSearchTerm)
     );
     setFilteredCareers(filteredData);
   }, [searchTerm, careers]);
@@ -71,13 +90,13 @@ export default function AdminCareersPage() {
       await loadCareerData();
       toast({
         title: "Carrera Guardada",
-        description: `${saved.name} ha sido guardada exitosamente.`,
+        description: `${saved.nombre} ha sido guardada exitosamente.`,
       });
       setViewMode('table');
       setCurrentSearchInput("");
       setSearchTerm("");
     } catch (error) {
-       toast({
+      toast({
         title: "Error al guardar",
         description: "No se pudo guardar la carrera.",
         variant: "destructive",
@@ -97,7 +116,7 @@ export default function AdminCareersPage() {
       await loadCareerData();
       toast({
         title: "Carrera Eliminada",
-        description: `${careerToDelete.name} ha sido eliminada.`,
+        description: `${careerToDelete.nombre} ha sido eliminada.`,
       });
     } catch (error) {
       toast({
@@ -112,7 +131,7 @@ export default function AdminCareersPage() {
       setSearchTerm("");
     }
   };
-  
+
   const handleSearchAction = () => {
     setSearchTerm(currentSearchInput);
   };
@@ -122,6 +141,8 @@ export default function AdminCareersPage() {
       handleSearchAction();
     }
   };
+
+
 
   const pageTitles: Record<ViewMode, string> = {
     table: "Gestión de Carreras",
@@ -144,28 +165,28 @@ export default function AdminCareersPage() {
 
       <div className="flex flex-wrap items-center gap-2 mb-6">
         <Button
-            variant={viewMode === 'table' ? 'default' : 'outline'}
-            onClick={() => { setViewMode('table'); setCurrentSearchInput(""); setSearchTerm(""); }}
-            className={viewMode === 'table' ? 'bg-primary hover:bg-primary/90' : ''}
+          variant={viewMode === 'table' ? 'default' : 'outline'}
+          onClick={() => { setViewMode('table'); setCurrentSearchInput(""); setSearchTerm(""); }}
+          className={viewMode === 'table' ? 'bg-primary hover:bg-primary/90' : ''}
         >
-            <List className="mr-2 h-4 w-4" />
-            Listar Carreras
+          <List className="mr-2 h-4 w-4" />
+          Listar Carreras
         </Button>
         <Button
-            variant={viewMode === 'addForm' ? 'default' : 'outline'}
-            onClick={() => setViewMode('addForm')}
-            className={viewMode === 'addForm' ? 'bg-primary hover:bg-primary/90' : ''}
+          variant={viewMode === 'addForm' ? 'default' : 'outline'}
+          onClick={() => setViewMode('addForm')}
+          className={viewMode === 'addForm' ? 'bg-primary hover:bg-primary/90' : ''}
         >
-            <PlusCircle className="mr-2 h-4 w-4" />
-            Agregar Nueva
+          <PlusCircle className="mr-2 h-4 w-4" />
+          Agregar Nueva
         </Button>
-         <Button
-            variant={viewMode === 'editForm' ? 'default' : 'outline'}
-            onClick={() => setViewMode('editForm')}
-            className={viewMode === 'editForm' ? 'bg-primary hover:bg-primary/90' : ''}
+        <Button
+          variant={viewMode === 'editForm' ? 'default' : 'outline'}
+          onClick={() => setViewMode('editForm')}
+          className={viewMode === 'editForm' ? 'bg-primary hover:bg-primary/90' : ''}
         >
-            <Edit3 className="mr-2 h-4 w-4" />
-            Editar Existente
+          <Edit3 className="mr-2 h-4 w-4" />
+          Editar Existente
         </Button>
       </div>
 
@@ -191,6 +212,7 @@ export default function AdminCareersPage() {
           <CareersTable
             careers={searchTerm ? filteredCareers : careers}
             isLoading={isLoading}
+            academicLevels={academicLevels}
             onEdit={(career) => setViewMode('editForm')}
             onDelete={handleDeleteRequest}
           />
@@ -203,7 +225,7 @@ export default function AdminCareersPage() {
           onCancel={() => setViewMode('table')}
         />
       )}
-      
+
       {viewMode === 'editForm' && (
         <EditCareerForm
           onSave={handleSaveCareer}
@@ -215,12 +237,12 @@ export default function AdminCareersPage() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center">
-                <AlertTriangle className="mr-2 h-6 w-6 text-destructive" />
-                ¿Está seguro de eliminar esta carrera?
+              <AlertTriangle className="mr-2 h-6 w-6 text-destructive" />
+              ¿Está seguro de eliminar esta carrera?
             </AlertDialogTitle>
             <AlertDialogDescription>
               Esta acción es irreversible y eliminará permanentemente la carrera: <br />
-              <strong>{careerToDelete?.name}</strong>.
+              <strong>{careerToDelete?.nombre}</strong>.
               <br /><br />
               ¿Desea continuar y eliminar esta carrera?
             </AlertDialogDescription>

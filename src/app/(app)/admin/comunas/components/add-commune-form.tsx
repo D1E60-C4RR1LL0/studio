@@ -25,9 +25,10 @@ export function AddCommuneForm({ onSave, onCancel }: AddCommuneFormProps) {
   });
 
   const onSubmit = async (data: CommuneFormData) => {
-    await onSave(data);
+    await onSave({ nombre: data.name });
     form.reset();
   };
+
 
   return (
     <Card className="shadow-lg">

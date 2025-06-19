@@ -20,7 +20,7 @@ export function AddCareerForm({ onSave, onCancel }: AddCareerFormProps) {
   const form = useForm<CareerFormData>({
     resolver: zodResolver(careerFormSchema),
     defaultValues: {
-      name: "",
+      nombre: "",
     },
   });
 

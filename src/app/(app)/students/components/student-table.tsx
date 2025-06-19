@@ -19,7 +19,7 @@ interface StudentTableProps {
   students: Student[];
   isLoading: boolean;
   selectedStudents: Set<string>;
-  onSelectionChange: (studentId: string,isSelected: boolean) => void;
+  onSelectionChange: (studentId: string, isSelected: boolean) => void;
 }
 
 export function StudentTable({ students, isLoading, selectedStudents, onSelectionChange }: StudentTableProps) {
@@ -76,25 +76,25 @@ export function StudentTable({ students, isLoading, selectedStudents, onSelectio
         </TableHeader>
         <TableBody>
           {students.map((student) => (
-            <TableRow 
+            <TableRow
               key={student.id}
               data-state={selectedStudents.has(student.id) ? "selected" : ""}
             >
               <TableCell>
                 <Checkbox
-                  aria-label={`Seleccionar ${student.firstName} ${student.lastNamePaternal}`}
+                  aria-label={`Seleccionar ${student.nombre} ${student.ap_paterno}`}
                   checked={selectedStudents.has(student.id)}
                   onCheckedChange={(checked) => onSelectionChange(student.id, Boolean(checked))}
                 />
               </TableCell>
               <TableCell>
-                <div className="font-medium">{`${student.firstName} ${student.lastNamePaternal} ${student.lastNameMaternal}`}</div>
+                <div className="font-medium">{`${student.nombre} ${student.ap_paterno} ${student.ap_materno}`}</div>
                 <div className="text-xs text-muted-foreground md:hidden">{student.rut}</div>
-                <div className="text-xs text-muted-foreground md:hidden">{student.career}</div>
+                <div className="text-xs text-muted-foreground md:hidden">{student.carrera?.nombre ?? student.carrera_id}</div>
               </TableCell>
               <TableCell className="hidden md:table-cell">{student.rut}</TableCell>
-              <TableCell className="hidden md:table-cell">{student.career}</TableCell>
-              <TableCell>{student.practicumLevel}</TableCell>
+              <TableCell className="hidden md:table-cell">{student.carrera?.nombre ?? student.carrera_id}</TableCell>
+              <TableCell>-</TableCell>
             </TableRow>
           ))}
         </TableBody>
@@ -102,4 +102,3 @@ export function StudentTable({ students, isLoading, selectedStudents, onSelectio
     </div>
   );
 }
-

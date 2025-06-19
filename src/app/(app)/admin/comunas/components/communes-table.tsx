@@ -68,7 +68,7 @@ export function CommunesTable({ communes, isLoading, onEdit, onDelete }: Commune
         <TableBody>
           {communes.map((commune) => (
             <TableRow key={commune.id}>
-              <TableCell className="font-medium">{commune.name}</TableCell>
+              <TableCell className="font-medium">{commune.nombre}</TableCell>
               <TableCell className="text-right">
                 <Button variant="ghost" size="icon" onClick={() => onEdit(commune)} title="Editar">
                   <Edit3 className="h-4 w-4" />

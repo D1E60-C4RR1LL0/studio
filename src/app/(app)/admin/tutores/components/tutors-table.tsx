@@ -71,7 +71,7 @@ export function TutorsTable({ tutors, isLoading, onEdit, onDelete }: TutorsTable
         <TableBody>
           {tutors.map((tutor) => (
             <TableRow key={tutor.id}>
-              <TableCell className="font-medium">{tutor.name}</TableCell>
+              <TableCell className="font-medium">{tutor.nombre}</TableCell>
               <TableCell>{tutor.email || <span className="text-muted-foreground">N/A</span>}</TableCell>
               <TableCell className="text-right">
                 <Button variant="ghost" size="icon" onClick={() => onEdit(tutor)} title="Editar">
